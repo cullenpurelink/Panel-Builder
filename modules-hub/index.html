@@ -50,6 +50,16 @@
   body.collapsed .sbItem .lbl, body.collapsed .sbItem .soon{display:none}
   .sbItem .soon{font:700 9.5px var(--font-ui);letter-spacing:.03em;text-transform:uppercase;color:var(--muted);background:var(--surface-2);border-radius:4px;padding:1px 5px;flex:0 0 auto}
   .sbDivider{height:1px;background:var(--line);margin:8px 6px}
+  #sbFooter{flex:0 0 auto;padding:10px;border-top:1px solid var(--line)}
+  #pushBtn{
+    width:100%;display:flex;align-items:center;justify-content:center;gap:8px;
+    background:var(--accent);color:var(--on-accent);border:none;border-radius:8px;
+    padding:9px 0;font:600 13px var(--font-ui);cursor:pointer;white-space:nowrap;overflow:hidden
+  }
+  #pushBtn:disabled{opacity:.6;cursor:default}
+  body.collapsed #pushBtn .lbl{display:none}
+  #pushStatus{font-size:11.5px;color:var(--muted);margin-top:6px;line-height:1.4;max-height:60px;overflow-y:auto}
+  body.collapsed #pushStatus{display:none}
 
   /* ---------- main area ---------- */
   #main{flex:1;min-width:0;display:flex;flex-direction:column}
@@ -79,6 +89,12 @@
     <button id="sbToggle" type="button" aria-label="Collapse sidebar" title="Collapse sidebar">&#8676;</button>
   </div>
   <div id="sbNav"></div>
+  <div id="sbFooter">
+    <button id="pushBtn" type="button" title="Commit everything and push to GitHub">
+      <span class="ic">&#8593;</span><span class="lbl">Push to GitHub</span>
+    </button>
+    <div id="pushStatus"></div>
+  </div>
 </nav>
 
 <div id="main">
@@ -176,6 +192,31 @@ function openModule(id) {
 }
 
 showHome();
+
+var pushBtn = document.getElementById('pushBtn');
+var pushStatus = document.getElementById('pushStatus');
+pushBtn.onclick = function () {
+  pushBtn.disabled = true;
+  pushStatus.textContent = 'Pushing…';
+  fetch('/api/git-push', { method: 'POST' })
+    .then(function (res) {
+      if (!res.ok) throw new Error('Push server returned ' + res.status);
+      return res.json();
+    })
+    .then(function (data) {
+      pushStatus.textContent = data.ok ? '✓ Pushed' : '✗ ' + lastLine(data.log);
+      if (!data.ok) console.error('git push failed:\n' + data.log);
+    })
+    .catch(function (err) {
+      pushStatus.textContent = '✗ Push server not running — start via start.bat';
+      console.error(err);
+    })
+    .finally(function () { pushBtn.disabled = false; });
+};
+function lastLine(s) {
+  var lines = (s || '').trim().split('\n').filter(Boolean);
+  return lines.length ? lines[lines.length - 1] : 'Push failed';
+}
 </script>
 </body>
 </html>

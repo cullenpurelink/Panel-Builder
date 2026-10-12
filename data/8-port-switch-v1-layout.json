@@ -1,0 +1,402 @@
+{
+  "chassis": {
+    "form": "std",
+    "height": 30,
+    "width": 240
+  },
+  "format": "purelink-panel-layout",
+  "logoSvg": "",
+  "name": "8 port switch ",
+  "panels": {
+    "front": [
+      {
+        "cat": "NETWORK",
+        "id": "iohpm2w4",
+        "kind": "logo",
+        "scale": 1,
+        "showBox": true,
+        "style": "inline",
+        "x": 31,
+        "y": 8.5
+      },
+      {
+        "color": "red",
+        "func": "[power]",
+        "id": "i940witv",
+        "kind": "port",
+        "label": "",
+        "lit": true,
+        "rot": 0,
+        "size": 2,
+        "sub": "",
+        "type": "led",
+        "x": 11.5,
+        "y": 21.5
+      },
+      {
+        "color": "blue",
+        "func": "[power]",
+        "id": "it5mhzsx",
+        "kind": "port",
+        "label": "1",
+        "lit": true,
+        "rot": 0,
+        "size": 2,
+        "sub": "",
+        "type": "led",
+        "x": 117,
+        "y": 16
+      },
+      {
+        "color": "blue",
+        "func": "[power]",
+        "id": "i96ikdv5",
+        "kind": "port",
+        "label": "2",
+        "labelGap": 1,
+        "lit": true,
+        "rot": 0,
+        "size": 2,
+        "sub": "",
+        "type": "led",
+        "x": 121.111,
+        "y": 16
+      },
+      {
+        "color": "blue",
+        "func": "[power]",
+        "id": "isxp4crt",
+        "kind": "port",
+        "label": "3",
+        "lit": true,
+        "rot": 0,
+        "size": 2,
+        "sub": "",
+        "type": "led",
+        "x": 125.222,
+        "y": 16
+      },
+      {
+        "color": "blue",
+        "func": "[power]",
+        "id": "idul93wm",
+        "kind": "port",
+        "label": "4",
+        "lit": true,
+        "rot": 0,
+        "size": 2,
+        "sub": "",
+        "type": "led",
+        "x": 129.333,
+        "y": 16
+      },
+      {
+        "color": "blue",
+        "func": "[power]",
+        "id": "iygcpogh",
+        "kind": "port",
+        "label": "5",
+        "lit": true,
+        "rot": 0,
+        "size": 2,
+        "sub": "",
+        "type": "led",
+        "x": 133.444,
+        "y": 16
+      },
+      {
+        "color": "blue",
+        "func": "[power]",
+        "id": "ino5brs0",
+        "kind": "port",
+        "label": "6",
+        "lit": true,
+        "rot": 0,
+        "size": 2,
+        "sub": "",
+        "type": "led",
+        "x": 137.556,
+        "y": 16
+      },
+      {
+        "color": "blue",
+        "func": "[power]",
+        "id": "iuhzvdo1",
+        "kind": "port",
+        "label": "7",
+        "lit": true,
+        "rot": 0,
+        "size": 2,
+        "sub": "",
+        "type": "led",
+        "x": 141.667,
+        "y": 16
+      },
+      {
+        "color": "blue",
+        "func": "[power]",
+        "id": "ijxvfyg4",
+        "kind": "port",
+        "label": "8",
+        "lit": true,
+        "rot": 0,
+        "size": 2,
+        "sub": "",
+        "type": "led",
+        "x": 145.778,
+        "y": 16
+      },
+      {
+        "color": "blue",
+        "func": "[power]",
+        "id": "imh8keck",
+        "kind": "port",
+        "label": "9",
+        "lit": true,
+        "rot": 0,
+        "size": 2,
+        "sub": "",
+        "type": "led",
+        "x": 149.889,
+        "y": 16
+      },
+      {
+        "color": "blue",
+        "func": "[power]",
+        "id": "ips6e0dr",
+        "kind": "port",
+        "label": "10",
+        "lit": true,
+        "rot": 0,
+        "size": 2,
+        "sub": "",
+        "type": "led",
+        "x": 154,
+        "y": 16
+      },
+      {
+        "func": "EDID",
+        "id": "i122rr14",
+        "kind": "port",
+        "label": "",
+        "pins": 5,
+        "rot": 0,
+        "sub": "",
+        "type": "dip",
+        "x": 207,
+        "y": 19
+      },
+      {
+        "func": "RESET",
+        "id": "iunxo3ns",
+        "kind": "port",
+        "label": "",
+        "rot": 0,
+        "sub": "",
+        "type": "reset",
+        "x": 25,
+        "y": 21.5
+      }
+    ],
+    "rear": [
+      {
+        "colorBox": false,
+        "func": "LAN",
+        "id": "itbdnglc",
+        "kind": "port",
+        "label": "",
+        "rot": 0,
+        "sub": "",
+        "type": "rj45",
+        "x": 20.5,
+        "y": 15
+      },
+      {
+        "colorBox": false,
+        "func": "LAN",
+        "id": "ig3tyd01",
+        "kind": "port",
+        "label": "",
+        "rot": 0,
+        "sub": "",
+        "type": "rj45",
+        "x": 39,
+        "y": 15
+      },
+      {
+        "colorBox": false,
+        "func": "LAN",
+        "id": "if3gkt2b",
+        "kind": "port",
+        "label": "",
+        "rot": 0,
+        "sub": "",
+        "type": "rj45",
+        "x": 57.5,
+        "y": 15
+      },
+      {
+        "colorBox": false,
+        "func": "LAN",
+        "id": "ixkxxvui",
+        "kind": "port",
+        "label": "",
+        "rot": 0,
+        "sub": "",
+        "type": "rj45",
+        "x": 76,
+        "y": 15
+      },
+      {
+        "colorBox": false,
+        "func": "LAN",
+        "id": "ib5rkl0k",
+        "kind": "port",
+        "label": "",
+        "rot": 0,
+        "sub": "",
+        "type": "rj45",
+        "x": 94.5,
+        "y": 15
+      },
+      {
+        "colorBox": false,
+        "func": "LAN",
+        "id": "i2hps5ul",
+        "kind": "port",
+        "label": "",
+        "rot": 0,
+        "sub": "",
+        "type": "rj45",
+        "x": 113,
+        "y": 15
+      },
+      {
+        "colorBox": false,
+        "func": "LAN",
+        "id": "ibcgdgmj",
+        "kind": "port",
+        "label": "",
+        "rot": 0,
+        "sub": "",
+        "type": "rj45",
+        "x": 131.5,
+        "y": 15
+      },
+      {
+        "colorBox": false,
+        "func": "LAN",
+        "id": "idwosl0l",
+        "kind": "port",
+        "label": "",
+        "rot": 0,
+        "sub": "",
+        "type": "rj45",
+        "x": 150,
+        "y": 15
+      },
+      {
+        "colorBox": false,
+        "func": "LAN",
+        "id": "i049a4zy",
+        "kind": "port",
+        "label": "",
+        "rot": 0,
+        "sub": "",
+        "type": "rj45",
+        "x": 174,
+        "y": 15
+      },
+      {
+        "colorBox": false,
+        "func": "LAN",
+        "id": "i1w2utq3",
+        "kind": "port",
+        "label": "",
+        "rot": 0,
+        "sub": "",
+        "type": "rj45",
+        "x": 192.5,
+        "y": 15
+      },
+      {
+        "id": "imp2fepc",
+        "kind": "frame",
+        "members": [
+          "itbdnglc",
+          "ig3tyd01",
+          "if3gkt2b",
+          "ixkxxvui",
+          "ib5rkl0k",
+          "i2hps5ul",
+          "ibcgdgmj",
+          "idwosl0l"
+        ],
+        "pad": 2,
+        "padBottom": 0,
+        "padTop": 1,
+        "title": "1 GbE PoE Link",
+        "titlePos": "top"
+      },
+      {
+        "id": "i0i5qhwy",
+        "kind": "frame",
+        "members": [
+          "i049a4zy",
+          "i1w2utq3"
+        ],
+        "pad": 2,
+        "padBottom": 0,
+        "padTop": 1,
+        "title": "UPLINK",
+        "titlePos": "top"
+      },
+      {
+        "func": "DC 24V",
+        "id": "i0t0ahh3",
+        "kind": "port",
+        "label": "",
+        "rot": 0,
+        "sub": "",
+        "type": "din4",
+        "x": 223.5,
+        "y": 15
+      }
+    ]
+  },
+  "rules": {
+    "fontWeight": 400,
+    "edgeClearance": 3,
+    "minGap": 1,
+    "labelGap": 1,
+    "autoNumber": true,
+    "upper": false,
+    "fontPt": 0,
+    "alignLabels": true,
+    "alignRange": 4
+  },
+  "sku": "8 port Switch V1",
+  "version": 3,
+  "housing": {
+    "depth": null
+  },
+  "render": {},
+  "validation": {
+    "cutouts": [
+      "Fusion cut-out SVG: Cut-outs trace each connector’s visible outline, not the manufacturer’s recommended panel cut-out with clearance and tolerance.",
+      "LED: checked against a 1:1 drawing, not signed off.",
+      "DIP switch, 5-way: checked against a 1:1 drawing, not signed off.",
+      "Reset hole: estimated from photos or standard dimensions, not signed off.",
+      "RJ45: checked against a 1:1 drawing, not signed off.",
+      "4-pin DIN power: checked against a 1:1 drawing, not signed off."
+    ],
+    "silkscreen": [
+      "Silkscreen SVG: Silk artwork has not yet been compared with production silk files.",
+      "LED: checked against a 1:1 drawing, not signed off.",
+      "DIP switch, 5-way: checked against a 1:1 drawing, not signed off.",
+      "Reset hole: estimated from photos or standard dimensions, not signed off.",
+      "RJ45: checked against a 1:1 drawing, not signed off.",
+      "4-pin DIN power: checked against a 1:1 drawing, not signed off."
+    ]
+  }
+}

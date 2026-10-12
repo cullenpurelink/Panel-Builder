@@ -1,0 +1,407 @@
+{
+  "chassis": {
+    "form": "std",
+    "height": 30,
+    "width": 220
+  },
+  "format": "purelink-panel-layout",
+  "logoSvg": "",
+  "name": "Untitled product",
+  "panels": {
+    "front": [
+      {
+        "bezel": 1.1,
+        "bg": "white",
+        "content": "192.168.11.100",
+        "h": 15,
+        "id": "ivjypn2a",
+        "kind": "screen",
+        "w": 29,
+        "x": 109.5,
+        "y": 15
+      },
+      {
+        "func": "ENTER",
+        "id": "iash8x4e",
+        "kind": "port",
+        "label": "",
+        "labelPos": "below",
+        "lit": false,
+        "rot": 0,
+        "sub": "",
+        "type": "button",
+        "x": 84,
+        "y": 19
+      },
+      {
+        "func": "AUTO/3S",
+        "id": "i3jkw3al",
+        "kind": "port",
+        "label": "▼",
+        "labelPos": "below",
+        "lit": false,
+        "rot": 0,
+        "sub": "",
+        "type": "button",
+        "x": 134,
+        "y": 19
+      },
+      {
+        "func": "AUTO/3S",
+        "id": "iflnictm",
+        "kind": "port",
+        "label": "▲",
+        "labelPos": "below",
+        "lit": false,
+        "rot": 0,
+        "sub": "",
+        "type": "button",
+        "x": 146,
+        "y": 19
+      },
+      {
+        "color": "red",
+        "func": "[power]",
+        "id": "ikskuvwz",
+        "kind": "port",
+        "label": "",
+        "lit": true,
+        "rot": 0,
+        "size": 2,
+        "sub": "",
+        "type": "led",
+        "x": 8,
+        "y": 22.5
+      },
+      {
+        "color": "amber",
+        "func": "LINK",
+        "id": "i956ubgg",
+        "kind": "port",
+        "label": "",
+        "lit": true,
+        "rot": 0,
+        "size": 2,
+        "sub": "",
+        "type": "led",
+        "x": 15.5,
+        "y": 22.5
+      },
+      {
+        "func": "RESET",
+        "id": "i8yl89cb",
+        "kind": "port",
+        "label": "",
+        "rot": 0,
+        "sub": "",
+        "type": "reset",
+        "x": 26,
+        "y": 23
+      },
+      {
+        "cat": "IPAV V2",
+        "id": "i8fajbfo",
+        "kind": "logo",
+        "scale": 1,
+        "showBox": true,
+        "style": "inline",
+        "x": 28.5,
+        "y": 9
+      },
+      {
+        "func": "USB",
+        "id": "ixxxdoa3",
+        "kind": "port",
+        "label": "",
+        "rot": 90,
+        "sub": "",
+        "type": "usba2",
+        "usb3": false,
+        "x": 186.5,
+        "y": 16.5
+      },
+      {
+        "func": "USB",
+        "id": "itt79dpy",
+        "kind": "port",
+        "label": "",
+        "rot": 90,
+        "sub": "",
+        "type": "usba2",
+        "usb3": false,
+        "x": 198.5,
+        "y": 16.5
+      },
+      {
+        "id": "i572kyjw",
+        "kind": "frame",
+        "members": [
+          "itt79dpy",
+          "ixxxdoa3"
+        ],
+        "pad": 1.6,
+        "padBottom": 0.9,
+        "padTop": 0.6,
+        "title": "Devices",
+        "titlePos": "top"
+      },
+      {
+        "color": "blue",
+        "func": "HDMI",
+        "id": "i6iupvao",
+        "kind": "port",
+        "label": "",
+        "lit": true,
+        "rot": 0,
+        "size": 2,
+        "sub": "",
+        "type": "led",
+        "x": 42.5,
+        "y": 22.5
+      },
+      {
+        "color": "blue",
+        "func": "USB-C",
+        "id": "iloi6bjt",
+        "kind": "port",
+        "label": "",
+        "lit": true,
+        "rot": 0,
+        "size": 2,
+        "sub": "",
+        "type": "led",
+        "x": 54,
+        "y": 22.5
+      },
+      {
+        "id": "ibepse10",
+        "kind": "text",
+        "pt": 8,
+        "text": "Active Source",
+        "weight": 400,
+        "x": 54,
+        "y": 17.5
+      },
+      {
+        "color": "blue",
+        "func": "[power]",
+        "id": "izynwznz",
+        "kind": "port",
+        "label": "Stream ",
+        "lit": true,
+        "rot": 0,
+        "size": 2,
+        "sub": "",
+        "type": "led",
+        "x": 64.5,
+        "y": 22.5
+      }
+    ],
+    "rear": [
+      {
+        "func": "1G SFP",
+        "id": "i9puj6qm",
+        "kind": "port",
+        "label": "",
+        "rot": 0,
+        "sub": "",
+        "type": "sfp",
+        "x": 55,
+        "y": 15
+      },
+      {
+        "colorBox": false,
+        "func": "LAN/PoE",
+        "id": "ipeyfzmf",
+        "kind": "port",
+        "label": "",
+        "rot": 0,
+        "sub": "",
+        "type": "rj45",
+        "x": 16,
+        "y": 15
+      },
+      {
+        "colorBox": false,
+        "func": "LAN/PoE",
+        "id": "igc92ouk",
+        "kind": "port",
+        "label": "",
+        "rot": 0,
+        "sub": "",
+        "type": "rj45",
+        "x": 36,
+        "y": 15
+      },
+      {
+        "id": "i0ysb5ks",
+        "kind": "frame",
+        "members": [
+          "igc92ouk",
+          "i9puj6qm",
+          "ipeyfzmf"
+        ],
+        "pad": 1.2,
+        "padBottom": 0.2,
+        "padTop": 1.5,
+        "title": "Network Transport",
+        "titlePos": "top"
+      },
+      {
+        "colorBox": false,
+        "func": "USB-C",
+        "id": "iateymps",
+        "kind": "port",
+        "label": "[power]",
+        "lock": true,
+        "rot": 0,
+        "sub": "[bolt]",
+        "type": "usbc",
+        "x": 207.5,
+        "y": 20.5
+      },
+      {
+        "colorBox": false,
+        "func": "DANTE",
+        "id": "iibknt1p",
+        "kind": "port",
+        "label": "",
+        "rot": 0,
+        "sub": "",
+        "type": "rj45",
+        "x": 165,
+        "y": 16.5
+      },
+      {
+        "func": "HDMI IN",
+        "id": "ineokgks",
+        "kind": "port",
+        "label": "",
+        "lock": true,
+        "rot": 0,
+        "sub": "",
+        "type": "hdmi",
+        "x": 125,
+        "y": 19
+      },
+      {
+        "colorBox": true,
+        "func": "USB-C",
+        "id": "i3c9mwln",
+        "kind": "port",
+        "label": "",
+        "lock": true,
+        "rot": 0,
+        "sub": "100W[bolt]",
+        "type": "usbc",
+        "x": 103,
+        "y": 19.5
+      },
+      {
+        "func": "HDMI OUT",
+        "id": "iubm5pl6",
+        "kind": "port",
+        "label": "",
+        "lock": true,
+        "rot": 0,
+        "sub": "",
+        "type": "hdmi",
+        "x": 80.5,
+        "y": 19
+      },
+      {
+        "func": "USB HOST",
+        "id": "itpdmgk9",
+        "kind": "port",
+        "label": "",
+        "rot": 0,
+        "sub": "",
+        "type": "usbb2",
+        "x": 144.5,
+        "y": 17
+      },
+      {
+        "dy": 0,
+        "id": "idl7v7i1",
+        "kind": "dash",
+        "len": 0,
+        "members": [
+          "ineokgks",
+          "itpdmgk9"
+        ]
+      },
+      {
+        "id": "i17wo0t8",
+        "kind": "frame",
+        "members": [
+          "itpdmgk9",
+          "ineokgks",
+          "i3c9mwln"
+        ],
+        "pad": 1.6,
+        "padBottom": -0.6,
+        "padTop": 2.2,
+        "title": "INPUT",
+        "titlePos": "top"
+      },
+      {
+        "func": "Bal. Audio",
+        "id": "i84al3ra",
+        "kind": "port",
+        "label": "",
+        "pinLabels": "",
+        "pins": 5,
+        "rot": 0,
+        "sub": "RS232   |  I/O",
+        "type": "eb35x2p5",
+        "x": 187,
+        "y": 15
+      }
+    ]
+  },
+  "rules": {
+    "fontWeight": 400,
+    "edgeClearance": 3,
+    "minGap": 1,
+    "labelGap": 2,
+    "autoNumber": true,
+    "upper": true,
+    "fontPt": 0,
+    "alignLabels": true,
+    "alignRange": 4
+  },
+  "sku": "IPAV - 3x1 Tranceiver V0.2",
+  "version": 3,
+  "housing": {
+    "depth": null
+  },
+  "render": {},
+  "validation": {
+    "cutouts": [
+      "Fusion cut-out SVG: Cut-outs trace each connector’s visible outline, not the manufacturer’s recommended panel cut-out with clearance and tolerance.",
+      "LED push button: checked against a 1:1 drawing, not signed off.",
+      "LED: checked against a 1:1 drawing, not signed off.",
+      "Reset hole: estimated from photos or standard dimensions, not signed off.",
+      "USB-A 2.0 (legacy): estimated from photos or standard dimensions, not signed off.",
+      "SFP port: estimated from photos or standard dimensions, not signed off.",
+      "RJ45: checked against a 1:1 drawing, not signed off.",
+      "USB-C: checked against a 1:1 drawing, not signed off.",
+      "HDMI: checked against a 1:1 drawing, not signed off.",
+      "USB-B 2.0 (legacy): estimated from photos or standard dimensions, not signed off.",
+      "Phoenix, 2 rows × 5: checked against a 1:1 drawing, not signed off."
+    ],
+    "silkscreen": [
+      "Silkscreen SVG: Silk artwork has not yet been compared with production silk files.",
+      "LED push button: checked against a 1:1 drawing, not signed off.",
+      "LED: checked against a 1:1 drawing, not signed off.",
+      "Reset hole: estimated from photos or standard dimensions, not signed off.",
+      "USB-A 2.0 (legacy): estimated from photos or standard dimensions, not signed off.",
+      "SFP port: estimated from photos or standard dimensions, not signed off.",
+      "RJ45: checked against a 1:1 drawing, not signed off.",
+      "USB-C: checked against a 1:1 drawing, not signed off.",
+      "HDMI: checked against a 1:1 drawing, not signed off.",
+      "USB-B 2.0 (legacy): estimated from photos or standard dimensions, not signed off.",
+      "Phoenix, 2 rows × 5: checked against a 1:1 drawing, not signed off."
+    ]
+  }
+}

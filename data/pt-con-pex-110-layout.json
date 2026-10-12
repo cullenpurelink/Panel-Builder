@@ -1,0 +1,223 @@
+{
+  "chassis": {
+    "form": "std",
+    "height": 23,
+    "width": 98
+  },
+  "format": "purelink-panel-layout",
+  "logoSvg": "",
+  "name": "PT-CON-PEX-110 (from silk-print drawing V1.1)",
+  "panels": {
+    "front": [
+      {
+        "func": "POWER",
+        "id": "r83",
+        "kind": "port",
+        "label": "",
+        "labelPos": "above",
+        "rot": 0,
+        "size": 2,
+        "sub": "",
+        "type": "led",
+        "x": 9.54,
+        "y": 16.8
+      },
+      {
+        "func": "TX",
+        "id": "r84",
+        "kind": "port",
+        "label": "",
+        "labelPos": "above",
+        "rot": 0,
+        "size": 2,
+        "sub": "",
+        "type": "led",
+        "x": 18.54,
+        "y": 16.8
+      },
+      {
+        "func": "RX",
+        "id": "r85",
+        "kind": "port",
+        "label": "",
+        "labelPos": "above",
+        "rot": 0,
+        "size": 2,
+        "sub": "",
+        "type": "led",
+        "x": 27.54,
+        "y": 16.8
+      },
+      {
+        "func": "I/O",
+        "id": "r86",
+        "kind": "port",
+        "label": "",
+        "labelPos": "above",
+        "rot": 0,
+        "size": 2,
+        "sub": "",
+        "type": "led",
+        "x": 36.54,
+        "y": 16.8
+      },
+      {
+        "func": "IR",
+        "id": "r87",
+        "kind": "port",
+        "label": "",
+        "labelPos": "above",
+        "rot": 0,
+        "size": 2,
+        "sub": "",
+        "type": "led",
+        "x": 45.54,
+        "y": 16.8
+      },
+      {
+        "func": "RELAY 1",
+        "id": "r88",
+        "kind": "port",
+        "label": "",
+        "labelPos": "above",
+        "rot": 0,
+        "size": 2,
+        "sub": "",
+        "type": "led",
+        "x": 54.54,
+        "y": 16.8
+      },
+      {
+        "func": "RELAY 2",
+        "id": "r89",
+        "kind": "port",
+        "label": "",
+        "labelPos": "above",
+        "rot": 0,
+        "size": 2,
+        "sub": "",
+        "type": "led",
+        "x": 63.54,
+        "y": 16.8
+      },
+      {
+        "func": "RESET",
+        "id": "r90",
+        "kind": "port",
+        "label": "",
+        "rot": 0,
+        "size": 2,
+        "sub": "",
+        "type": "led",
+        "x": 85.04,
+        "y": 13.4
+      }
+    ],
+    "rear": [
+      {
+        "func": "IR        I/O",
+        "id": "r91",
+        "kind": "port",
+        "label": "",
+        "labelPos": "above",
+        "pinLabels": "S, [gnd], S",
+        "pins": 3,
+        "rot": 0,
+        "sub": "",
+        "type": "eb35",
+        "x": 13.42,
+        "y": 13.9
+      },
+      {
+        "func": "RELAY",
+        "id": "r92",
+        "kind": "port",
+        "label": "",
+        "labelPos": "above",
+        "pinLabels": "O1, G1, O2, G2",
+        "pins": 4,
+        "rot": 0,
+        "sub": "",
+        "type": "eb35",
+        "x": 27.92,
+        "y": 13.9
+      },
+      {
+        "func": "RS-485 | RS-232",
+        "id": "r93",
+        "kind": "port",
+        "label": "",
+        "labelPos": "above",
+        "pinLabels": "A, B, [gnd], TX, RX",
+        "pins": 5,
+        "rot": 0,
+        "sub": "",
+        "type": "eb35p5",
+        "x": 46.12,
+        "y": 13.9
+      },
+      {
+        "func": "LAN/PoE",
+        "id": "r94",
+        "kind": "port",
+        "label": "",
+        "labelPos": "above",
+        "ledSwap": true,
+        "rot": 0,
+        "sub": "",
+        "type": "rj45lp",
+        "x": 68.52,
+        "y": 14.6
+      },
+      {
+        "func": "DC IN",
+        "id": "r95",
+        "kind": "port",
+        "label": "",
+        "labelPos": "above",
+        "pinLabels": "VDC, [gnd]",
+        "pins": 2,
+        "rot": 0,
+        "sub": "",
+        "type": "eb35p2",
+        "x": 85.52,
+        "y": 13.9
+      }
+    ]
+  },
+  "rules": {
+    "fontWeight": 400,
+    "edgeClearance": 3,
+    "minGap": 1,
+    "labelGap": 1,
+    "autoNumber": false,
+    "upper": false,
+    "fontPt": 0,
+    "alignLabels": true,
+    "alignRange": 4
+  },
+  "sku": "PT-CON-PEX-110",
+  "version": 3,
+  "housing": {
+    "depth": null
+  },
+  "render": {},
+  "validation": {
+    "cutouts": [
+      "Fusion cut-out SVG: Cut-outs trace each connector’s visible outline, not the manufacturer’s recommended panel cut-out with clearance and tolerance.",
+      "LED: checked against a 1:1 drawing, not signed off.",
+      "Phoenix, 3-pin: estimated from photos or standard dimensions, not signed off.",
+      "Phoenix, 5-pin: estimated from photos or standard dimensions, not signed off.",
+      "RJ45 low profile: checked against a 1:1 drawing, not signed off.",
+      "Phoenix, 2-pin: estimated from photos or standard dimensions, not signed off."
+    ],
+    "silkscreen": [
+      "Silkscreen SVG: Silk artwork has not yet been compared with production silk files.",
+      "LED: checked against a 1:1 drawing, not signed off.",
+      "Phoenix, 3-pin: estimated from photos or standard dimensions, not signed off.",
+      "Phoenix, 5-pin: estimated from photos or standard dimensions, not signed off.",
+      "RJ45 low profile: checked against a 1:1 drawing, not signed off.",
+      "Phoenix, 2-pin: estimated from photos or standard dimensions, not signed off."
+    ]
+  }
+}

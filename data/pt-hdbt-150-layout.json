@@ -1,0 +1,197 @@
+{
+  "chassis": {
+    "form": "std",
+    "height": 25,
+    "width": 145
+  },
+  "format": "purelink-panel-layout",
+  "logoSvg": "",
+  "name": "PT-HDBT-150 (rebuilt from render)",
+  "panels": {
+    "front": [
+      {
+        "cat": "HDBT",
+        "id": "l99",
+        "kind": "logo",
+        "scale": 0.9,
+        "showBox": true,
+        "style": "inline",
+        "x": 23.13,
+        "y": 6.953
+      },
+      {
+        "color": "red",
+        "func": "[power]",
+        "id": "r100",
+        "kind": "port",
+        "label": "",
+        "rot": 0,
+        "size": 1.6,
+        "sub": "",
+        "type": "led",
+        "x": 24,
+        "y": 16.5
+      },
+      {
+        "func": "SERVICE",
+        "id": "r101",
+        "kind": "port",
+        "label": "",
+        "lock": false,
+        "rot": 0,
+        "sub": "",
+        "type": "usbc",
+        "x": 126.5,
+        "y": 16
+      }
+    ],
+    "rear": [
+      {
+        "func": "DC 24V",
+        "id": "r102",
+        "kind": "port",
+        "label": "",
+        "rot": 0,
+        "sub": "",
+        "type": "dc21",
+        "x": 14.25,
+        "y": 16.5
+      },
+      {
+        "colorBox": true,
+        "func": "HDBaseT",
+        "id": "r96",
+        "kind": "port",
+        "label": "",
+        "rot": 0,
+        "sub": "",
+        "type": "rj45lp",
+        "x": 38,
+        "y": 16.5
+      },
+      {
+        "func": "HDMI",
+        "id": "r97",
+        "kind": "port",
+        "label": "",
+        "lock": true,
+        "rot": 0,
+        "sub": "",
+        "type": "hdmi",
+        "x": 63,
+        "y": 16.5
+      },
+      {
+        "id": "f103",
+        "kind": "frame",
+        "members": [
+          "r96",
+          "r97"
+        ],
+        "pad": 2,
+        "padBottom": 0,
+        "padTop": 1,
+        "title": "OUTPUT",
+        "titlePos": "bottom"
+      },
+      {
+        "func": "HDMI",
+        "id": "r98",
+        "kind": "port",
+        "label": "",
+        "lock": true,
+        "rot": 0,
+        "sub": "",
+        "type": "hdmi",
+        "x": 88.5,
+        "y": 16.5
+      },
+      {
+        "id": "f104",
+        "kind": "frame",
+        "members": [
+          "r98"
+        ],
+        "pad": 2,
+        "padBottom": 0,
+        "padTop": 1,
+        "title": "INPUT",
+        "titlePos": "bottom"
+      },
+      {
+        "func": "IR IN",
+        "id": "r105",
+        "kind": "port",
+        "label": "",
+        "rot": 0,
+        "sub": "",
+        "type": "jack35",
+        "x": 104,
+        "y": 16.3
+      },
+      {
+        "func": "IR OUT",
+        "id": "r106",
+        "kind": "port",
+        "label": "",
+        "rot": 0,
+        "sub": "",
+        "type": "jack35",
+        "x": 116.5,
+        "y": 16.3
+      },
+      {
+        "func": "RS-232",
+        "id": "r107",
+        "kind": "port",
+        "label": "",
+        "pinLabels": "TX, [gnd], RX",
+        "pins": 3,
+        "rot": 0,
+        "sub": "",
+        "type": "eb35",
+        "x": 131.5,
+        "y": 16
+      }
+    ]
+  },
+  "rules": {
+    "fontWeight": 400,
+    "edgeClearance": 3,
+    "minGap": 1,
+    "labelGap": 1,
+    "autoNumber": false,
+    "upper": false,
+    "fontPt": 0,
+    "alignLabels": true,
+    "alignRange": 4
+  },
+  "sku": "PT-HDBT-150",
+  "version": 3,
+  "housing": {
+    "depth": null
+  },
+  "render": {},
+  "validation": {
+    "cutouts": [
+      "Fusion cut-out SVG: Cut-outs trace each connector’s visible outline, not the manufacturer’s recommended panel cut-out with clearance and tolerance.",
+      "LED: checked against a 1:1 drawing, not signed off.",
+      "USB-C: checked against a 1:1 drawing, not signed off.",
+      "DC barrel jack: estimated from photos or standard dimensions, not signed off.",
+      "RJ45 low profile: checked against a 1:1 drawing, not signed off.",
+      "HDMI: checked against a 1:1 drawing, not signed off.",
+      "3.5 mm jack: estimated from photos or standard dimensions, not signed off.",
+      "Phoenix, 3-pin: estimated from photos or standard dimensions, not signed off."
+    ],
+    "silkscreen": [
+      "Silkscreen SVG: Silk artwork has not yet been compared with production silk files.",
+      "LED: checked against a 1:1 drawing, not signed off.",
+      "USB-C: checked against a 1:1 drawing, not signed off.",
+      "DC barrel jack: estimated from photos or standard dimensions, not signed off.",
+      "RJ45 low profile: checked against a 1:1 drawing, not signed off.",
+      "HDMI: checked against a 1:1 drawing, not signed off.",
+      "3.5 mm jack: estimated from photos or standard dimensions, not signed off.",
+      "Phoenix, 3-pin: estimated from photos or standard dimensions, not signed off."
+    ]
+  }
+}
