@@ -1714,18 +1714,41 @@ function finStrip(x, y, w, h) {
   }
   return `<rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" rx="1.2" fill="#3A3A3B" stroke="#8E959C" stroke-width="0.4"/>` + ribs;
 }
-function topFace(x, y, w, h, enclosureW) {
+function topFace(x, y, w, h, enclosureW, catText) {
   // centred PureLink wordmark, sized by enclosure-width band (Silkprint
-  // guide p.14): 30mm (50-89), 45mm (90-209), 55mm (210-400).
-  const bandW = enclosureW <= 89 ? 30 : enclosureW <= 209 ? 45 : 55;
+  // guide p.14): 30mm (50-89), 45mm (90-209), 55mm (210-400). Category
+  // badge (reused from the front panel's own logo item, if any) sits
+  // bottom-right on the 210-400mm ("large") band, centred below the
+  // wordmark otherwise — matches the guide's small/medium-centred vs
+  // large-right-aligned rule, confirmed against the real
+  // PT-PSW-21HC-KVM V2 silkprint (KVM SWITCH badge, bottom-right).
+  const bandW = enclosureW <= 89 ? 30 : enclosureW <= 209 ? 45 : 55, large = enclosureW > 209;
   const logoW = Math.min(bandW, w * 0.7), logoH = logoW * (4 / 21);
   const cx = x + w / 2, cy = y + h / 2;
   let s = `<rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" rx="1.2" fill="#2B2C2E" stroke="#8E959C" stroke-width="0.4"/>`;
   s += model.logoSvg
     ? `<image href="${model.logoSvg}" x="${n(cx - logoW / 2)}" y="${n(cy - logoH / 2)}" width="${n(logoW)}" height="${n(logoH)}" preserveAspectRatio="xMidYMid meet"/>`
     : `<text x="${n(cx)}" y="${n(cy)}" text-anchor="middle" dominant-baseline="middle" font-family="Barlow, sans-serif" font-weight="500" font-size="${n(logoH * 0.9)}" fill="#C9CED3">PureLink</text>`;
-  s += `<text x="${n(x + 2)}" y="${n(y + h - 1.5)}" font-family="Barlow, sans-serif" font-size="2.4" fill="#8E959C">Top ${f(w)} × ${f(h)} mm</text>`;
+  if (catText) {
+    const cap = 3, bh = cap + 1.9, bw = textW(catText, cap / 0.7, 700) + 3.8;
+    const bx = large ? x + w - bw - 4 : cx - bw / 2, by = large ? y + h - bh - 3 : cy + logoH / 2 + 2.5;
+    s += `<rect x="${n(bx)}" y="${n(by)}" width="${n(bw)}" height="${n(bh)}" rx="0.6" fill="${BLUE}"/><text x="${n(bx + bw / 2)}" y="${n(by + bh / 2 + 0.3)}" text-anchor="middle" dominant-baseline="middle" font-family="Barlow, sans-serif" font-weight="700" font-size="${n(cap)}" fill="#FFFFFF">${esc(catText)}</text>`;
+  }
   return s;
+}
+function dimLineH(x1, x2, y, label) {
+  const t = 1.2, col = '#5B8DF2';
+  return `<line x1="${n(x1)}" y1="${n(y)}" x2="${n(x2)}" y2="${n(y)}" stroke="${col}" stroke-width="0.25"/>`
+    + `<line x1="${n(x1)}" y1="${n(y - t)}" x2="${n(x1)}" y2="${n(y + t)}" stroke="${col}" stroke-width="0.25"/>`
+    + `<line x1="${n(x2)}" y1="${n(y - t)}" x2="${n(x2)}" y2="${n(y + t)}" stroke="${col}" stroke-width="0.25"/>`
+    + `<text x="${n((x1 + x2) / 2)}" y="${n(y - 1)}" text-anchor="middle" font-family="Barlow, sans-serif" font-size="2.6" fill="${col}">${label}</text>`;
+}
+function dimLineV(x, y1, y2, label) {
+  const t = 1.2, col = '#5B8DF2', my = (y1 + y2) / 2;
+  return `<line x1="${n(x)}" y1="${n(y1)}" x2="${n(x)}" y2="${n(y2)}" stroke="${col}" stroke-width="0.25"/>`
+    + `<line x1="${n(x - t)}" y1="${n(y1)}" x2="${n(x + t)}" y2="${n(y1)}" stroke="${col}" stroke-width="0.25"/>`
+    + `<line x1="${n(x - t)}" y1="${n(y2)}" x2="${n(x + t)}" y2="${n(y2)}" stroke="${col}" stroke-width="0.25"/>`
+    + `<text x="${n(x - 1)}" y="${n(my)}" text-anchor="middle" font-family="Barlow, sans-serif" font-size="2.6" fill="${col}" transform="rotate(-90 ${n(x - 1)} ${n(my)})">${label}</text>`;
 }
 function bottomFace(x, y, w, h, c) {
   let s = `<rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" rx="1.2" fill="#3A3A3B" stroke="#8E959C" stroke-width="0.4"/>`;
@@ -1743,7 +1766,7 @@ function bottomFace(x, y, w, h, c) {
     ? [[x + 8, y + 8], [x + w - 8, y + 8], [x + 8, y + h - 8], [x + w - 8, y + h - 8]]
     : [[x + 8, y + h / 2], [x + w - 8, y + h / 2]];
   for (const [fx, fy] of feet) s += `<rect x="${n(fx - 3)}" y="${n(fy - 5)}" width="6" height="10" rx="1" fill="none" stroke="#C9CED3" stroke-width="0.4" stroke-dasharray="1,1"/>`;
-  s += `<text x="${n(x + 2)}" y="${n(y + h - 1.5)}" font-family="Barlow, sans-serif" font-size="2.4" fill="#8E959C">Bottom ${f(w)} × ${f(h)} mm</text>`;
+  s += `<text x="${n(x + 2)}" y="${n(y + h - 1.5)}" font-family="Barlow, sans-serif" font-size="2.4" fill="#8E959C">Bottom</text>`;
   return s;
 }
 function netSVG(c, D) {
@@ -1751,16 +1774,21 @@ function netSVG(c, D) {
   const W = c.width, H = c.height;
   const gap = 4, x0 = H + gap, rows = [0, H + gap, H + gap + D + gap, H + gap + D + gap + H + gap], tot = [x0 + W + gap + H, rows[3] + D];
   const face = (x, y, w, h, t, fill = '#3A3A3B') => `<rect x="${x}" y="${y}" width="${n(w)}" height="${n(h)}" rx="1.2" fill="${fill}" stroke="#8E959C" stroke-width="0.4"/><text x="${n(x + w / 2)}" y="${n(y + h / 2)}" text-anchor="middle" dominant-baseline="middle" font-family="Barlow, sans-serif" font-size="${n(Math.min(6, h / 4))}" fill="#C9CED3">${t}</text>`;
+  const logoItem = model.panels.front.find(i => i.kind === 'logo'), catText = logoItem && logoItem.showBox !== false ? logoItem.cat : '';
   let s = '';
   const rear = panelImg('rear'), front = panelImg('front');
   s += rear ? `<image href="${rear}" x="${x0}" y="${rows[0]}" width="${W}" height="${H}" preserveAspectRatio="none"/>` : face(x0, rows[0], W, H, 'Rear panel');
   const plainSide = (x, y, w, h) => `<rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" rx="1.2" fill="#3A3A3B" stroke="#8E959C" stroke-width="0.4"/>`;
   const side = c.cooling === 'heatsink' ? plainSide : finStrip;
-  s += side(0, rows[1], H, D) + topFace(x0, rows[1], W, D, W) + side(x0 + W + gap, rows[1], H, D);
+  s += side(0, rows[1], H, D) + topFace(x0, rows[1], W, D, W, catText) + side(x0 + W + gap, rows[1], H, D);
   s += front ? `<image href="${front}" x="${x0}" y="${rows[2]}" width="${W}" height="${H}" preserveAspectRatio="none"/>` : face(x0, rows[2], W, H, 'Front panel');
   s += bottomFace(x0, rows[3], W, D, c);
-  const k = Math.min(3, 840 / (tot[0] + 4), 620 / (tot[1] + 4));
-  return `<svg viewBox="-2 -2 ${n(tot[0] + 4)} ${n(tot[1] + 4)}" width="${Math.round((tot[0] + 4) * k)}" height="${Math.round((tot[1] + 4) * k)}" role="img" aria-label="Unfolded housing">${s}</svg>`;
+  // dimension callouts (width above the top row, depth to the left of it) —
+  // same two-dimension convention as the real silkprint drawings.
+  const dimL = 9, dimT = 7;
+  s += dimLineH(x0, x0 + W, rows[1] - 2.5, `${f(W)} mm`) + dimLineV(-dimL + 4, rows[1], rows[1] + D, `${f(D)} mm`);
+  const k = Math.min(3, 840 / (tot[0] + 4 + dimL), 620 / (tot[1] + 4 + dimT));
+  return `<svg viewBox="${-2 - dimL} ${-2 - dimT} ${n(tot[0] + 4 + dimL)} ${n(tot[1] + 4 + dimT)}" width="${Math.round((tot[0] + 4 + dimL) * k)}" height="${Math.round((tot[1] + 4 + dimT) * k)}" role="img" aria-label="Unfolded housing">${s}</svg>`;
 }
 function renderStage() {
   const hv = $('#housingView'), dv = $('#d3View'), st = productState();
