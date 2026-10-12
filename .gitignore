@@ -3,3 +3,9 @@ index.html.bak
 Thumbs.db
 __pycache__/
 *.pyc
+
+# Internal PureLink reference docs — kept locally for lookup, not pushed
+# (the folder's own INDEX.md stays tracked so a fresh clone still explains
+# what belongs here)
+reference/*
+!reference/INDEX.md
