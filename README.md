@@ -78,17 +78,29 @@ If you want this to sync across machines or between people again,
 that needs a small real backend (or re-adopting Claude's hosted
 capabilities) — not in scope for this local copy.
 
-## Bringing in today's in-progress design
+## Bringing panels over from claude.ai
 
-The in-progress `PT-PSW-21HC-KVM (rebuilt)` layout from claude.ai was
-exported as a portable layout file: [data/sample-layout.json](data/sample-layout.json).
-To load it here: open the tool → **Library** → **Import layout
-file** → pick `data/sample-layout.json`.
+For each panel in your hosted claude.ai library you want available
+locally:
+
+1. In the **claude.ai version**: Library → open the panel (Reopen)
+2. **Export** → scroll to the bottom → **Layout file** (the only export
+   with the full editable model — not the PNG/SVG/PDF drawing exports)
+   → download the `<name>-layout.json`
+3. Drop it into [`data/library/`](data/library/)
+4. Add its filename to [`data/library/manifest.json`](data/library/manifest.json)
+5. Reload the app — anything listed there that isn't already in the
+   local library gets loaded in automatically (silently, no undo pill,
+   and only once per item — a seed already present is left alone, so
+   it's safe to reload as often as you like)
+
+This is how the panels currently in `data/library/` got there — they
+load into the Library automatically the first time you open the app.
 
 ## Files
 
 - `index.html` — the app (loads `shared/local-db.js`, otherwise the original export untouched)
 - `start.bat` / `stop.bat` — start/stop the shared local server for the whole suite
-- `data/sample-layout.json` — today's exported layout, importable via the Library dialog
+- `data/library/` — exported layout JSONs + `manifest.json`, auto-loaded into the local Library on first run (see above)
 - `index.html.bak` — untouched copy of the original export, kept as a safety copy; safe to delete whenever you're satisfied
 - `shared/`, `modules-hub/`, `system-diagrams/` — see [Repo layout](#repo-layout) above

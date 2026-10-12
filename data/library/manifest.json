@@ -1,0 +1,11 @@
+[
+  "pt-psw-21hc-kvm-layout.json",
+  "pt-poe-4av-layout.json",
+  "pt-poe-8av-layout.json",
+  "8-port-switch-v1-layout.json",
+  "ipav-3x1-tranceiver-v0-2-layout.json",
+  "pt-hdbt-150-layout.json",
+  "pt-con-pex-110-layout.json",
+  "pt-psw-21kvm-40g-rx-layout.json",
+  "pt-psw-21kvm-40g-tx-layout.json"
+]

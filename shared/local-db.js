@@ -206,9 +206,9 @@
           return { exists: v !== undefined, data: function () { return v; } };
         });
       },
-      set: function (value) {
+      set: function (value, opts) {
         var clone = JSON.parse(JSON.stringify(value));
-        if (TRACKED[collName]) {
+        if (TRACKED[collName] && !(opts && opts.silent)) {
           return idbGet(collName, id).then(function (prev) {
             return idbSet(collName, id, clone).then(function () {
               pushHistory({ collection: collName, id: id, prevValue: prev, newValue: clone, label: labelFor(collName, id, prev, clone, 'set') });
