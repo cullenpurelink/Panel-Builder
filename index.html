@@ -1696,16 +1696,69 @@ function lockCard(stage) {
 function panelImg(pid) {
   try { const svg = exportSVG(pid, 'concept', true); return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg))); } catch (e) { return ''; }
 }
-function netSVG(W, H, D) {
+/* ---------- housing geometry: fins, top logo, heat sink, feet ----------
+   Follows the measured rules from Styleguide PureTools_Enclosure/Silkprint
+   V1.1 and the real PT-PSW-21HC-KVM V2 CHASSIS / PLK-M-1-04 CAD. Foot
+   positions are illustrative only (the style guide fixes the bracket's own
+   shape, not where it sits on a given housing) — see the caption under the
+   net view. */
+function finStrip(x, y, w, h) {
+  // side face (w=housing height, h=depth): horizontal ribs stacked along
+  // the depth, cut-out length = depth * 0.685, nudged so the first/last
+  // rib shows ~1.5mm, pitch ~3.5mm (1.5mm fin / 2mm slot) per the guide.
+  const cutLen = Math.min(h - 3, h * 0.685 + 3), marginV = (h - cutLen) / 2;
+  const marginH = Math.max(1, w * 0.08), pitch = 3.5, finH = 1.6;
+  let ribs = '';
+  for (let yy = marginV; yy <= h - marginV - finH; yy += pitch) {
+    ribs += `<rect x="${n(x + marginH)}" y="${n(y + yy)}" width="${n(w - 2 * marginH)}" height="${n(finH)}" rx="0.3" fill="#2B2C2E"/>`;
+  }
+  return `<rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" rx="1.2" fill="#3A3A3B" stroke="#8E959C" stroke-width="0.4"/>` + ribs;
+}
+function topFace(x, y, w, h, enclosureW) {
+  // centred PureLink wordmark, sized by enclosure-width band (Silkprint
+  // guide p.14): 30mm (50-89), 45mm (90-209), 55mm (210-400).
+  const bandW = enclosureW <= 89 ? 30 : enclosureW <= 209 ? 45 : 55;
+  const logoW = Math.min(bandW, w * 0.7), logoH = logoW * (4 / 21);
+  const cx = x + w / 2, cy = y + h / 2;
+  let s = `<rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" rx="1.2" fill="#2B2C2E" stroke="#8E959C" stroke-width="0.4"/>`;
+  s += model.logoSvg
+    ? `<image href="${model.logoSvg}" x="${n(cx - logoW / 2)}" y="${n(cy - logoH / 2)}" width="${n(logoW)}" height="${n(logoH)}" preserveAspectRatio="xMidYMid meet"/>`
+    : `<text x="${n(cx)}" y="${n(cy)}" text-anchor="middle" dominant-baseline="middle" font-family="Barlow, sans-serif" font-weight="500" font-size="${n(logoH * 0.9)}" fill="#C9CED3">PureLink</text>`;
+  s += `<text x="${n(x + 2)}" y="${n(y + h - 1.5)}" font-family="Barlow, sans-serif" font-size="2.4" fill="#8E959C">Top ${f(w)} × ${f(h)} mm</text>`;
+  return s;
+}
+function bottomFace(x, y, w, h, c) {
+  let s = `<rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" rx="1.2" fill="#3A3A3B" stroke="#8E959C" stroke-width="0.4"/>`;
+  if (c.cooling === 'heatsink' && heatsinkAllowed(c)) {
+    const hsW = Math.min(HEATSINK.span, w - 4), hsD = Math.min(25.9, h * 0.7);
+    const hx = x + w / 2 - hsW / 2, hy = y + h / 2 - hsD / 2;
+    s += `<rect x="${n(hx)}" y="${n(hy)}" width="${n(hsW)}" height="${n(hsD)}" rx="0.8" fill="#222325" stroke="#8E959C" stroke-width="0.3"/>`;
+    for (let xx = 2; xx < hsW - 2; xx += hsW / 28) s += `<rect x="${n(hx + xx)}" y="${n(hy + 1)}" width="${n(hsW / 56)}" height="${n(hsD - 2)}" fill="#111214"/>`;
+    s += `<circle cx="${n(hx + 6)}" cy="${n(hy + hsD / 2)}" r="1.4" fill="none" stroke="#C9CED3" stroke-width="0.3"/>`;
+    s += `<circle cx="${n(hx + hsW - 6)}" cy="${n(hy + hsD / 2)}" r="1.4" fill="none" stroke="#C9CED3" stroke-width="0.3"/>`;
+    s += `<text x="${n(x + w / 2)}" y="${n(hy + hsD + 4)}" text-anchor="middle" font-family="Barlow, sans-serif" font-size="2.6" fill="#C9CED3">ACC-MSINK, ${n(hsW)} × ${n(hsD)} mm</text>`;
+  }
+  const footCount = Math.abs(c.height - 44.45) < 0.01 ? 4 : 2;
+  const feet = footCount === 4
+    ? [[x + 8, y + 8], [x + w - 8, y + 8], [x + 8, y + h - 8], [x + w - 8, y + h - 8]]
+    : [[x + 8, y + h / 2], [x + w - 8, y + h / 2]];
+  for (const [fx, fy] of feet) s += `<rect x="${n(fx - 3)}" y="${n(fy - 5)}" width="6" height="10" rx="1" fill="none" stroke="#C9CED3" stroke-width="0.4" stroke-dasharray="1,1"/>`;
+  s += `<text x="${n(x + 2)}" y="${n(y + h - 1.5)}" font-family="Barlow, sans-serif" font-size="2.4" fill="#8E959C">Bottom ${f(w)} × ${f(h)} mm</text>`;
+  return s;
+}
+function netSVG(c, D) {
   // unfolded housing: rear / (left side, top, right side) / front / bottom
+  const W = c.width, H = c.height;
   const gap = 4, x0 = H + gap, rows = [0, H + gap, H + gap + D + gap, H + gap + D + gap + H + gap], tot = [x0 + W + gap + H, rows[3] + D];
   const face = (x, y, w, h, t, fill = '#3A3A3B') => `<rect x="${x}" y="${y}" width="${n(w)}" height="${n(h)}" rx="1.2" fill="${fill}" stroke="#8E959C" stroke-width="0.4"/><text x="${n(x + w / 2)}" y="${n(y + h / 2)}" text-anchor="middle" dominant-baseline="middle" font-family="Barlow, sans-serif" font-size="${n(Math.min(6, h / 4))}" fill="#C9CED3">${t}</text>`;
   let s = '';
   const rear = panelImg('rear'), front = panelImg('front');
   s += rear ? `<image href="${rear}" x="${x0}" y="${rows[0]}" width="${W}" height="${H}" preserveAspectRatio="none"/>` : face(x0, rows[0], W, H, 'Rear panel');
-  s += face(0, rows[1], H, D, 'Left side') + face(x0, rows[1], W, D, `Top  ${f(W)} × ${f(D)} mm`) + face(x0 + W + gap, rows[1], H, D, 'Right side');
+  const plainSide = (x, y, w, h) => `<rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" rx="1.2" fill="#3A3A3B" stroke="#8E959C" stroke-width="0.4"/>`;
+  const side = c.cooling === 'heatsink' ? plainSide : finStrip;
+  s += side(0, rows[1], H, D) + topFace(x0, rows[1], W, D, W) + side(x0 + W + gap, rows[1], H, D);
   s += front ? `<image href="${front}" x="${x0}" y="${rows[2]}" width="${W}" height="${H}" preserveAspectRatio="none"/>` : face(x0, rows[2], W, H, 'Front panel');
-  s += face(x0, rows[3], W, D, `Bottom  ${f(W)} × ${f(D)} mm`);
+  s += bottomFace(x0, rows[3], W, D, c);
   const k = Math.min(3, 840 / (tot[0] + 4), 620 / (tot[1] + 4));
   return `<svg viewBox="-2 -2 ${n(tot[0] + 4)} ${n(tot[1] + 4)}" width="${Math.round((tot[0] + 4) * k)}" height="${Math.round((tot[1] + 4) * k)}" role="img" aria-label="Unfolded housing">${s}</svg>`;
 }
@@ -1723,11 +1776,10 @@ function renderStage() {
         <option value="vent"${c.cooling !== 'heatsink' ? ' selected' : ''}>Bent-metal vents</option>
         <option value="heatsink"${c.cooling === 'heatsink' ? ' selected' : ''}${heatsinkAllowed(c) ? '' : ' disabled'}>Heat sink${heatsinkAllowed(c) ? '' : ' (30 mm or Custom 29 mm housings only)'}</option>
       </select></label></div>
-      ${D ? `<div class="netwrap">${netSVG(c.width, c.height, D)}</div>` : '<p>Set the depth to see the unfolded housing.</p>'}</div>
+      ${D ? `<div class="netwrap">${netSVG(c, D)}</div><p style="color:var(--muted);font-size:12.5px">Fin, logo and heat-sink geometry follow Styleguide PureTools_Enclosure/Silkprint V1.1 and the measured PLK-M-1-04/chassis CAD. Foot positions are illustrative — the style guide doesn't fix exact placement; check against the <code>PT_Feet_*</code> STEP files before production.</p>` : '<p>Set the depth to see the unfolded housing.</p>'}</div>
       <div class="card"><h2>Still coming</h2><ul>
-      <li>Side ventilation pattern from the housing class, e.g. 6 × 21 holes on 1U</li>
-      <li>Heat sink and vent cut-out geometry rendered in the housing shell (the keep-out check above is live now; the physical cut-out drawing isn't yet)</li>
-      <li>Housing screw and mounting holes, feet, debossed top logo</li>
+      <li>Perforated ventilation-hole pattern on top for rack/matrix housings, e.g. 6 × 21 holes on 1U (the net view above shows the side fins and, for 30 mm/Custom 29 mm housings, the heat sink — both illustrative references, not a manufacturing drawing)</li>
+      <li>Precise housing screw/mounting-hole coordinates and real foot attachment points (the net view's feet are placeholders — check against the <code>PT_Feet_*</code> STEP files)</li>
       <li>Silk print and label area on top and bottom, with the same text and frame tools</li>
       <li>Checks and 1:1 exports for every face</li></ul></div>`;
     const di = $('#depthIn'); if (di) di.onchange = () => { const v = parseFloat(di.value); model.housing.depth = v >= 20 ? r3(v) : null; commit(); updateToolbar(); renderStage(); };
