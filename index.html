@@ -489,9 +489,14 @@ function guideRange(H) {
   return null;
 }
 const FIN = { x0: 1, w: 7, keep: 10 };
-// ACC-MSINK heat sink (PLK-M-1-04 V0.2): measured 114 x 25.9 x 17 mm from the
-// PT-PSW-21HC-KVM V2 chassis assembly, mounted centred on the panel width.
-const HEATSINK = { span: 114 };
+// Heat sink / bent-metal vents (ACC-MSINK, PLK-M-1-04 V0.2): per user
+// correction, this is TWO zones — one at each end of the panel width,
+// not one centred block — occupying the same FIN.keep-wide strip the
+// rack front-fin check already uses, just generalised to every housing
+// and both front/rear. (An earlier CAD read claimed one 114mm centred
+// part; that reading had a transform bug on mirrored/repeated
+// instances and shouldn't be trusted — re-derive properly if an exact
+// width is needed later.)
 function heatsinkAllowed(c) {
   return !!((c.form === 'std' && !c.custom && Math.abs(c.height - 30) < 0.01) || (c.custom && Math.abs(c.height - 29) < 0.01));
 }
@@ -1482,7 +1487,9 @@ function runChecks() {
   for (const pid of ['front', 'rear']) {
     const Lo = layout(pid), names = computeLabels(pid), ents = [...Lo.map.values()];
     const keep = rack && pid === 'front' ? [[0, FIN.keep], [W - FIN.keep, W]] : [];
-    const heatBand = model.chassis.cooling === 'heatsink' ? [W / 2 - HEATSINK.span / 2, W / 2 + HEATSINK.span / 2] : null;
+    // heat sink: two end zones (same FIN.keep-wide strip as the rack front-fin
+    // check above, just not rack/front-only), not one centred block.
+    const heatZones = model.chassis.cooling === 'heatsink' ? [[0, FIN.keep], [W - FIN.keep, W]] : [];
     for (const e of ents) {
       const nm = entryName(e, names), id = e.it.id;
       if (e.cut || e.it.kind === 'logo') {
@@ -1490,7 +1497,7 @@ function runChecks() {
         if (h > maxH + 1e-6) out.push({ lvl: 'err', pid, ids: [id], msg: `${nm} is ${f(h)} mm tall. A ${hLabel(H)} panel leaves ${f(maxH)} mm inside the edge clearance.` });
         else if (c[1] < clr - 1e-6 || c[3] > H - clr + 1e-6 || c[0] < clr - 1e-6 || c[2] > W - clr + 1e-6) out.push({ lvl: 'err', pid, ids: [id], msg: `${nm} breaks the ${f(clr)} mm edge clearance.` });
         for (const k of keep) if (c[2] > k[0] && c[0] < k[1]) out.push({ lvl: 'err', pid, ids: [id], msg: `${nm} sits on the front fins.` });
-        if (heatBand && e.it.kind === 'port' && c[2] > heatBand[0] && c[0] < heatBand[1]) out.push({ lvl: 'warn', pid, ids: [id], msg: `${nm} sits over the heat sink's ${f(HEATSINK.span)} mm footprint (centred) — check depth clearance against the CAD file.` });
+        if (e.it.kind === 'port') for (const z of heatZones) if (c[2] > z[0] && c[0] < z[1]) out.push({ lvl: 'warn', pid, ids: [id], msg: `${nm} is in the heat sink zone (${f(FIN.keep)} mm from the ${z[0] === 0 ? 'left' : 'right'} edge) — check clearance against the CAD file.` });
       }
       for (const l of e.labels) {
         const b = l.box;
@@ -1706,6 +1713,8 @@ function finStrip(x, y, w, h) {
   // side face (w=housing height, h=depth): horizontal ribs stacked along
   // the depth, cut-out length = depth * 0.685, nudged so the first/last
   // rib shows ~1.5mm, pitch ~3.5mm (1.5mm fin / 2mm slot) per the guide.
+  // Used for "Bent-metal vents" (and always on the side faces, which are
+  // this same material seen edge-on).
   const cutLen = Math.min(h - 3, h * 0.685 + 3), marginV = (h - cutLen) / 2;
   const marginH = Math.max(1, w * 0.08), pitch = 3.5, finH = 1.6;
   let ribs = '';
@@ -1714,7 +1723,22 @@ function finStrip(x, y, w, h) {
   }
   return `<rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" rx="1.2" fill="#3A3A3B" stroke="#8E959C" stroke-width="0.4"/>` + ribs;
 }
-function topFace(x, y, w, h, enclosureW, catText) {
+function heatsinkStrip(x, y, w, h) {
+  // "Heat sink" cooling: a visibly different, heavier-looking texture
+  // from the vent comb above (thicker, wider-pitched ribs + two mounting
+  // screws) in the same zone — a solid block, not perforated sheet metal,
+  // which is why only this choice gets the depth-clearance warning.
+  const marginV = Math.max(2, h * 0.04), marginH = Math.max(1, w * 0.1), pitch = 4, finH = 2.6;
+  let ribs = '';
+  for (let yy = marginV; yy <= h - marginV - finH; yy += pitch) {
+    ribs += `<rect x="${n(x + marginH)}" y="${n(y + yy)}" width="${n(w - 2 * marginH)}" height="${n(finH)}" rx="0.4" fill="#1C1D1F"/>`;
+  }
+  const cx = x + w / 2;
+  return `<rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" rx="1.2" fill="#2E2F31" stroke="#8E959C" stroke-width="0.4"/>` + ribs
+    + `<circle cx="${n(cx)}" cy="${n(y + marginV + 2)}" r="1" fill="none" stroke="#C9CED3" stroke-width="0.3"/>`
+    + `<circle cx="${n(cx)}" cy="${n(y + h - marginV - 2)}" r="1" fill="none" stroke="#C9CED3" stroke-width="0.3"/>`;
+}
+function topFace(x, y, w, h, enclosureW, catText, cooling) {
   // centred PureLink wordmark, sized by enclosure-width band (Silkprint
   // guide p.14): 30mm (50-89), 45mm (90-209), 55mm (210-400). Category
   // badge (reused from the front panel's own logo item, if any) sits
@@ -1722,10 +1746,15 @@ function topFace(x, y, w, h, enclosureW, catText) {
   // wordmark otherwise — matches the guide's small/medium-centred vs
   // large-right-aligned rule, confirmed against the real
   // PT-PSW-21HC-KVM V2 silkprint (KVM SWITCH badge, bottom-right).
+  // The two FIN.keep-wide end strips (vent comb or heat sink texture,
+  // whichever is selected) are the same zones visible in the real
+  // product photos as narrow strips either side of the top view.
   const bandW = enclosureW <= 89 ? 30 : enclosureW <= 209 ? 45 : 55, large = enclosureW > 209;
   const logoW = Math.min(bandW, w * 0.7), logoH = logoW * (4 / 21);
   const cx = x + w / 2, cy = y + h / 2;
   let s = `<rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" rx="1.2" fill="#2B2C2E" stroke="#8E959C" stroke-width="0.4"/>`;
+  const zoneW = Math.min(FIN.keep, w * 0.3), zoneTex = cooling === 'heatsink' ? heatsinkStrip : finStrip;
+  s += zoneTex(x, y, zoneW, h) + zoneTex(x + w - zoneW, y, zoneW, h);
   s += model.logoSvg
     ? `<image href="${model.logoSvg}" x="${n(cx - logoW / 2)}" y="${n(cy - logoH / 2)}" width="${n(logoW)}" height="${n(logoH)}" preserveAspectRatio="xMidYMid meet"/>`
     : `<text x="${n(cx)}" y="${n(cy)}" text-anchor="middle" dominant-baseline="middle" font-family="Barlow, sans-serif" font-weight="500" font-size="${n(logoH * 0.9)}" fill="#C9CED3">PureLink</text>`;
@@ -1751,16 +1780,10 @@ function dimLineV(x, y1, y2, label) {
     + `<text x="${n(x - 1)}" y="${n(my)}" text-anchor="middle" font-family="Barlow, sans-serif" font-size="2.6" fill="${col}" transform="rotate(-90 ${n(x - 1)} ${n(my)})">${label}</text>`;
 }
 function bottomFace(x, y, w, h, c) {
+  // No centre block here any more — heat sink/vents are the two end
+  // zones on the top/side faces (see topFace/heatsinkStrip), not a
+  // separate bottom-mounted part.
   let s = `<rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" rx="1.2" fill="#3A3A3B" stroke="#8E959C" stroke-width="0.4"/>`;
-  if (c.cooling === 'heatsink' && heatsinkAllowed(c)) {
-    const hsW = Math.min(HEATSINK.span, w - 4), hsD = Math.min(25.9, h * 0.7);
-    const hx = x + w / 2 - hsW / 2, hy = y + h / 2 - hsD / 2;
-    s += `<rect x="${n(hx)}" y="${n(hy)}" width="${n(hsW)}" height="${n(hsD)}" rx="0.8" fill="#222325" stroke="#8E959C" stroke-width="0.3"/>`;
-    for (let xx = 2; xx < hsW - 2; xx += hsW / 28) s += `<rect x="${n(hx + xx)}" y="${n(hy + 1)}" width="${n(hsW / 56)}" height="${n(hsD - 2)}" fill="#111214"/>`;
-    s += `<circle cx="${n(hx + 6)}" cy="${n(hy + hsD / 2)}" r="1.4" fill="none" stroke="#C9CED3" stroke-width="0.3"/>`;
-    s += `<circle cx="${n(hx + hsW - 6)}" cy="${n(hy + hsD / 2)}" r="1.4" fill="none" stroke="#C9CED3" stroke-width="0.3"/>`;
-    s += `<text x="${n(x + w / 2)}" y="${n(hy + hsD + 4)}" text-anchor="middle" font-family="Barlow, sans-serif" font-size="2.6" fill="#C9CED3">ACC-MSINK, ${n(hsW)} × ${n(hsD)} mm</text>`;
-  }
   const footCount = Math.abs(c.height - 44.45) < 0.01 ? 4 : 2;
   const feet = footCount === 4
     ? [[x + 8, y + 8], [x + w - 8, y + 8], [x + 8, y + h - 8], [x + w - 8, y + h - 8]]
@@ -1778,9 +1801,8 @@ function netSVG(c, D) {
   let s = '';
   const rear = panelImg('rear'), front = panelImg('front');
   s += rear ? `<image href="${rear}" x="${x0}" y="${rows[0]}" width="${W}" height="${H}" preserveAspectRatio="none"/>` : face(x0, rows[0], W, H, 'Rear panel');
-  const plainSide = (x, y, w, h) => `<rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" rx="1.2" fill="#3A3A3B" stroke="#8E959C" stroke-width="0.4"/>`;
-  const side = c.cooling === 'heatsink' ? plainSide : finStrip;
-  s += side(0, rows[1], H, D) + topFace(x0, rows[1], W, D, W, catText) + side(x0 + W + gap, rows[1], H, D);
+  const side = c.cooling === 'heatsink' ? heatsinkStrip : finStrip;
+  s += side(0, rows[1], H, D) + topFace(x0, rows[1], W, D, W, catText, c.cooling) + side(x0 + W + gap, rows[1], H, D);
   s += front ? `<image href="${front}" x="${x0}" y="${rows[2]}" width="${W}" height="${H}" preserveAspectRatio="none"/>` : face(x0, rows[2], W, H, 'Front panel');
   s += bottomFace(x0, rows[3], W, D, c);
   // dimension callouts (width above the top row, depth to the left of it) —
@@ -1804,7 +1826,7 @@ function renderStage() {
         <option value="vent"${c.cooling !== 'heatsink' ? ' selected' : ''}>Bent-metal vents</option>
         <option value="heatsink"${c.cooling === 'heatsink' ? ' selected' : ''}${heatsinkAllowed(c) ? '' : ' disabled'}>Heat sink${heatsinkAllowed(c) ? '' : ' (30 mm or Custom 29 mm housings only)'}</option>
       </select></label></div>
-      ${D ? `<div class="netwrap">${netSVG(c, D)}</div><p style="color:var(--muted);font-size:12.5px">Fin, logo and heat-sink geometry follow Styleguide PureTools_Enclosure/Silkprint V1.1 and the measured PLK-M-1-04/chassis CAD. Foot positions are illustrative — the style guide doesn't fix exact placement; check against the <code>PT_Feet_*</code> STEP files before production.</p>` : '<p>Set the depth to see the unfolded housing.</p>'}</div>
+      ${D ? `<div class="netwrap">${netSVG(c, D)}</div><p style="color:var(--muted);font-size:12.5px">Fin and logo geometry follow Styleguide PureTools_Enclosure/Silkprint V1.1. Heat sink/vents are shown as two end zones (left + right), same width as the existing front-fin keep-out — exact zone width and foot positions are illustrative, not yet confirmed against CAD.</p>` : '<p>Set the depth to see the unfolded housing.</p>'}</div>
       <div class="card"><h2>Still coming</h2><ul>
       <li>Perforated ventilation-hole pattern on top for rack/matrix housings, e.g. 6 × 21 holes on 1U (the net view above shows the side fins and, for 30 mm/Custom 29 mm housings, the heat sink — both illustrative references, not a manufacturing drawing)</li>
       <li>Precise housing screw/mounting-hole coordinates and real foot attachment points (the net view's feet are placeholders — check against the <code>PT_Feet_*</code> STEP files)</li>
@@ -1814,7 +1836,7 @@ function renderStage() {
     const cs = $('#coolingSel'); if (cs) cs.onchange = () => { model.chassis.cooling = cs.value; commit(); renderAll(); };
   } else if (activeTab === 'd3') {
     if (!unlocked()) { dv.innerHTML = lockCard('3d'); return; }
-    dv.innerHTML = `<div class="card"><h2>3D, revision ${esc(st.rev)}</h2><p>The 3D concept view comes in phase 3. It will build the enclosure from the approved panels and the housing depth${model.housing.depth ? ` (${f(model.housing.depth)} mm)` : ', which still needs setting on the Housing tab'}.${model.chassis.cooling === 'heatsink' ? ` It will include the ${f(HEATSINK.span)} mm heat sink, centred on the panel width.` : ''}</p></div>`;
+    dv.innerHTML = `<div class="card"><h2>3D, revision ${esc(st.rev)}</h2><p>The 3D concept view comes in phase 3. It will build the enclosure from the approved panels and the housing depth${model.housing.depth ? ` (${f(model.housing.depth)} mm)` : ', which still needs setting on the Housing tab'}.${model.chassis.cooling === 'heatsink' ? ` It will include the two end heat sinks.` : ''}</p></div>`;
   }
 }
 /* ============================================================
@@ -1912,7 +1934,7 @@ function renderRegister() {
   h += `</tbody></table>`;
   if (model.chassis.cooling === 'heatsink') {
     h += `<table class="vtab"><thead><tr><th>Housing</th><th>Status</th><th></th></tr></thead><tbody>`;
-    h += row('housing:heatsink', 'Heat sink keep-out', `${f(HEATSINK.span)} mm footprint, centred — measured from the PLK-M-1-04 CAD assembly`);
+    h += row('housing:heatsink', 'Heat sink keep-out', `Two ${f(FIN.keep)} mm end zones (ACC-MSINK) — exact width not yet confirmed against CAD`);
     h += `</tbody></table>`;
   }
   h += `<table class="vtab"><thead><tr><th>Parts in this layout</th><th>Status</th><th></th></tr></thead><tbody>`;
