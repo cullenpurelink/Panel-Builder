@@ -18,7 +18,10 @@ documents, not something that belongs in the public-ish git history.
   pass if anyone asks "does the net view still match the guide?")
 - **`Image creation styleguide for suppliers_V1.3.pdf`** — not yet read
   in a Panel Builder session; covers product-photo/render creation
-  conventions for suppliers.
+  conventions for suppliers. **Earmarked for the 3D tab**: once that's
+  built (still a "comes in phase 3" placeholder as of this writing),
+  this guide governs how the generated product pictures/renders should
+  look — read it before building any image-generation part of 3D.
 
 ## What's deliberately *not* here
 
