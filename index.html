@@ -489,6 +489,12 @@ function guideRange(H) {
   return null;
 }
 const FIN = { x0: 1, w: 7, keep: 10 };
+// ACC-MSINK heat sink (PLK-M-1-04 V0.2): measured 114 x 25.9 x 17 mm from the
+// PT-PSW-21HC-KVM V2 chassis assembly, mounted centred on the panel width.
+const HEATSINK = { span: 114 };
+function heatsinkAllowed(c) {
+  return !!((c.form === 'std' && !c.custom && Math.abs(c.height - 30) < 0.01) || (c.custom && Math.abs(c.height - 29) < 0.01));
+}
 
 /* ---------- svg helpers ---------- */
 const n = v => Math.round(v * 1000) / 1000;
@@ -1476,6 +1482,7 @@ function runChecks() {
   for (const pid of ['front', 'rear']) {
     const Lo = layout(pid), names = computeLabels(pid), ents = [...Lo.map.values()];
     const keep = rack && pid === 'front' ? [[0, FIN.keep], [W - FIN.keep, W]] : [];
+    const heatBand = model.chassis.cooling === 'heatsink' ? [W / 2 - HEATSINK.span / 2, W / 2 + HEATSINK.span / 2] : null;
     for (const e of ents) {
       const nm = entryName(e, names), id = e.it.id;
       if (e.cut || e.it.kind === 'logo') {
@@ -1483,6 +1490,7 @@ function runChecks() {
         if (h > maxH + 1e-6) out.push({ lvl: 'err', pid, ids: [id], msg: `${nm} is ${f(h)} mm tall. A ${hLabel(H)} panel leaves ${f(maxH)} mm inside the edge clearance.` });
         else if (c[1] < clr - 1e-6 || c[3] > H - clr + 1e-6 || c[0] < clr - 1e-6 || c[2] > W - clr + 1e-6) out.push({ lvl: 'err', pid, ids: [id], msg: `${nm} breaks the ${f(clr)} mm edge clearance.` });
         for (const k of keep) if (c[2] > k[0] && c[0] < k[1]) out.push({ lvl: 'err', pid, ids: [id], msg: `${nm} sits on the front fins.` });
+        if (heatBand && e.it.kind === 'port' && c[2] > heatBand[0] && c[0] < heatBand[1]) out.push({ lvl: 'warn', pid, ids: [id], msg: `${nm} sits over the heat sink's ${f(HEATSINK.span)} mm footprint (centred) — check depth clearance against the CAD file.` });
       }
       for (const l of e.labels) {
         const b = l.box;
@@ -1706,21 +1714,27 @@ function renderStage() {
   if (activeTab === 'housing') {
     if (!unlocked()) { hv.innerHTML = lockCard('housing'); return; }
     const c = model.chassis, D = +model.housing.depth || 0;
+    if (c.cooling === 'heatsink' && !heatsinkAllowed(c)) { c.cooling = 'vent'; commit(); }
     hv.innerHTML = `<div class="card"><h2>Housing, revision ${esc(st.rev)}</h2>
       <p>Built from the ${st.state} panels: ${esc(hLabel(c.height))} × ${f(c.width)} mm. Front and rear stay locked to this revision.</p>
       ${st.a && st.a.note ? `<p><b>Revision note:</b> ${esc(st.a.note)}</p>` : ''}
       <div class="row2" style="max-width:420px"><label class="fld"><span>Housing depth (mm)</span><input type="number" id="depthIn" min="20" max="600" step="0.5" value="${D || ''}" placeholder="Required"></label></div>
+      <div class="row2" style="max-width:420px"><label class="fld"><span>Cooling</span><select id="coolingSel">
+        <option value="vent"${c.cooling !== 'heatsink' ? ' selected' : ''}>Bent-metal vents</option>
+        <option value="heatsink"${c.cooling === 'heatsink' ? ' selected' : ''}${heatsinkAllowed(c) ? '' : ' disabled'}>Heat sink${heatsinkAllowed(c) ? '' : ' (30 mm or Custom 29 mm housings only)'}</option>
+      </select></label></div>
       ${D ? `<div class="netwrap">${netSVG(c.width, c.height, D)}</div>` : '<p>Set the depth to see the unfolded housing.</p>'}</div>
-      <div class="card"><h2>Coming in phase 2</h2><ul>
+      <div class="card"><h2>Still coming</h2><ul>
       <li>Side ventilation pattern from the housing class, e.g. 6 × 21 holes on 1U</li>
-      <li>Heat sink cut-out (XXSUB-PT-ACC-MSINK) in the lower housing</li>
+      <li>Heat sink and vent cut-out geometry rendered in the housing shell (the keep-out check above is live now; the physical cut-out drawing isn't yet)</li>
       <li>Housing screw and mounting holes, feet, debossed top logo</li>
       <li>Silk print and label area on top and bottom, with the same text and frame tools</li>
       <li>Checks and 1:1 exports for every face</li></ul></div>`;
     const di = $('#depthIn'); if (di) di.onchange = () => { const v = parseFloat(di.value); model.housing.depth = v >= 20 ? r3(v) : null; commit(); updateToolbar(); renderStage(); };
+    const cs = $('#coolingSel'); if (cs) cs.onchange = () => { model.chassis.cooling = cs.value; commit(); renderAll(); };
   } else if (activeTab === 'd3') {
     if (!unlocked()) { dv.innerHTML = lockCard('3d'); return; }
-    dv.innerHTML = `<div class="card"><h2>3D, revision ${esc(st.rev)}</h2><p>The 3D concept view comes in phase 3. It will build the enclosure from the approved panels and the housing depth${model.housing.depth ? ` (${f(model.housing.depth)} mm)` : ', which still needs setting on the Housing tab'}.</p></div>`;
+    dv.innerHTML = `<div class="card"><h2>3D, revision ${esc(st.rev)}</h2><p>The 3D concept view comes in phase 3. It will build the enclosure from the approved panels and the housing depth${model.housing.depth ? ` (${f(model.housing.depth)} mm)` : ', which still needs setting on the Housing tab'}.${model.chassis.cooling === 'heatsink' ? ` It will include the ${f(HEATSINK.span)} mm heat sink, centred on the panel width.` : ''}</p></div>`;
   }
 }
 /* ============================================================
@@ -1756,6 +1770,7 @@ function partsUsed(pids) {
 function exportIssues(kind, pids) {
   const out = [];
   if (!isValid('export:' + kind)) out.push(`${EXPORT_KINDS[kind].name}: ${EXPORT_KINDS[kind].why}`);
+  if (model.chassis.cooling === 'heatsink' && !isValid('housing:heatsink')) out.push(`Heat sink keep-out: not yet checked against the CAD file.`);
   for (const t of partsUsed(pids)) if (!isValid('part:' + t)) out.push(`${PORTS[t].name}: ${LEVELS[partLevel(t)].toLowerCase()}, not signed off.`);
   return out;
 }
@@ -1814,7 +1829,13 @@ function renderRegister() {
   };
   let h = `<table class="vtab"><thead><tr><th>Export type</th><th>Status</th><th></th></tr></thead><tbody>`;
   for (const [k, e] of Object.entries(EXPORT_KINDS)) h += row('export:' + k, e.name, e.why);
-  h += `</tbody></table><table class="vtab"><thead><tr><th>Parts in this layout</th><th>Status</th><th></th></tr></thead><tbody>`;
+  h += `</tbody></table>`;
+  if (model.chassis.cooling === 'heatsink') {
+    h += `<table class="vtab"><thead><tr><th>Housing</th><th>Status</th><th></th></tr></thead><tbody>`;
+    h += row('housing:heatsink', 'Heat sink keep-out', `${f(HEATSINK.span)} mm footprint, centred — measured from the PLK-M-1-04 CAD assembly`);
+    h += `</tbody></table>`;
+  }
+  h += `<table class="vtab"><thead><tr><th>Parts in this layout</th><th>Status</th><th></th></tr></thead><tbody>`;
   for (const t of used) h += row('part:' + t, PORTS[t].name, LEVELS[partLevel(t)]);
   if (!used.length) h += '<tr><td colspan="3"><small>No connectors on the panels yet.</small></td></tr>';
   h += `</tbody></table><details><summary>All parts (${all.length})</summary><table class="vtab"><tbody>`;
@@ -2384,6 +2405,7 @@ function normalise(m) {
   if (c.height > 40 || c.form !== 'std') { c.height = 44.45; if (c.form === 'std') c.form = 'half'; c.width = c.form === 'rack' ? 440 : 220; }
   else if (c.custom) c.height = Math.min(100, Math.max(10, +c.height || 30));
   else { const hs = HOUSINGS.filter(x => x.form === 'std' && !x.custom).map(x => x.h); if (!hs.includes(c.height)) { c.custom = true; } }
+  c.cooling = (c.cooling === 'heatsink' && heatsinkAllowed(c)) ? 'heatsink' : 'vent';
   m.format = 'purelink-panel-layout'; m.version = 3;
   m.housing = { depth: null, ...(m.housing || {}) }; m.render = m.render || {};
   m.name = m.name || 'Untitled product'; m.sku = m.sku || ''; m.logoSvg = m.logoSvg || '';
