@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PureLink Modules</title>
+<style>
+  :root{
+    --bg:#E4E6E8; --surface:#F8F8F9; --surface-2:#EEF0F2; --ink:#16191D; --muted:#59616A; --line:#CDD1D6;
+    --accent:#1455D7; --accent-soft:rgba(20,85,215,.10); --on-accent:#FFFFFF;
+    --font-ui:"Segoe UI",system-ui,-apple-system,sans-serif;
+    color-scheme:light;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#101214; --surface:#17191C; --surface-2:#1E2125; --ink:#E7E9EB; --muted:#9AA2AA; --line:#2C3035;
+      --accent:#5B8DF2; --accent-soft:rgba(91,141,242,.15); --on-accent:#0B1020;
+      color-scheme:dark;
+    }
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--font-ui);display:flex;overflow:hidden}
+
+  /* ---------- sidebar ---------- */
+  #sidebar{
+    width:240px;flex:0 0 auto;background:var(--surface);border-right:1px solid var(--line);
+    display:flex;flex-direction:column;transition:width .15s ease;overflow:hidden;
+    padding-top:env(safe-area-inset-top,0px);
+  }
+  body.collapsed #sidebar{width:60px}
+  #sbHead{display:flex;align-items:center;gap:8px;padding:14px 12px;border-bottom:1px solid var(--line);flex:0 0 auto}
+  #sbHead .mark{font:700 15px/1 var(--font-ui);color:var(--accent);white-space:nowrap;overflow:hidden}
+  body.collapsed #sbHead .mark{display:none}
+  #sbToggle{
+    margin-left:auto;width:28px;height:28px;border:none;background:transparent;color:var(--muted);
+    border-radius:6px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;flex:0 0 auto
+  }
+  body.collapsed #sbToggle{margin-left:0}
+  #sbToggle:hover{background:var(--surface-2);color:var(--ink)}
+  #sbNav{flex:1;overflow-y:auto;padding:8px}
+  .sbItem{
+    display:flex;align-items:center;gap:12px;padding:9px 10px;border-radius:8px;cursor:pointer;
+    color:var(--ink);text-decoration:none;white-space:nowrap;overflow:hidden;border:1px solid transparent;margin-bottom:2px
+  }
+  .sbItem:hover{background:var(--surface-2)}
+  .sbItem.active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+  .sbItem .ic{width:22px;flex:0 0 auto;text-align:center;font-size:16px}
+  .sbItem .lbl{overflow:hidden;text-overflow:ellipsis;flex:1}
+  body.collapsed .sbItem .lbl, body.collapsed .sbItem .soon{display:none}
+  .sbItem .soon{font:700 9.5px var(--font-ui);letter-spacing:.03em;text-transform:uppercase;color:var(--muted);background:var(--surface-2);border-radius:4px;padding:1px 5px;flex:0 0 auto}
+  .sbDivider{height:1px;background:var(--line);margin:8px 6px}
+
+  /* ---------- main area ---------- */
+  #main{flex:1;min-width:0;display:flex;flex-direction:column}
+  #moduleFrame{border:none;flex:1;width:100%;height:100%;background:var(--bg)}
+  #home{flex:1;overflow:auto}
+  #home header{padding:40px 24px 24px;max-width:960px;margin:0 auto}
+  #home header .tag{display:inline-block;font:700 11px var(--font-ui);background:var(--accent);color:var(--on-accent);padding:3px 8px;border-radius:4px;letter-spacing:.04em;margin-bottom:10px}
+  #home h1{margin:0 0 6px;font-size:28px}
+  #home header p{margin:0;color:var(--muted)}
+  #home main{max-width:960px;margin:0 auto;padding:0 24px 60px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin-top:8px}
+  .card{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px;text-decoration:none;color:inherit;transition:border-color .15s,transform .15s;cursor:pointer}
+  .card:hover{border-color:var(--accent);transform:translateY(-2px)}
+  .card .icon{width:40px;height:40px;border-radius:9px;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:14px}
+  .card h2{margin:0 0 6px;font-size:17px}
+  .card p{margin:0;color:var(--muted);font-size:13.5px;flex:1}
+  .card .open{margin-top:14px;font-size:13px;font-weight:600;color:var(--accent)}
+  .status{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--muted);background:var(--surface-2);border-radius:4px;padding:2px 6px;margin-left:8px;vertical-align:1px}
+  [hidden]{display:none!important}
+</style>
+</head>
+<body>
+
+<nav id="sidebar">
+  <div id="sbHead">
+    <span class="mark">PureLink</span>
+    <button id="sbToggle" type="button" aria-label="Collapse sidebar" title="Collapse sidebar">&#8676;</button>
+  </div>
+  <div id="sbNav"></div>
+</nav>
+
+<div id="main">
+  <div id="home">
+    <header>
+      <span class="tag">PURELINK</span>
+      <h1>Design &amp; production modules</h1>
+      <p>Each tool runs standalone in the browser — no install, no server beyond this one. Pick a module from the sidebar, or a card below.</p>
+    </header>
+    <main>
+      <div class="grid" id="grid"></div>
+    </main>
+  </div>
+  <iframe id="moduleFrame" hidden title="Module"></iframe>
+</div>
+
+<script>
+/* Add the next module here: give it a folder next to "modules-hub" and
+   "system-diagrams" (at the repo root), then add one entry below
+   pointing at its index.html. */
+var MODULES = [
+  {
+    id: 'panel-builder', name: 'Panel Builder', icon: '▆',
+    href: '../index.html',
+    desc: 'Lay out AV device front & rear panels: port library, housing & 3D views, silkscreen rules, checks, and a draft→approved→released revision workflow.'
+  },
+  {
+    id: 'system-diagrams', name: 'System Diagrams', icon: '⇆',
+    href: '../system-diagrams/index.html',
+    desc: 'Viewer for the real PureLink System Diagram Library v1.0 — room masters and classroom touch-panel systems, Clean/X-ray.'
+  }
+];
+
+var SIDEBAR_KEY = 'hub:sidebarCollapsed';
+function getCollapsed() { try { return localStorage.getItem(SIDEBAR_KEY) === '1'; } catch (e) { return false; } }
+function setCollapsed(v) {
+  try { localStorage.setItem(SIDEBAR_KEY, v ? '1' : '0'); } catch (e) { }
+  document.body.classList.toggle('collapsed', v);
+  document.getElementById('sbToggle').setAttribute('aria-label', v ? 'Expand sidebar' : 'Collapse sidebar');
+  document.getElementById('sbToggle').title = v ? 'Expand sidebar' : 'Collapse sidebar';
+  document.getElementById('sbToggle').textContent = v ? '↠' : '↦';
+}
+document.getElementById('sbToggle').onclick = function () { setCollapsed(!document.body.classList.contains('collapsed')); };
+setCollapsed(getCollapsed());
+
+var homeEl = document.getElementById('home');
+var frameEl = document.getElementById('moduleFrame');
+var gridEl = document.getElementById('grid');
+var navEl = document.getElementById('sbNav');
+
+function cardHTML(m) {
+  return '<div class="card" data-open="' + m.id + '">'
+    + '<div class="icon">' + m.icon + '</div>'
+    + '<h2>' + m.name + (m.soon ? '<span class="status">Coming soon</span>' : '') + '</h2>'
+    + '<p>' + m.desc + '</p>'
+    + '<span class="open">Open &rarr;</span>'
+    + '</div>';
+}
+gridEl.innerHTML = MODULES.map(cardHTML).join('');
+Array.prototype.forEach.call(gridEl.querySelectorAll('[data-open]'), function (el) {
+  el.onclick = function () { openModule(el.dataset.open); };
+});
+
+function renderNav(activeId) {
+  var items = [{ id: '', name: 'Home', icon: '⌂' }].concat(MODULES);
+  navEl.innerHTML = items.map(function (m) {
+    var cls = 'sbItem' + (m.id === activeId ? ' active' : '');
+    return '<div class="' + cls + '" data-nav="' + m.id + '">'
+      + '<span class="ic">' + m.icon + '</span>'
+      + '<span class="lbl">' + m.name + '</span>'
+      + (m.soon ? '<span class="soon">Soon</span>' : '')
+      + '</div>'
+      + (m.id === '' ? '<div class="sbDivider"></div>' : '');
+  }).join('');
+  Array.prototype.forEach.call(navEl.querySelectorAll('[data-nav]'), function (el) {
+    el.onclick = function () {
+      var id = el.dataset.nav;
+      if (id === '') showHome(); else openModule(id);
+    };
+  });
+}
+
+function showHome() {
+  frameEl.hidden = true; frameEl.removeAttribute('src');
+  homeEl.hidden = false;
+  renderNav('');
+}
+function openModule(id) {
+  var m = MODULES.filter(function (x) { return x.id === id; })[0];
+  if (!m) return;
+  homeEl.hidden = true;
+  frameEl.src = m.href;
+  frameEl.hidden = false;
+  renderNav(id);
+}
+
+showHome();
+</script>
+</body>
+</html>

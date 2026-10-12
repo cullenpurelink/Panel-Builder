@@ -1,0 +1,65 @@
+# PureLink System Diagrams
+
+Module 2 of the PureLink design & production tool suite.
+
+## What this is (and isn't)
+
+This is a **viewer** onto the real `PureLink_Diagram_Library_v1.0` master
+register — the same masters maintained via the "PureLink System Diagrams"
+Claude Project. It is **not** the diagram editor/generator itself: this
+page never creates or edits a master, it only displays the PNG/SVG
+already produced by the Python pipeline.
+
+New diagrams, variants and masters are still produced the way the
+library's own README describes:
+
+1. Open the "PureLink System Diagrams" Claude Project (or a chat with the
+   library zip attached).
+2. Ask for the room/variant you need — Claude renders it from
+   `code/rooms.py` or `code/classroom_system.py` against the existing
+   masters (masters are never edited in place).
+3. When something becomes a new master, it gets the next ID, the
+   register/MANIFEST are updated, and a new library zip comes back.
+4. Drop the new/changed PNG+SVG files into this module's `assets/`
+   folder (same structure: `assets/rooms/` or
+   `assets/classroom_system/`) and add one entry to the `ROOMS` or
+   `CLASSROOMS` array at the bottom of `index.html` — no other code
+   needs to change.
+
+## Opening it
+
+Double-click [index.html](index.html), or open it from the
+[Modules Hub](../modules-hub/index.html).
+
+## What's in `assets/`
+
+Copied as-is from `PureLink_Diagram_Library_v1.0.zip` (downloaded from
+the "School room system diagrams with touch panels" chat):
+
+- `assets/rooms/` — the 6 room masters (M-01–M-06): Huddle, Medium,
+  Large, Large+5K, Lecture Hall, Lecture Hall+podium monitor.
+- `assets/classroom_system/` — the M-07 classroom system diagrams for
+  PT-CON-TP40-SD / TP60 / TP100, each as Clean and X-ray.
+- `assets/README.md` — the library's own README (master register,
+  visual standard, cable colour standard).
+- `assets/MANIFEST.txt` — SHA-256 checksums for every master file.
+
+## The bigger plan (not built yet, on purpose)
+
+The library's own README lists its roadmap, and an earlier chat already
+reasoned through it in detail:
+
+1. Convert rooms/products/systems from Python code into plain data
+   files (JSON) with named mounting points.
+2. Generate product drawings **directly from Panel Builder's output**
+   (chassis size, port layout, silkscreen) instead of hand-drawing each
+   device — Panel Builder already has exactly the data a diagram needs.
+3. A real drag-and-drop **editor app**, alongside Panel Builder: pick a
+   room master, place products from a library shared with Panel
+   Builder, connect ports, toggle Clean/X-ray, export A4 PDF/SVG.
+
+That editor is deliberately **not** this module yet — it needs the
+data-file restructuring and the shared product library first, and
+there was an explicit earlier decision to hold off on building it until
+more diagrams existed in the Project. Treat it as a separate, future
+module once that groundwork is done.

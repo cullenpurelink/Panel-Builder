@@ -1,0 +1,378 @@
+{
+  "chassis": {
+    "form": "std",
+    "height": 30,
+    "width": 268
+  },
+  "format": "purelink-panel-layout",
+  "logoSvg": "",
+  "name": "PT-PSW-21HC-KVM (rebuilt from render)",
+  "panels": {
+    "front": [
+      {
+        "cat": "SWITCH",
+        "id": "l60",
+        "kind": "logo",
+        "scale": 1,
+        "showBox": true,
+        "style": "inline",
+        "x": 27.85,
+        "y": 9.225
+      },
+      {
+        "func": "[power]",
+        "id": "r61",
+        "kind": "port",
+        "label": "",
+        "rot": 0,
+        "size": 1.6,
+        "sub": "",
+        "type": "led",
+        "x": 36.862,
+        "y": 22.8
+      },
+      {
+        "colorBox": true,
+        "func": "USB-C",
+        "id": "r57",
+        "kind": "port",
+        "label": "",
+        "lock": true,
+        "rot": 0,
+        "sub": "100W [bolt]",
+        "type": "usbc",
+        "x": 96.44,
+        "y": 21.4
+      },
+      {
+        "func": "USB HOST",
+        "id": "r58",
+        "kind": "port",
+        "label": "",
+        "rot": 0,
+        "sub": "",
+        "type": "usbb",
+        "x": 118.657,
+        "y": 16.4
+      },
+      {
+        "func": "HDMI",
+        "id": "r59",
+        "kind": "port",
+        "label": "",
+        "lock": true,
+        "rot": 0,
+        "sub": "",
+        "type": "hdmi",
+        "x": 142.967,
+        "y": 19.8
+      },
+      {
+        "id": "f62",
+        "kind": "frame",
+        "members": [
+          "r57",
+          "r58",
+          "r59"
+        ],
+        "pad": 2,
+        "padBottom": 0,
+        "padTop": 1,
+        "title": "INPUT",
+        "titlePos": "top"
+      },
+      {
+        "func": "USB-C",
+        "id": "r63",
+        "kind": "port",
+        "label": "",
+        "rot": 0,
+        "size": 1.6,
+        "sub": "",
+        "type": "led",
+        "x": 159.405,
+        "y": 22.6
+      },
+      {
+        "func": "HDMI",
+        "id": "r64",
+        "kind": "port",
+        "label": "",
+        "rot": 0,
+        "size": 1.6,
+        "sub": "",
+        "type": "led",
+        "x": 167.973,
+        "y": 22.6
+      },
+      {
+        "func": "AUTO/3S",
+        "id": "r65",
+        "kind": "port",
+        "label": "",
+        "labelPos": "above",
+        "rot": 0,
+        "sub": "",
+        "type": "button",
+        "x": 185.508,
+        "y": 19.5
+      },
+      {
+        "func": "DISPLAY\\nON/OFF",
+        "id": "r66",
+        "kind": "port",
+        "label": "",
+        "labelPos": "above",
+        "rot": 0,
+        "sub": "",
+        "type": "button",
+        "x": 203.042,
+        "y": 19.5
+      },
+      {
+        "func": "BLACK\\nSCREEN",
+        "id": "r67",
+        "kind": "port",
+        "label": "",
+        "labelPos": "above",
+        "rot": 0,
+        "sub": "",
+        "type": "button",
+        "x": 219.88,
+        "y": 19.5
+      },
+      {
+        "func": "AUDIO\\nON/OFF",
+        "id": "r68",
+        "kind": "port",
+        "label": "",
+        "labelPos": "above",
+        "rot": 0,
+        "sub": "",
+        "type": "button",
+        "x": 237.016,
+        "y": 19.5
+      }
+    ],
+    "rear": [
+      {
+        "func": "HDMI",
+        "id": "r69",
+        "kind": "port",
+        "label": "",
+        "lock": true,
+        "rot": 0,
+        "sub": "",
+        "type": "hdmi",
+        "x": 36.862,
+        "y": 19.9
+      },
+      {
+        "func": "AUDIO",
+        "id": "r70",
+        "kind": "port",
+        "label": "",
+        "pinGroups": "L:1-2, R:4-5",
+        "pinLabels": "+, −, [gnd], +, −",
+        "pins": 5,
+        "rot": 0,
+        "sub": "",
+        "type": "eb35p5",
+        "x": 60.773,
+        "y": 19.5
+      },
+      {
+        "id": "f74",
+        "kind": "frame",
+        "members": [
+          "r69",
+          "r70"
+        ],
+        "pad": 2,
+        "padBottom": 0,
+        "padTop": 1,
+        "title": "OUTPUT",
+        "titlePos": "top"
+      },
+      {
+        "func": "1",
+        "id": "r71",
+        "kind": "port",
+        "label": "",
+        "rot": 90,
+        "sub": "",
+        "type": "usba",
+        "x": 84.584,
+        "y": 16
+      },
+      {
+        "func": "2",
+        "id": "r72",
+        "kind": "port",
+        "label": "",
+        "rot": 90,
+        "sub": "",
+        "type": "usba",
+        "x": 96.141,
+        "y": 16
+      },
+      {
+        "func": "3",
+        "id": "r73",
+        "kind": "port",
+        "label": "",
+        "lock": true,
+        "rot": 0,
+        "sub": "",
+        "type": "usbc",
+        "x": 109.89,
+        "y": 21.2
+      },
+      {
+        "id": "f75",
+        "kind": "frame",
+        "members": [
+          "r71",
+          "r72",
+          "r73"
+        ],
+        "pad": 2,
+        "padBottom": 0,
+        "padTop": 1,
+        "title": "DEVICES",
+        "titlePos": "top"
+      },
+      {
+        "func": "ETHERNET",
+        "id": "r76",
+        "kind": "port",
+        "label": "",
+        "rot": 0,
+        "sub": "",
+        "type": "rj45",
+        "x": 130.015,
+        "y": 16.6
+      },
+      {
+        "func": "TCP/IP",
+        "id": "r77",
+        "kind": "port",
+        "label": "",
+        "rot": 0,
+        "sub": "",
+        "type": "rj45",
+        "x": 152.332,
+        "y": 16.6
+      },
+      {
+        "func": "SW2",
+        "id": "r78",
+        "kind": "port",
+        "label": "",
+        "pins": 3,
+        "rot": 0,
+        "sub": "SW1",
+        "type": "eb35x2",
+        "x": 171.56,
+        "y": 15.7
+      },
+      {
+        "func": "RS232",
+        "id": "r79",
+        "kind": "port",
+        "label": "",
+        "pinLabels": "TX, [gnd], RX",
+        "pins": 3,
+        "rot": 0,
+        "sub": "",
+        "type": "eb35",
+        "x": 187.899,
+        "y": 19.5
+      },
+      {
+        "func": "EDID",
+        "id": "r80",
+        "kind": "port",
+        "label": "",
+        "pins": 5,
+        "rot": 0,
+        "sub": "",
+        "type": "dip",
+        "x": 204.636,
+        "y": 16.8
+      },
+      {
+        "func": "SERVICE",
+        "id": "r81",
+        "kind": "port",
+        "label": "",
+        "lock": false,
+        "rot": 90,
+        "sub": "",
+        "type": "usbc",
+        "x": 218.385,
+        "y": 18.5
+      },
+      {
+        "func": "DC 24V",
+        "id": "r82",
+        "kind": "port",
+        "label": "",
+        "rot": 0,
+        "sub": "",
+        "type": "din4",
+        "x": 233.529,
+        "y": 16.4
+      }
+    ]
+  },
+  "rules": {
+    "fontWeight": 400,
+    "edgeClearance": 3,
+    "minGap": 1,
+    "labelGap": 1,
+    "autoNumber": false,
+    "upper": false,
+    "fontPt": 0,
+    "alignLabels": true,
+    "alignRange": 4
+  },
+  "sku": "PT-PSW-21HC-KVM",
+  "version": 3,
+  "housing": {
+    "depth": 122
+  },
+  "render": {},
+  "validation": {
+    "cutouts": [
+      "Fusion cut-out SVG: Cut-outs trace each connector’s visible outline, not the manufacturer’s recommended panel cut-out with clearance and tolerance.",
+      "LED: checked against a 1:1 drawing, not signed off.",
+      "USB-C: checked against a 1:1 drawing, not signed off.",
+      "USB-B 3.0: checked against a 1:1 drawing, not signed off.",
+      "HDMI: checked against a 1:1 drawing, not signed off.",
+      "LED push button: checked against a 1:1 drawing, not signed off.",
+      "Phoenix, 5-pin: estimated from photos or standard dimensions, not signed off.",
+      "USB-A 3.0: checked against a 1:1 drawing, not signed off.",
+      "RJ45: checked against a 1:1 drawing, not signed off.",
+      "Phoenix, 2 rows × 3: checked against a 1:1 drawing, not signed off.",
+      "Phoenix, 3-pin: estimated from photos or standard dimensions, not signed off.",
+      "DIP switch, 5-way: checked against a 1:1 drawing, not signed off.",
+      "4-pin DIN power: checked against a 1:1 drawing, not signed off."
+    ],
+    "silkscreen": [
+      "Silkscreen SVG: Silk artwork has not yet been compared with production silk files.",
+      "LED: checked against a 1:1 drawing, not signed off.",
+      "USB-C: checked against a 1:1 drawing, not signed off.",
+      "USB-B 3.0: checked against a 1:1 drawing, not signed off.",
+      "HDMI: checked against a 1:1 drawing, not signed off.",
+      "LED push button: checked against a 1:1 drawing, not signed off.",
+      "Phoenix, 5-pin: estimated from photos or standard dimensions, not signed off.",
+      "USB-A 3.0: checked against a 1:1 drawing, not signed off.",
+      "RJ45: checked against a 1:1 drawing, not signed off.",
+      "Phoenix, 2 rows × 3: checked against a 1:1 drawing, not signed off.",
+      "Phoenix, 3-pin: estimated from photos or standard dimensions, not signed off.",
+      "DIP switch, 5-way: checked against a 1:1 drawing, not signed off.",
+      "4-pin DIN power: checked against a 1:1 drawing, not signed off."
+    ]
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "modules-static-server",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8743",
+        "--directory",
+        "C:\\Users\\cullen\\Desktop\\claude\\Panel Builder"
+      ],
+      "port": 8743,
+      "url": "http://localhost:8743"
+    }
+  ]
+}

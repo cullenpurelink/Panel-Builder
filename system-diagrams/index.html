@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PureLink System Diagrams</title>
+<style>
+  :root{
+    --bg:#E4E6E8; --surface:#F8F8F9; --surface-2:#EEF0F2; --ink:#16191D; --muted:#59616A; --line:#CDD1D6;
+    --accent:#1455D7; --accent-soft:rgba(20,85,215,.10); --on-accent:#FFFFFF;
+    --font-ui:"Segoe UI",system-ui,-apple-system,sans-serif;
+    color-scheme:light;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#101214; --surface:#17191C; --surface-2:#1E2125; --ink:#E7E9EB; --muted:#9AA2AA; --line:#2C3035;
+      --accent:#5B8DF2; --accent-soft:rgba(91,141,242,.15); --on-accent:#0B1020;
+      color-scheme:dark;
+    }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);font:15px/1.5 var(--font-ui)}
+  header{padding:32px 24px 20px;max-width:1100px;margin:0 auto}
+  .tag{display:inline-block;font:700 11px var(--font-ui);background:var(--accent);color:var(--on-accent);padding:3px 8px;border-radius:4px;letter-spacing:.04em;margin-bottom:10px}
+  h1{margin:0 0 6px;font-size:26px}
+  header p{margin:4px 0 0;color:var(--muted);max-width:70ch}
+  header p a{color:var(--accent)}
+  main{max-width:1100px;margin:0 auto;padding:0 24px 60px}
+
+  .standard{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px 22px;margin:20px 0 32px;display:flex;flex-wrap:wrap;gap:28px}
+  .standard h2{margin:0 0 8px;font-size:14px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+  .standard .block{flex:1;min-width:220px}
+  .standard p{margin:0 0 6px;font-size:13.5px;color:var(--muted)}
+  .swatches{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+  .swatch{display:flex;align-items:center;gap:8px;font-size:13px}
+  .swatch i{width:14px;height:14px;border-radius:3px;display:inline-block;flex:0 0 auto;border:1px solid rgba(0,0,0,.15)}
+
+  section.group{margin-bottom:36px}
+  section.group h2{font-size:18px;margin:0 0 4px}
+  section.group .sub{color:var(--muted);font-size:13.5px;margin:0 0 16px}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:18px}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
+  .card .thumb{aspect-ratio:4/3;background:var(--surface-2);display:flex;align-items:center;justify-content:center;overflow:hidden}
+  .card .thumb img{width:100%;height:100%;object-fit:contain}
+  .card .body{padding:14px 16px 16px}
+  .card .id{font:700 10.5px var(--font-ui);letter-spacing:.04em;color:var(--accent);margin-bottom:4px}
+  .card h3{margin:0 0 4px;font-size:14.5px}
+  .card p{margin:0;color:var(--muted);font-size:12.5px}
+  .card .toggle{display:flex;gap:6px;padding:10px 16px 0}
+  .card .toggle button{flex:1;border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:6px;padding:5px 0;font:600 12px inherit;cursor:pointer}
+  .card .toggle button.active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+  .card .links{padding:0 16px 14px;display:flex;gap:10px}
+  .card .links a{font-size:12px;color:var(--accent);text-decoration:none}
+  .card .links a:hover{text-decoration:underline}
+
+  footer{max-width:1100px;margin:0 auto;padding:0 24px 60px;color:var(--muted);font-size:13px}
+  footer a{color:var(--accent)}
+</style>
+</head>
+<body>
+<header>
+  <span class="tag">PURELINK</span>
+  <h1>System Diagrams</h1>
+  <p>Module 2 of the PureLink design &amp; production suite — a viewer onto the real <strong>PureLink System Diagram Library v1.0</strong> master register (7 masters, see <a href="assets/README.md">the full README</a>). New diagrams are still authored via the "PureLink System Diagrams" Claude Project and the <code>rooms.py</code> / <code>classroom_system.py</code> generators — not from this page. See <a href="README.md">this module's README</a> for how the pieces fit together.</p>
+</header>
+<main>
+
+  <div class="standard">
+    <div class="block">
+      <h2>Visual standard</h2>
+      <p>Isometric (30°) view, back and left walls shown, room cut away at the front.</p>
+      <p>Font: Barlow. Canvas 2000px wide, PNGs exported at 2×. SVGs are fully self-contained.</p>
+      <p>Touch panels at true scale; other devices drawn at about 1.8× for readability.</p>
+    </div>
+    <div class="block">
+      <h2>Cable colour standard</h2>
+      <div class="swatches">
+        <div class="swatch"><i style="background:#C85FD8"></i> Magenta — HDBaseT (video, USB, control)</div>
+        <div class="swatch"><i style="background:#E0393E"></i> Red — HDMI, video only</div>
+        <div class="swatch"><i style="background:#3C6CB4"></i> Blue — USB-C</div>
+        <div class="swatch"><i style="background:#2FA86A"></i> Green — LAN / PoE</div>
+        <div class="swatch"><i style="background:#1E1F22"></i> Black — Relay control</div>
+      </div>
+    </div>
+    <div class="block">
+      <h2>View modes</h2>
+      <p><strong>Clean:</strong> only cabling visible in the finished room; concealed devices greyed out with dashed labels.</p>
+      <p><strong>X-ray:</strong> concealed runs dashed, ceiling void shown as a dashed band, desk/chairs translucent so under-desk cabling shows.</p>
+    </div>
+  </div>
+
+  <section class="group">
+    <h2>Room masters — M-01 to M-06</h2>
+    <p class="sub">Empty room views (furniture and displays only). Generated by <code>rooms.py</code>.</p>
+    <div class="grid" id="roomsGrid"></div>
+  </section>
+
+  <section class="group">
+    <h2>Classroom system diagrams — M-07</h2>
+    <p class="sub">Touch-panel systems: KVM TX under the teacher desk, RX in the ceiling, projector, PEX-110 relay screen control. Generated by <code>classroom_system.py</code>.</p>
+    <div class="grid" id="classroomGrid"></div>
+  </section>
+
+</main>
+<footer>
+  Master library v1.0 · <a href="assets/MANIFEST.txt">MANIFEST.txt</a> (checksums) · masters are never edited here, only viewed.
+</footer>
+
+<script>
+var ROOMS = [
+  { id: 'M-01', file: 'Room_Huddle_Room', name: 'Huddle Room', desc: '4.0 × 3.4 m, 55" display above a small table, 3 seats' },
+  { id: 'M-02', file: 'Room_Medium_Meeting_Room', name: 'Medium Meeting Room', desc: '5.6 × 4.8 m, 75" display over cabinet, table for 6' },
+  { id: 'M-03', file: 'Room_Large_Meeting_Room', name: 'Large Meeting Room', desc: '8.0 × 6.4 m, two 75" displays side by side, table for 10' },
+  { id: 'M-04', file: 'Room_Large_Meeting_Room_5K', name: 'Large Meeting Room, 5K', desc: 'As M-03 with one 105" 21:9 5K2K ultrawide display' },
+  { id: 'M-05', file: 'Room_Lecture_Hall', name: 'Lecture Hall', desc: '10 × 8.2 m, ceiling projector, podium, 4 curved rows (~70 seats)' },
+  { id: 'M-06', file: 'Room_Lecture_Hall_Podium_Monitor', name: 'Lecture Hall, Podium Monitor', desc: 'As M-05 with a 24" monitor on the podium facing the audience' }
+];
+var CLASSROOMS = [
+  { variant: 'PT-CON-TP40-SD', name: 'PT-CON-TP40-SD' },
+  { variant: 'PT-CON-TP60', name: 'PT-CON-TP60' },
+  { variant: 'PT-CON-TP100', name: 'PT-CON-TP100' }
+];
+
+function roomCard(r) {
+  return '<div class="card">'
+    + '<div class="thumb"><img src="assets/rooms/' + r.file + '.png" alt="' + r.name + '" loading="lazy"></div>'
+    + '<div class="body"><div class="id">' + r.id + '</div><h3>' + r.name + '</h3><p>' + r.desc + '</p></div>'
+    + '<div class="links"><a href="assets/rooms/' + r.file + '.svg" target="_blank" rel="noopener">SVG</a><a href="assets/rooms/' + r.file + '.png" target="_blank" rel="noopener">PNG</a></div>'
+    + '</div>';
+}
+document.getElementById('roomsGrid').innerHTML = ROOMS.map(roomCard).join('');
+
+function classroomCard(c) {
+  var cardId = 'cc-' + c.variant;
+  return '<div class="card" id="' + cardId + '" data-view="Clean">'
+    + '<div class="thumb"><img data-img src="assets/classroom_system/Classroom_' + c.variant + '_Clean.png" alt="' + c.name + '" loading="lazy"></div>'
+    + '<div class="toggle">'
+      + '<button data-view-btn="Clean" class="active">Clean</button>'
+      + '<button data-view-btn="Xray">X-ray</button>'
+    + '</div>'
+    + '<div class="body"><div class="id">M-07</div><h3>' + c.name + '</h3><p>Touch-panel classroom system</p></div>'
+    + '<div class="links" data-links></div>'
+    + '</div>';
+}
+document.getElementById('classroomGrid').innerHTML = CLASSROOMS.map(classroomCard).join('');
+
+CLASSROOMS.forEach(function (c) {
+  var card = document.getElementById('cc-' + c.variant);
+  var img = card.querySelector('[data-img]');
+  var links = card.querySelector('[data-links]');
+  var buttons = card.querySelectorAll('[data-view-btn]');
+  function setView(view) {
+    card.dataset.view = view;
+    img.src = 'assets/classroom_system/Classroom_' + c.variant + '_' + view + '.png';
+    links.innerHTML = '<a href="assets/classroom_system/Classroom_' + c.variant + '_' + view + '.svg" target="_blank" rel="noopener">SVG</a>'
+      + '<a href="assets/classroom_system/Classroom_' + c.variant + '_' + view + '.png" target="_blank" rel="noopener">PNG</a>';
+    buttons.forEach(function (b) { b.classList.toggle('active', b.dataset.viewBtn === view); });
+  }
+  buttons.forEach(function (b) { b.onclick = function () { setView(b.dataset.viewBtn); }; });
+  setView('Clean');
+});
+</script>
+</body>
+</html>
