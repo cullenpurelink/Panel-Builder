@@ -77,7 +77,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         else:
             log_lines.append("Nothing to commit, checking for unpushed commits...")
 
-        code, out = run_git("push", timeout=120)
+        code, out = run_git("push", "-u", "origin", "HEAD", timeout=120)
         log_lines.append(out)
         if code != 0:
             return False, "\n".join(log_lines)
