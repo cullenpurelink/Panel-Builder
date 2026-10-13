@@ -1709,34 +1709,46 @@ function panelImg(pid) {
    positions are illustrative only (the style guide fixes the bracket's own
    shape, not where it sits on a given housing) — see the caption under the
    net view. */
-function finStrip(x, y, w, h) {
-  // side face (w=housing height, h=depth): horizontal ribs stacked along
-  // the depth, cut-out length = depth * 0.685, nudged so the first/last
-  // rib shows ~1.5mm, pitch ~3.5mm (1.5mm fin / 2mm slot) per the guide.
-  // Used for "Bent-metal vents" (and always on the side faces, which are
-  // this same material seen edge-on).
-  const cutLen = Math.min(h - 3, h * 0.685 + 3), marginV = (h - cutLen) / 2;
+function mountCap(x, y, w, h) {
+  // Reserved space + hole for the mounting-ear bracket. Only the hole
+  // matters in this 2D net view — the real bracket shape is a 3D-view
+  // concern (per the user), not drawn here.
+  return `<rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" fill="#2E2F31"/>`
+    + `<circle cx="${n(x + w / 2)}" cy="${n(y + h / 2)}" r="1.4" fill="none" stroke="#C9CED3" stroke-width="0.3"/>`;
+}
+function ventRibs(x, y, w, h) {
+  // cut-out length = h * 0.685, nudged so the first/last rib shows
+  // ~1.5mm, pitch ~3.5mm (1.5mm fin / 2mm slot) per the Enclosure guide.
+  const cutLen = Math.min(h - 3, h * 0.685 + 3), marginV = Math.max(0, (h - cutLen) / 2);
   const marginH = Math.max(1, w * 0.08), pitch = 3.5, finH = 1.6;
   let ribs = '';
   for (let yy = marginV; yy <= h - marginV - finH; yy += pitch) {
     ribs += `<rect x="${n(x + marginH)}" y="${n(y + yy)}" width="${n(w - 2 * marginH)}" height="${n(finH)}" rx="0.3" fill="#2B2C2E"/>`;
   }
-  return `<rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" rx="1.2" fill="#3A3A3B" stroke="#8E959C" stroke-width="0.4"/>` + ribs;
+  return ribs;
 }
-function heatsinkStrip(x, y, w, h) {
-  // "Heat sink" cooling: a visibly different, heavier-looking texture
-  // from the vent comb above (thicker, wider-pitched ribs + two mounting
-  // screws) in the same zone — a solid block, not perforated sheet metal,
-  // which is why only this choice gets the depth-clearance warning.
-  const marginV = Math.max(2, h * 0.04), marginH = Math.max(1, w * 0.1), pitch = 4, finH = 2.6;
+function heatsinkRibs(x, y, w, h) {
+  // "Heat sink" cooling: visibly heavier (thicker, wider-pitched) ribs
+  // than the vent comb, in the same zone — a solid block, not
+  // perforated sheet metal, which is why only this choice gets the
+  // clearance warning in Checks.
+  const marginV = Math.max(1, h * 0.06), marginH = Math.max(1, w * 0.1), pitch = 4, finH = 2.6;
   let ribs = '';
   for (let yy = marginV; yy <= h - marginV - finH; yy += pitch) {
     ribs += `<rect x="${n(x + marginH)}" y="${n(y + yy)}" width="${n(w - 2 * marginH)}" height="${n(finH)}" rx="0.4" fill="#1C1D1F"/>`;
   }
-  const cx = x + w / 2;
-  return `<rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" rx="1.2" fill="#2E2F31" stroke="#8E959C" stroke-width="0.4"/>` + ribs
-    + `<circle cx="${n(cx)}" cy="${n(y + marginV + 2)}" r="1" fill="none" stroke="#C9CED3" stroke-width="0.3"/>`
-    + `<circle cx="${n(cx)}" cy="${n(y + h - marginV - 2)}" r="1" fill="none" stroke="#C9CED3" stroke-width="0.3"/>`;
+  return ribs;
+}
+function sideFace(x, y, w, h, cooling) {
+  // Side face (w=housing height, h=depth): a mounting-cap zone (hole
+  // only, see mountCap) at each end, vent/heat-sink fins in the middle
+  // — matches the real cap-fin-cap layout seen on the actual product's
+  // side view, not fins running edge-to-edge.
+  const capH = Math.min(20, h * 0.18), ribFn = cooling === 'heatsink' ? heatsinkRibs : ventRibs;
+  const fill = cooling === 'heatsink' ? '#2E2F31' : '#3A3A3B';
+  let s = `<rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" rx="1.2" fill="${fill}" stroke="#8E959C" stroke-width="0.4"/>`;
+  s += mountCap(x, y, w, capH) + ribFn(x, y + capH, w, h - 2 * capH) + mountCap(x, y + h - capH, w, capH);
+  return s;
 }
 function topFace(x, y, w, h, enclosureW, catText, cooling) {
   // centred PureLink wordmark, sized by enclosure-width band (Silkprint
@@ -1746,15 +1758,15 @@ function topFace(x, y, w, h, enclosureW, catText, cooling) {
   // wordmark otherwise — matches the guide's small/medium-centred vs
   // large-right-aligned rule, confirmed against the real
   // PT-PSW-21HC-KVM V2 silkprint (KVM SWITCH badge, bottom-right).
-  // The two FIN.keep-wide end strips (vent comb or heat sink texture,
-  // whichever is selected) are the same zones visible in the real
-  // product photos as narrow strips either side of the top view.
+  // The two FIN.keep-wide end strips (same cap-fin-cap side material,
+  // seen from above) are the zones visible in the real product photos
+  // as narrow strips either side of the top view.
   const bandW = enclosureW <= 89 ? 30 : enclosureW <= 209 ? 45 : 55, large = enclosureW > 209;
   const logoW = Math.min(bandW, w * 0.7), logoH = logoW * (4 / 21);
   const cx = x + w / 2, cy = y + h / 2;
   let s = `<rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" rx="1.2" fill="#2B2C2E" stroke="#8E959C" stroke-width="0.4"/>`;
-  const zoneW = Math.min(FIN.keep, w * 0.3), zoneTex = cooling === 'heatsink' ? heatsinkStrip : finStrip;
-  s += zoneTex(x, y, zoneW, h) + zoneTex(x + w - zoneW, y, zoneW, h);
+  const zoneW = Math.min(FIN.keep, w * 0.3);
+  s += sideFace(x, y, zoneW, h, cooling) + sideFace(x + w - zoneW, y, zoneW, h, cooling);
   s += model.logoSvg
     ? `<image href="${model.logoSvg}" x="${n(cx - logoW / 2)}" y="${n(cy - logoH / 2)}" width="${n(logoW)}" height="${n(logoH)}" preserveAspectRatio="xMidYMid meet"/>`
     : `<text x="${n(cx)}" y="${n(cy)}" text-anchor="middle" dominant-baseline="middle" font-family="Barlow, sans-serif" font-weight="500" font-size="${n(logoH * 0.9)}" fill="#C9CED3">PureLink</text>`;
@@ -1780,15 +1792,16 @@ function dimLineV(x, y1, y2, label) {
     + `<text x="${n(x - 1)}" y="${n(my)}" text-anchor="middle" font-family="Barlow, sans-serif" font-size="2.6" fill="${col}" transform="rotate(-90 ${n(x - 1)} ${n(my)})">${label}</text>`;
 }
 function bottomFace(x, y, w, h, c) {
-  // No centre block here any more — heat sink/vents are the two end
-  // zones on the top/side faces (see topFace/heatsinkStrip), not a
-  // separate bottom-mounted part.
+  // No centre block here — heat sink/vents are the two end zones on the
+  // top/side faces, not a separate bottom-mounted part. Corner mounting
+  // holes only (see mountCap) — the bracket shape itself is a 3D-view
+  // concern, not drawn here.
   let s = `<rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" rx="1.2" fill="#3A3A3B" stroke="#8E959C" stroke-width="0.4"/>`;
   const footCount = Math.abs(c.height - 44.45) < 0.01 ? 4 : 2;
   const feet = footCount === 4
     ? [[x + 8, y + 8], [x + w - 8, y + 8], [x + 8, y + h - 8], [x + w - 8, y + h - 8]]
     : [[x + 8, y + h / 2], [x + w - 8, y + h / 2]];
-  for (const [fx, fy] of feet) s += `<rect x="${n(fx - 3)}" y="${n(fy - 5)}" width="6" height="10" rx="1" fill="none" stroke="#C9CED3" stroke-width="0.4" stroke-dasharray="1,1"/>`;
+  for (const [fx, fy] of feet) s += `<circle cx="${n(fx)}" cy="${n(fy)}" r="1.4" fill="none" stroke="#C9CED3" stroke-width="0.3"/>`;
   s += `<text x="${n(x + 2)}" y="${n(y + h - 1.5)}" font-family="Barlow, sans-serif" font-size="2.4" fill="#8E959C">Bottom</text>`;
   return s;
 }
@@ -1801,8 +1814,7 @@ function netSVG(c, D) {
   let s = '';
   const rear = panelImg('rear'), front = panelImg('front');
   s += rear ? `<image href="${rear}" x="${x0}" y="${rows[0]}" width="${W}" height="${H}" preserveAspectRatio="none"/>` : face(x0, rows[0], W, H, 'Rear panel');
-  const side = c.cooling === 'heatsink' ? heatsinkStrip : finStrip;
-  s += side(0, rows[1], H, D) + topFace(x0, rows[1], W, D, W, catText, c.cooling) + side(x0 + W + gap, rows[1], H, D);
+  s += sideFace(0, rows[1], H, D, c.cooling) + topFace(x0, rows[1], W, D, W, catText, c.cooling) + sideFace(x0 + W + gap, rows[1], H, D, c.cooling);
   s += front ? `<image href="${front}" x="${x0}" y="${rows[2]}" width="${W}" height="${H}" preserveAspectRatio="none"/>` : face(x0, rows[2], W, H, 'Front panel');
   s += bottomFace(x0, rows[3], W, D, c);
   // dimension callouts (width above the top row, depth to the left of it) —
@@ -1826,7 +1838,7 @@ function renderStage() {
         <option value="vent"${c.cooling !== 'heatsink' ? ' selected' : ''}>Bent-metal vents</option>
         <option value="heatsink"${c.cooling === 'heatsink' ? ' selected' : ''}${heatsinkAllowed(c) ? '' : ' disabled'}>Heat sink${heatsinkAllowed(c) ? '' : ' (30 mm or Custom 29 mm housings only)'}</option>
       </select></label></div>
-      ${D ? `<div class="netwrap">${netSVG(c, D)}</div><p style="color:var(--muted);font-size:12.5px">Fin and logo geometry follow Styleguide PureTools_Enclosure/Silkprint V1.1. Heat sink/vents are shown as two end zones (left + right), same width as the existing front-fin keep-out — exact zone width and foot positions are illustrative, not yet confirmed against CAD.</p>` : '<p>Set the depth to see the unfolded housing.</p>'}</div>
+      ${D ? `<div class="netwrap">${netSVG(c, D)}</div><p style="color:var(--muted);font-size:12.5px">Fin and logo geometry follow Styleguide PureTools_Enclosure/Silkprint V1.1. Heat sink/vents are shown as two end zones (left + right), same width as the existing front-fin keep-out. The small circles at each corner mark mounting-hole positions only — the bracket shape itself is a 3D-view concern, not drawn here. Exact zone width and hole positions are illustrative, not yet confirmed against CAD.</p>` : '<p>Set the depth to see the unfolded housing.</p>'}</div>
       <div class="card"><h2>Still coming</h2><ul>
       <li>Perforated ventilation-hole pattern on top for rack/matrix housings, e.g. 6 × 21 holes on 1U (the net view above shows the side fins and, for 30 mm/Custom 29 mm housings, the heat sink — both illustrative references, not a manufacturing drawing)</li>
       <li>Precise housing screw/mounting-hole coordinates and real foot attachment points (the net view's feet are placeholders — check against the <code>PT_Feet_*</code> STEP files)</li>
