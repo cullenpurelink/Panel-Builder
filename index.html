@@ -1751,21 +1751,32 @@ function heatsinkRibs(x, y, w, h) {
   return ribs;
 }
 let cutoutSeq = 0;
+function tabPath(x, y, w, h, r) {
+  // A rect with its corners rounded only on the far (x+w) edge and
+  // sharp on the near (x) edge — not a symmetric pill. Confirmed
+  // against the real chassis CAD: the cover's own silhouette is flush
+  // where the cut-out area meets the mounting-ear step and rounded
+  // only on its outer edge (matching the "rounded corners on top"
+  // new-design feature), not rounded on all four corners.
+  r = Math.max(0, Math.min(r, h / 2, w));
+  return `M${n(x)},${n(y)} L${n(x + w - r)},${n(y)} A${n(r)},${n(r)} 0 0 1 ${n(x + w)},${n(y + r)}`
+    + ` L${n(x + w)},${n(y + h - r)} A${n(r)},${n(r)} 0 0 1 ${n(x + w - r)},${n(y + h)}`
+    + ` L${n(x)},${n(y + h)} Z`;
+}
 function ventSlot(x, y, w, h, cooling, ribFn) {
   // The real part isn't flat fins printed on a flush panel — it's an
-  // actual cut-out, a rounded-rectangle slot recessed into the metal,
-  // with the fin comb sitting inside it (confirmed against the real
-  // silkprint drawing and product photos: a distinctly rounded hole,
-  // inset from the surrounding surface on every side, not edge-to-edge
-  // stripes). Drawn as a rounded recess rect + the fin comb clipped to
-  // its rounded corners.
-  const padH = Math.max(0.6, w * 0.12), padV = Math.max(0.6, h * 0.04);
+  // actual cut-out, recessed into the metal, with the fin comb sitting
+  // inside it (confirmed against the real silkprint drawing and
+  // product photos: a distinctly rounded hole, inset from the
+  // surrounding surface, not edge-to-edge stripes).
+  const padH = Math.max(0.6, w * 0.08), padV = Math.max(0.6, h * 0.02);
   const sx = x + padH, sy = y + padV, sw = w - 2 * padH, sh = h - 2 * padV;
-  const rx = Math.min(sw, sh) * 0.4;
+  const rx = Math.min(sw * 0.9, sh * 0.35);
   const id = `vslot${cutoutSeq++}`;
   const bgFill = cooling === 'heatsink' ? '#141516' : '#1A1B1C';
-  let s = `<defs><clipPath id="${id}"><rect x="${n(sx)}" y="${n(sy)}" width="${n(sw)}" height="${n(sh)}" rx="${n(rx)}"/></clipPath></defs>`;
-  s += `<rect x="${n(sx)}" y="${n(sy)}" width="${n(sw)}" height="${n(sh)}" rx="${n(rx)}" fill="${bgFill}" stroke="#101112" stroke-width="0.25"/>`;
+  const path = tabPath(sx, sy, sw, sh, rx);
+  let s = `<defs><clipPath id="${id}"><path d="${path}"/></clipPath></defs>`;
+  s += `<path d="${path}" fill="${bgFill}" stroke="#101112" stroke-width="0.25"/>`;
   s += `<g clip-path="url(#${id})">${ribFn(sx, sy, sw, sh)}</g>`;
   return s;
 }
