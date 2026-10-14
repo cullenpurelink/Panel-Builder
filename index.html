@@ -1234,7 +1234,15 @@ function logoGeom(it) {
   const sc = it.scale || 1, stacked = it.style === 'stacked', cat = (it.showBox !== false && it.cat) ? it.cat : '';
   let wW, wH, bH, bW = 0, gap, W, H, cap;
   if (stacked) { wW = 30 * sc; wH = 5.7 * sc; bH = 4.6 * sc; cap = bH * 0.6; bW = cat ? 20 * sc : 0; gap = 1.8 * sc; W = wW; H = wH + (bW ? gap + bH : 0); }
-  else { wW = 21 * sc; wH = 4 * sc; cap = 3.8 * sc; bH = cap + 1.9 * sc; gap = 1.9 * sc; if (cat) bW = textW(cat, cap / 0.7, 700) + 3.8 * sc; W = wW + (bW ? gap + bW : 0); H = Math.max(wH, bH); }
+  else {
+    // 23/25mm housings get a smaller wordmark/badge than 30mm ones
+    // (Silkprint V1.3 p.14-15): 18.4x3.5mm vs 21x4mm, 3.2mm vs 3.8mm cap,
+    // 0.8mm vs 0.95mm badge padding. Gap and corner radius stay the same.
+    const small = model.chassis.height < 27;
+    wW = (small ? 18.4 : 21) * sc; wH = (small ? 3.5 : 4) * sc; cap = (small ? 3.2 : 3.8) * sc;
+    bH = cap + (small ? 1.6 : 1.9) * sc; gap = 1.9 * sc;
+    if (cat) bW = textW(cat, cap / 0.7, 700) + 3.8 * sc; W = wW + (bW ? gap + bW : 0); H = Math.max(wH, bH);
+  }
   const x0 = it.x - W / 2, y0 = it.y - H / 2;
   const word = { x: x0, y: stacked ? y0 : y0 + (H - wH) / 2, w: wW, h: wH };
   const box = bW ? (stacked ? { x: x0, y: y0 + wH + gap, w: bW, h: bH } : { x: x0 + wW + gap, y: y0 + (H - bH) / 2, w: bW, h: bH }) : null;
@@ -1771,17 +1779,20 @@ function sideFace(x, y, w, h, cooling) {
   return s;
 }
 function topFace(x, y, w, h, enclosureW, catText, cooling) {
-  // centred PureLink wordmark, sized by enclosure-width band (Silkprint
-  // guide p.14): 30mm (50-89), 45mm (90-209), 55mm (210-400). Category
-  // badge (reused from the front panel's own logo item, if any) sits
-  // bottom-right on the 210-400mm ("large") band, centred below the
-  // wordmark otherwise — matches the guide's small/medium-centred vs
-  // large-right-aligned rule, confirmed against the real
-  // PT-PSW-21HC-KVM V2 silkprint (KVM SWITCH badge, bottom-right).
+  // centred PureLink wordmark and category badge, per Silkprint V1.3
+  // p.16-17: logo width/badge size is keyed to HOUSING TYPE, not just
+  // enclosure width — "housing with heat sink" always gets the 55mm
+  // logo and a badge right-aligned with the side cut-out, regardless of
+  // width; a plain bent housing gets 30/45mm by width band and a badge
+  // centred below the wordmark. Badge cap-height and corner radius also
+  // scale with the same tiers (12.5pt/0.5mm, 15.5pt/0.6mm, 18pt/0.8mm).
   // The two FIN.keep-wide end strips (same cap-fin-cap side material,
   // seen from above) are the zones visible in the real product photos
   // as narrow strips either side of the top view.
-  const bandW = enclosureW <= 89 ? 30 : enclosureW <= 209 ? 45 : 55, large = enclosureW > 209;
+  const heatsink = cooling === 'heatsink';
+  const bandW = heatsink ? 55 : (enclosureW <= 89 ? 30 : 45);
+  const badgeCap = heatsink ? 4.6 : (enclosureW <= 89 ? 3.2 : 3.9);
+  const badgeR = heatsink ? 0.8 : (enclosureW <= 89 ? 0.5 : 0.6);
   const logoW = Math.min(bandW, w * 0.7), logoH = logoW * (4 / 21);
   const cx = x + w / 2, cy = y + h / 2;
   let s = `<rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" rx="1.2" fill="#2B2C2E" stroke="#8E959C" stroke-width="0.4"/>`;
@@ -1796,9 +1807,10 @@ function topFace(x, y, w, h, enclosureW, catText, cooling) {
     s += `<g transform="translate(${n(cx - logoW / 2)} ${n(cy - hh / 2)}) scale(${k.toFixed(6)})"><g transform="translate(${-LOGO_OFFICIAL.x} ${-LOGO_OFFICIAL.y})" fill="${SILK}">${LOGO_OFFICIAL.paths}</g></g>`;
   }
   if (catText) {
-    const cap = 3, bh = cap + 1.9, bw = textW(catText, cap / 0.7, 700) + 3.8;
-    const bx = large ? x + w - bw - 4 : cx - bw / 2, by = large ? y + h - bh - 3 : cy + logoH / 2 + 2.5;
-    s += `<rect x="${n(bx)}" y="${n(by)}" width="${n(bw)}" height="${n(bh)}" rx="0.6" fill="${BLUE}"/><text x="${n(bx + bw / 2)}" y="${n(by + bh / 2 + 0.3)}" text-anchor="middle" dominant-baseline="middle" font-family="Barlow, sans-serif" font-weight="700" font-size="${n(cap)}" fill="#FFFFFF">${esc(catText)}</text>`;
+    const bh = badgeCap + 1.9, bw = textW(catText, badgeCap / 0.7, 700) + 3.8;
+    const bx = heatsink ? (x + w - zoneW) - bw : cx - bw / 2;
+    const by = heatsink ? y + h - bh - 3 : cy + logoH / 2 + 2.5;
+    s += `<rect x="${n(bx)}" y="${n(by)}" width="${n(bw)}" height="${n(bh)}" rx="${n(badgeR)}" fill="${BLUE}"/><text x="${n(bx + bw / 2)}" y="${n(by + bh / 2 + 0.3)}" text-anchor="middle" dominant-baseline="middle" font-family="Barlow, sans-serif" font-weight="700" font-size="${n(badgeCap)}" fill="#FFFFFF">${esc(catText)}</text>`;
   }
   return s;
 }
@@ -2400,7 +2412,7 @@ function logoDefault(it) {
   const H = model.chassis.height, rack = model.chassis.form === 'rack';
   it.style = it.style || (rack ? 'stacked' : 'inline');
   const g = logoGeom({ ...it, x: 0, y: 0 }), w = g.bbox[2] - g.bbox[0], h = g.bbox[3] - g.bbox[1];
-  const left = it.style === 'stacked' ? 12.6 : 5.5, top = it.style === 'stacked' ? Math.min(16, H - h - 4) : (H < 27 ? 4.5 : 6.5);
+  const left = it.style === 'stacked' ? 12.6 : (H < 27 ? 3.5 : 5.5), top = it.style === 'stacked' ? Math.min(16, H - h - 4) : (H < 27 ? 4.5 : 6.5);
   it.x = r3(left + w / 2); it.y = r3(top + h / 2);
 }
 function addItem(pid, type, x, y) {
