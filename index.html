@@ -1725,10 +1725,12 @@ function mountCap(x, y, w, h) {
     + `<circle cx="${n(x + w / 2)}" cy="${n(y + h / 2)}" r="1.4" fill="none" stroke="#C9CED3" stroke-width="0.3"/>`;
 }
 function ventRibs(x, y, w, h) {
-  // cut-out length = h * 0.685, nudged so the first/last rib shows
-  // ~1.5mm, pitch ~3.5mm (1.5mm fin / 2mm slot) per the Enclosure guide.
-  const cutLen = Math.min(h - 3, h * 0.685 + 3), marginV = Math.max(0, (h - cutLen) / 2);
-  const marginH = Math.max(1, w * 0.08), pitch = 3.5, finH = 1.6;
+  // Fin orientation and pitch confirmed against real CAD (the bottom
+  // shell's own moulded rib tabs, PT-HDBT-150-RX / PT-VCX25-25-RX /
+  // PT-MA-HD44): horizontal bars stacked vertically, ~5.5mm pitch,
+  // running nearly the full length of the zone (ribFn is already
+  // called with the cutout's own shrunk h, not the full side-face h).
+  const marginV = Math.max(0.6, h * 0.02), marginH = Math.max(1, w * 0.08), pitch = 5.5, finH = 2;
   let ribs = '';
   for (let yy = marginV; yy <= h - marginV - finH; yy += pitch) {
     ribs += `<rect x="${n(x + marginH)}" y="${n(y + yy)}" width="${n(w - 2 * marginH)}" height="${n(finH)}" rx="0.3" fill="#2B2C2E"/>`;
@@ -1736,11 +1738,12 @@ function ventRibs(x, y, w, h) {
   return ribs;
 }
 function heatsinkRibs(x, y, w, h) {
-  // "Heat sink" cooling: visibly heavier (thicker, wider-pitched) ribs
-  // than the vent comb, in the same zone — a solid block, not
-  // perforated sheet metal, which is why only this choice gets the
-  // clearance warning in Checks.
-  const marginV = Math.max(1, h * 0.06), marginH = Math.max(1, w * 0.1), pitch = 4, finH = 2.6;
+  // "Heat sink" cooling: a real aluminium insert (PT-PSW-21HC-KVM V2's
+  // own heat-sink part, confirmed by CAD) rather than the housing's
+  // moulded vent tabs — visibly heavier (thicker fins) in the same
+  // zone, same orientation/pitch, which is why only this choice gets
+  // the clearance warning in Checks.
+  const marginV = Math.max(0.6, h * 0.02), marginH = Math.max(1, w * 0.1), pitch = 5.5, finH = 3;
   let ribs = '';
   for (let yy = marginV; yy <= h - marginV - finH; yy += pitch) {
     ribs += `<rect x="${n(x + marginH)}" y="${n(y + yy)}" width="${n(w - 2 * marginH)}" height="${n(finH)}" rx="0.4" fill="#1C1D1F"/>`;
@@ -1771,8 +1774,11 @@ function sideFace(x, y, w, h, cooling) {
   // only, see mountCap) at each end, a rounded vent/heat-sink cut-out
   // (see ventSlot) in the middle — matches the real cap-cutout-cap
   // layout seen on the actual product's side view, not fins running
-  // edge-to-edge.
-  const capH = Math.min(20, h * 0.18), ribFn = cooling === 'heatsink' ? heatsinkRibs : ventRibs;
+  // edge-to-edge. capH confirmed small against the real
+  // PT-PSW-21HC-KVM V2 CHASSIS CAD (the heat-sink insert's own
+  // footprint runs to within ~3-7% of the depth at each end, nowhere
+  // near the ~18% this used to reserve).
+  const capH = Math.min(8, Math.max(3, h * 0.07)), ribFn = cooling === 'heatsink' ? heatsinkRibs : ventRibs;
   const fill = cooling === 'heatsink' ? '#2E2F31' : '#3A3A3B';
   let s = `<rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" rx="1.2" fill="${fill}" stroke="#8E959C" stroke-width="0.4"/>`;
   s += mountCap(x, y, w, capH) + ventSlot(x, y + capH, w, h - 2 * capH, cooling, ribFn) + mountCap(x, y + h - capH, w, capH);
@@ -1875,7 +1881,7 @@ function renderStage() {
         <option value="vent"${c.cooling !== 'heatsink' ? ' selected' : ''}>Bent-metal vents</option>
         <option value="heatsink"${c.cooling === 'heatsink' ? ' selected' : ''}${heatsinkAllowed(c) ? '' : ' disabled'}>Heat sink${heatsinkAllowed(c) ? '' : ' (30 mm or Custom 29 mm housings only)'}</option>
       </select></label></div>
-      ${D ? `<div class="netwrap">${netSVG(c, D)}</div><p style="color:var(--muted);font-size:12.5px">Fin/heat-sink geometry follows Styleguide PureTools_Enclosure/Silkprint V1.1: a rounded cut-out slot (not flush stripes) at each end, same width as the existing front-fin keep-out, with a smaller matching slot where it's visible from the top. The top logo uses the real official PureLink vector. The small circles at each corner mark mounting-hole positions only — the bracket shape itself is a 3D-view concern, not drawn here. Exact zone/slot proportions and hole positions are illustrative, not yet confirmed against CAD.</p>` : '<p>Set the depth to see the unfolded housing.</p>'}</div>
+      ${D ? `<div class="netwrap">${netSVG(c, D)}</div><p style="color:var(--muted);font-size:12.5px">Fin/heat-sink geometry checked against the real PT-PSW-21HC-KVM V2 CHASSIS CAD: a rounded cut-out slot at each end (running close to the full depth, not a big blank cap zone), ribs oriented and pitched to match the real heat-sink insert and the other housings' own moulded vent tabs, with a smaller matching slot where it's visible from the top. The top logo uses the real official PureLink vector. The small circles at each corner mark mounting-hole positions only — the bracket shape itself is a 3D-view concern, not drawn here. Cap-zone size is a best estimate from CAD (it varies a bit by product); exact hole positions are still illustrative.</p>` : '<p>Set the depth to see the unfolded housing.</p>'}</div>
       <div class="card"><h2>Still coming</h2><ul>
       <li>Perforated ventilation-hole pattern on top for rack/matrix housings, e.g. 6 × 21 holes on 1U (the net view above shows the side fins and, for 30 mm/Custom 29 mm housings, the heat sink — both illustrative references, not a manufacturing drawing)</li>
       <li>Precise housing screw/mounting-hole coordinates and real foot attachment points (the net view's feet are placeholders — check against the <code>PT_Feet_*</code> STEP files)</li>
