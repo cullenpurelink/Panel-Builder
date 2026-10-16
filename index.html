@@ -1993,11 +1993,17 @@ function topBadgeTier(enclosureW, cooling) {
   // 30/45mm bands with 12.5pt/3.2mm or 15.5pt/3.9mm text and a 0.5/0.6mm
   // radius. White text (the optional text to the badge's left) and the
   // blue badge's own text share the same size per tier.
+  // The table's "mm" figure is the CAP HEIGHT at that point size (e.g.
+  // 12.5pt Barlow ≈ 3.2mm caps), not the font-size itself — same
+  // cap/0.7 relationship logoSVG already uses for the front-panel badge
+  // — so the actual font-size to render is cap/0.7, not cap.
   const heatsink = cooling === 'heatsink';
+  const cap = heatsink ? 4.6 : (enclosureW <= 89 ? 3.2 : 3.9);
   return {
     heatsink,
     bandW: heatsink ? 55 : (enclosureW <= 89 ? 30 : 45),
-    textPt: heatsink ? 4.6 : (enclosureW <= 89 ? 3.2 : 3.9),
+    cap,
+    textPt: r3(cap / 0.7),
     badgeR: heatsink ? 0.8 : (enclosureW <= 89 ? 0.5 : 0.6),
   };
 }
@@ -2394,20 +2400,22 @@ function addHousingBox(style, title, w, h, fs) {
   noteSel = [id]; commit(); renderStage();
 }
 function addTopBadge() {
-  // Default position/size replicate the style guide's own formula (see
-  // topBadgeTier) — centred under the logo for a bent housing, or
-  // right-aligned with the vent cut-out for a heat-sink housing — but as
-  // a normal draggable item from here on, so it can actually be moved,
-  // and paired with a separate white text note to its left (p.17).
+  // Default position/size replicate the style guide's own formula (p.16-17):
+  // the text block always sits at the BOTTOM of the face — never directly
+  // under the PureLink logo, which stays centred on its own — centred
+  // horizontally for a bent housing, or right-aligned with the vent
+  // cut-out for a heat-sink housing. As a normal draggable item from here
+  // on it can actually be moved, and is paired with a separate white
+  // text note to its left (p.17).
   const c = model.chassis, D = +model.housing.depth || 0, box = noteFaceBox('top', netGeom(c, D));
   const tier = topBadgeTier(c.width, c.cooling);
   const logoItem = model.panels.front.find(i => i.kind === 'logo');
   const catText = (logoItem && logoItem.showBox !== false && logoItem.cat) || 'CATEGORY';
-  const fs = r3(tier.textPt), logoW = Math.min(tier.bandW, box.w * 0.7), logoH = logoW * (4 / 21);
-  const bh = r3(fs + 1.9), bw = r3(textW(catText, fs / 0.7, 700) + 3.8);
+  const fs = r3(tier.textPt);
+  const bh = r3(tier.cap + 1.9), bw = r3(textW(catText, fs, 700) + 3.8);
   const zoneW = Math.min(FIN.keep, box.w * 0.3);
   const bx = tier.heatsink ? (box.w - zoneW) - bw : box.w / 2 - bw / 2;
-  const by = tier.heatsink ? box.h - bh - 3 : box.h / 2 + logoH / 2 + 2.5;
+  const by = box.h - bh - 3;
   const id = uid();
   model.housing.notes.push({ id, kind: 'box', face: 'top', x: r3(Math.max(0, bx)), y: r3(Math.max(0, by)), title: catText, w: bw, h: bh, style: 'badge', fs, rx: tier.badgeR });
   noteSel = [id]; commit(); renderStage();
@@ -2465,6 +2473,13 @@ function bindNoteToolbar(hv) {
   };
   updateNoteToolbarState();
 }
+function noteFaceAt(geom, p) {
+  for (const face of ['top', 'bottom']) {
+    const b = noteFaceBox(face, geom);
+    if (p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h) return face;
+  }
+  return null;
+}
 function wireNotes(hv) {
   const svg = hv.querySelector('.netwrap svg'); if (!svg) return;
   svg.addEventListener('pointerdown', e => {
@@ -2472,23 +2487,31 @@ function wireNotes(hv) {
     const item = e.target.closest('.note-item'), id = item && item.dataset.note;
     if (!id) {
       // Empty space: start a marquee (box-select), like the Panel tab.
+      // Clicking directly on a face also switches "Add to face", so the
+      // sidebar's tool list always matches the face you're pointing at —
+      // but the switch is only applied once the gesture ends (below),
+      // since rebuilding the sidebar mid-drag would tear down this very
+      // svg and break the pointer capture we're about to take.
       if (!e.shiftKey) noteSel = [];
       const c = model.chassis, D = +model.housing.depth || 0, geom = netGeom(c, D);
-      noteDrag = { svg, geom, marquee: true, start: svgPoint(svg, e), cur: null, base: noteSel.slice() };
+      const p = svgPoint(svg, e), face = noteFaceAt(geom, p), faceChanged = !!face && face !== noteAddFace;
+      noteDrag = { svg, geom, marquee: true, start: p, cur: null, base: noteSel.slice(), faceToApply: faceChanged ? face : null };
       svg.setPointerCapture(e.pointerId);
       renderNetOnly(); renderNoteEditor(); updateNoteToolbarState();
       e.preventDefault();
       return;
     }
+    const clicked = model.housing.notes.find(n => n.id === id), faceChanged = clicked && clicked.face !== noteAddFace;
     if (e.shiftKey) {
       noteSel = noteSel.includes(id) ? noteSel.filter(x => x !== id) : noteExpandGroup([...noteSel, id]);
-      renderNetOnly(); renderNoteEditor(); updateNoteToolbarState(); return;
+      if (faceChanged) { noteAddFace = clicked.face; renderStage(); } else { renderNetOnly(); renderNoteEditor(); updateNoteToolbarState(); }
+      return;
     }
     if (!noteSel.includes(id)) noteSel = noteExpandGroup([id]);
     const c = model.chassis, D = +model.housing.depth || 0, geom = netGeom(c, D);
     const start = svgPoint(svg, e), orig = new Map();
     for (const nid of noteSel) { const n = model.housing.notes.find(x => x.id === nid); if (n) orig.set(nid, { x: n.x, y: n.y, face: n.face }); }
-    noteDrag = { svg, geom, start, orig, primary: id, moved: false };
+    noteDrag = { svg, geom, start, orig, primary: id, moved: false, faceToApply: faceChanged ? clicked.face : null };
     svg.setPointerCapture(e.pointerId);
     renderNetOnly(); renderNoteEditor(); updateNoteToolbarState();
     e.preventDefault();
@@ -2546,9 +2569,15 @@ function wireNotes(hv) {
   });
   const end = () => {
     if (!noteDrag || noteDrag.svg !== svg) return;
-    if (noteDrag.marquee) { noteDrag = null; renderNetOnly(); return; }
-    const moved = noteDrag.moved; noteDrag = null; noteGuides = [];
-    if (moved) { commit(); renderStage(); } else renderNetOnly();
+    if (noteDrag.marquee) {
+      const faceToApply = noteDrag.faceToApply; noteDrag = null;
+      if (faceToApply) { noteAddFace = faceToApply; renderStage(); } else renderNetOnly();
+      return;
+    }
+    const moved = noteDrag.moved, faceToApply = noteDrag.faceToApply; noteDrag = null; noteGuides = [];
+    if (moved) { commit(); renderStage(); }
+    else if (faceToApply) { noteAddFace = faceToApply; renderStage(); }
+    else renderNetOnly();
   };
   svg.addEventListener('pointerup', end);
   svg.addEventListener('pointercancel', end);
