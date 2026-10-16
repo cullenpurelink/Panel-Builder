@@ -1154,7 +1154,6 @@ function newModel(o = {}) {
     logoSvg: '',
     panels: { front: [], rear: [] },
     housing: { depth: null, cutout: {}, notes: [] },
-    ledLegend: {},
     render: {}
   };
 }
@@ -1321,27 +1320,29 @@ const RJ45_LED_TYPES = ['rj45', 'rj45lp'];
 function buildFuncBlockGroups() {
   const order = [], groups = {};
   const add = (gname, text, sub) => { if (!groups[gname]) { groups[gname] = []; order.push(gname); } groups[gname].push({ text, sub: !!sub }); };
-  let anyRJ45 = false;
   for (const pid of ['front', 'rear']) {
     const labels = computeLabels(pid), memberOf = new Map();
     for (const fr of model.panels[pid].filter(i => i.kind === 'frame')) for (const id of fr.members) memberOf.set(id, fr);
     for (const it of model.panels[pid]) {
       if (it.kind !== 'port') continue;
-      if (RJ45_LED_TYPES.includes(it.type)) anyRJ45 = true;
       const isDip = /^dip/.test(it.type);
       const pinLines = isDip ? (it.pinFuncs || []).map((v, i) => v ? `SW${i + 1}: ${v}` : null).filter(Boolean) : [];
+      // Each RJ45-style port has its own LED legend (style guide p.22) —
+      // not one shared description — so its lines ride along with that
+      // port's own row, not a separate product-wide block.
+      const leg = RJ45_LED_TYPES.includes(it.type) ? (it.ledLegend || {}) : null;
+      const ledLines = leg ? LED_LEGEND_FIELDS.map(f => leg[f.key] ? `${f.label}: ${leg[f.key]}` : null).filter(Boolean) : [];
       const line = isDip ? null : specLineFor(it);
-      if (!line && !pinLines.length) continue;
+      if (!line && !pinLines.length && !ledLines.length) continue;
       const fr = memberOf.get(it.id);
       const gname = (fr && fr.title && fr.title.trim()) ? (model.rules.upper ? upperKeep(fr.title.trim()) : fr.title.trim()) : 'OTHER';
       const role = ((it.label && it.label.trim()) || labels.get(it.id) || PORTS[it.type].name).replace(/\\n/g, ' / ');
       if (line) add(gname, `${role}: ${line}`);
-      else add(gname, role); // DIP header line, pin functions follow indented
+      else add(gname, role); // DIP header / LED-only header line, detail follows indented
       for (const pl of pinLines) add(gname, pl, true);
+      for (const ll of ledLines) add(gname, ll, true);
     }
   }
-  const leg = model.ledLegend || {}, legLines = LED_LEGEND_FIELDS.map(f => leg[f.key] ? `${f.label}: ${leg[f.key]}` : null).filter(Boolean);
-  if (anyRJ45 && legLines.length) { order.push('RJ45 / HDBaseT LEDS'); groups['RJ45 / HDBaseT LEDS'] = legLines.map(text => ({ text, sub: false })); }
   return order.map(g => [g, groups[g]]);
 }
 function funcBlockRows() {
@@ -3013,8 +3014,10 @@ function dipPinFuncsHTML(it) {
   for (let i = 0; i < k; i++) rows += comboRow(it.id + ':pinfunc:' + i, 'dippin', `Pin ${i + 1} function`, DIP_PIN_PRESETS, arr[i] || '', `data-combo="pinfunc:${i}" data-catkey="dippin"`);
   return `<h3>Pin functions</h3><p class="note">What each switch position does, for the file export and the rear-panel function-coding block.</p>${rows}`;
 }
-// Product-level, not per-port: every RJ45-style jack shares the same two
-// status LEDs and the same meaning for them (style guide p.22).
+// Per RJ45-style jack — each one on the panel can carry a different
+// signal (HDBaseT, plain Ethernet…), so its two status LEDs can mean
+// something different per port, not one description shared by all of
+// them (style guide p.22).
 const LED_LEGEND_FIELDS = [
   { key: 'greenOff', label: 'Green (connection) — OFF', options: ['None', 'No link'] },
   { key: 'greenOn', label: 'Green (connection) — ON', options: ['Good', 'Good + HDCP', 'Link established'] },
@@ -3023,9 +3026,11 @@ const LED_LEGEND_FIELDS = [
   { key: 'amberOn', label: 'Amber/Yellow (HDMI) — ON', options: ['Good', 'Signal present'] },
   { key: 'amberBlink', label: 'Amber/Yellow (HDMI) — Blinking', options: ['Poor', 'HDCP error'] },
 ];
-function ledLegendHTML() {
-  const leg = model.ledLegend || {};
-  return `<div class="row2">${LED_LEGEND_FIELDS.map(f => comboRow('ledleg:' + f.key, 'ledleg:' + f.key, f.label, f.options, leg[f.key] || '', `data-leg="${f.key}" data-catkey="${esc('ledleg:' + f.key)}"`)).join('')}</div>`;
+function ledLegendHTML(it) {
+  const leg = it.ledLegend || {};
+  return `<h3>RJ45 / HDBaseT LED legend</h3>
+    <p class="note">What this port's two status LEDs mean (style guide p.22). Pulled into "Insert function-coding text" on the Housing tab, under this port's own line, once at least one field below is filled in.</p>
+    <div class="row2">${LED_LEGEND_FIELDS.map(f => comboRow(it.id + ':ledleg:' + f.key, 'ledleg:' + f.key, f.label, f.options, leg[f.key] || '', `data-combo="ledleg:${f.key}" data-catkey="${esc('ledleg:' + f.key)}"`)).join('')}</div>`;
 }
 // A small CRUD view over the global, cross-product "learned" entries (see
 // learnCustom/forgetCustom) — point 3's "make it possible to remove unused
@@ -3070,9 +3075,6 @@ function renderInspector() {
       <label class="check"><input type="checkbox" data-r="upper" ${R.upper ? 'checked' : ''}> Force uppercase</label>
       <label class="check"><input type="checkbox" data-r="alignLabels" ${R.alignLabels ? 'checked' : ''}> Line up labels on the same row</label>
       <label class="fld"><span>Row tolerance for lining up (mm)</span><input type="number" step="0.5" min="0" data-r="alignRange" value="${R.alignRange}"><small>Labels this close vertically snap to one shared line.</small></label>
-      <h3>RJ45 / HDBaseT LED legend</h3>
-      <p class="note">One legend for every RJ45-style port on this product (style guide p.22) — not set per port. Pulled in by "Insert function-coding text" on the Housing tab when there's at least one such port and at least one field below is filled in.</p>
-      ${ledLegendHTML()}
       ${catalogManagerHTML()}
       <h3>Shortcuts</h3>
       <ul class="keys"><li>Drag across empty panel to box-select; <kbd>Shift</kbd>-drag or <kbd>Shift</kbd>-click adds to the selection</li><li><kbd>Ctrl</kbd> <kbd>A</kbd> selects everything on the active panel; drag any selected part to move the group</li><li>Arrow keys nudge by the snap step, add <kbd>Shift</kbd> for 10×</li><li><kbd>Ctrl</kbd> <kbd>D</kbd> duplicates, <kbd>Delete</kbd> removes</li><li><kbd>Ctrl</kbd> <kbd>Z</kbd> undoes, <kbd>Esc</kbd> clears the selection</li></ul>`;
@@ -3128,6 +3130,7 @@ function renderInspector() {
         <label class="fld"><span>Label gap for this port (mm)</span><input type="number" step="0.1" data-f="labelGap" value="${it.labelGap != null && it.labelGap !== '' ? it.labelGap : ''}" placeholder="${model.rules.labelGap} (panel default)"></label>
         <label class="fld"><span>Small label above</span><input type="text" data-f="sub" value="${esc(it.sub || '')}" placeholder="e.g. 100W [bolt]">${insButtons('sub')}</label>
         ${specFieldsHTML(it)}
+        ${RJ45_LED_TYPES.includes(it.type) ? ledLegendHTML(it) : ''}
         ${p.cbox ? `<label class="check"><input type="checkbox" data-c="colorBox" ${it.colorBox ? 'checked' : ''}> ${p.cboxName}</label>` : ''}
         ${p.strip ? `<div class="fld"><span>Pin pitch</span>${seg('pitch', +it.pitch || 3.81, [[3.81, '3.81 mm'], [3.5, '3.5 mm']])}</div>` : ''}
         ${p.posLabels ? `<div class="fld"><span>Switch position</span>${seg('swPos', +it.swPos || 0, Array.from({ length: it.pins || 3 }, (_, i) => [i, (it.pinLabels || '').split(',')[i]?.trim() || String(i + 1)]))}</div>
@@ -3160,15 +3163,6 @@ function bindInspector() {
   });
   const sku = $('[data-m="sku"]', el); if (sku) { sku.oninput = () => { model.sku = sku.value; updateToolbar(); }; sku.onchange = () => commit(); }
   $$('[data-act]', el).forEach(b => b.onclick = () => doAction(b.dataset.act));
-  $$('[data-leg]', el).forEach(inp => {
-    const k = inp.dataset.leg, catKey = inp.dataset.catkey;
-    const set = v => { model.ledLegend = model.ledLegend || {}; if (v) model.ledLegend[k] = v; else delete model.ledLegend[k]; renderCanvas(); };
-    if (inp.tagName === 'SELECT') inp.onchange = () => {
-      if (inp.value === '__custom') { specCustomUI.add('ledleg:' + k); renderAll(); const c = $(`[data-leg="${k}"][data-combo-custom]`, el); c && c.focus(); }
-      else { specCustomUI.delete('ledleg:' + k); set(inp.value); commit(); renderAll(); }
-    };
-    else { inp.oninput = () => set(inp.value); inp.onchange = () => { learnCustom(catKey, inp.value); commit(); renderAll(); }; }
-  });
   $$('[data-forget]', el).forEach(b => b.onclick = () => { const i = b.dataset.forget.indexOf('|'); forgetCustom(b.dataset.forget.slice(0, i), b.dataset.forget.slice(i + 1)); });
   if (sel.length !== 1) return;
   const r = findItem(sel[0]); if (!r) return; const it = r.it, H = model.chassis.height;
@@ -3212,6 +3206,7 @@ function bindInspector() {
       if (domain === 'func') { it.func = v; if (it.type === 'rj45') it.colorBox = v === 'HDBaseT'; }
       else if (domain === 'spec') { it.spec = it.spec || {}; if (v) it.spec[sub] = v; else delete it.spec[sub]; }
       else if (domain === 'pinfunc') { const a = (it.pinFuncs || []).slice(); while (a.length <= +sub) a.push(''); a[+sub] = v; it.pinFuncs = a; }
+      else if (domain === 'ledleg') { it.ledLegend = it.ledLegend || {}; if (v) it.ledLegend[sub] = v; else delete it.ledLegend[sub]; }
       renderCanvas();
     };
     if (inp.tagName === 'SELECT') inp.onchange = () => {
@@ -3408,7 +3403,16 @@ function normalise(m) {
   c.cooling = (c.cooling === 'heatsink' && heatsinkAllowed(c)) ? 'heatsink' : 'vent';
   m.format = 'purelink-panel-layout'; m.version = 3;
   m.housing = { depth: null, cutout: {}, notes: [], ...(m.housing || {}) }; m.housing.cutout = m.housing.cutout || {}; m.housing.notes = m.housing.notes || []; m.render = m.render || {};
-  m.ledLegend = m.ledLegend || {};
+  // LED legends moved from one product-wide set of fields to per-port
+  // (each RJ45-style jack can show something different) — carry an old
+  // product's single legend onto every such port that doesn't already
+  // have its own, so existing data isn't silently dropped.
+  if (m.ledLegend && Object.values(m.ledLegend).some(Boolean)) {
+    for (const pid of ['front', 'rear']) for (const it of m.panels[pid]) {
+      if (it.kind === 'port' && RJ45_LED_TYPES.includes(it.type) && !it.ledLegend) it.ledLegend = { ...m.ledLegend };
+    }
+  }
+  delete m.ledLegend;
   m.name = m.name || 'Untitled product'; m.sku = m.sku || ''; m.logoSvg = m.logoSvg || '';
   return m;
 }
