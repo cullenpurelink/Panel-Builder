@@ -34,9 +34,8 @@ button,input,select{font:inherit;color:inherit}
 [hidden]{display:none!important}
 
 .bar{display:flex;align-items:center;gap:10px 14px;padding:10px 16px;background:var(--surface);border-bottom:1px solid var(--line);flex-wrap:wrap}
-.brand{display:flex;align-items:center;gap:8px;padding-right:12px;border-right:1px solid var(--line)}
-.brand .word{font:500 19px "Exo 2","Barlow",sans-serif;color:var(--accent);letter-spacing:.01em}
-.brand .tag{font:700 11px var(--font-ui);background:var(--accent);color:var(--on-accent);padding:2px 6px;border-radius:3px;letter-spacing:.04em}
+.brand{display:flex;align-items:center;padding-right:12px;border-right:1px solid var(--line)}
+.brand svg{display:block;height:22px;width:auto}
 .prodname{font-weight:600;font-size:17px;border:1px solid transparent;background:transparent;border-radius:6px;padding:5px 8px;width:220px;max-width:100%}
 .prodname:hover{border-color:var(--line)} .prodname:focus{border-color:var(--accent);outline:none;background:var(--surface-2)}
 .chassis{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -242,7 +241,7 @@ dialog::backdrop{background:rgba(10,14,18,.45)}
 <body>
 <svg id="pbdefs" aria-hidden="true" focusable="false"></svg>
 <header class="bar">
-  <div class="brand"><span class="word">PureLink</span><span class="tag">PANEL BUILDER</span></div>
+  <div class="brand" id="brandLogo" aria-label="PureLink Product Builder"></div>
   <input class="prodname" id="prodName" aria-label="Product name" placeholder="Product name">
   <div class="chassis">
     <label>Housing <select id="housingSel" aria-label="Housing height"></select></label>
@@ -1664,6 +1663,23 @@ function logoSVG(e, forExport) {
   }
   return s;
 }
+// The app's own chrome, not a product's — always the official vector
+// (never model.logoSvg, a per-product override) and the same wordmark
+// + blue category-box pairing/proportions as the real silk print (p.14,
+// "cap height always equals the wordmark's own height"), just fixed at
+// the large/30mm tier since there's no housing to size it from here.
+function headerBrandSVG() {
+  const cat = 'PRODUCT BUILDER';
+  const wW = 21, wH = 4, cap = wH, gap = 1.9, bH = cap + 1.9;
+  const bW = textW(cat, cap / 0.7, 700) + 3.8;
+  const W = wW + gap + bW, H = Math.max(wH, bH);
+  const k = wW / LOGO_OFFICIAL.w, hh = LOGO_OFFICIAL.h * k;
+  let s = `<g transform="translate(0 ${n((H - wH) / 2 + (wH - hh) / 2)}) scale(${k.toFixed(6)})"><g transform="translate(${-LOGO_OFFICIAL.x} ${-LOGO_OFFICIAL.y})" fill="${SILK}">${LOGO_OFFICIAL.paths}</g></g>`;
+  const bx = wW + gap, by = (H - bH) / 2, fs = cap / 0.7;
+  s += RC(bx, by, bW, bH, BLUE, 0.6);
+  s += `<text x="${n(bx + bW / 2)}" y="${n(by + (bH + cap) / 2)}" text-anchor="middle" font-family='${FONT}' font-weight="700" font-size="${n(fs)}" fill="${FACE}" letter-spacing="${n(fs * 0.02)}">${esc(cat)}</text>`;
+  return `<svg viewBox="0 0 ${n(W)} ${n(H)}" height="22" role="img" aria-label="PureLink Product Builder">${s}</svg>`;
+}
 function itemArt(e) {
   const it = e.it; let s = '';
   if (it.kind === 'port') s += portSVG(it);
@@ -3027,6 +3043,7 @@ function updateToolbar() {
    Header, palette, inspector
    ============================================================ */
 function renderHeader() {
+  const brand = $('#brandLogo'); if (brand && !brand.firstChild) brand.innerHTML = headerBrandSVG();
   const c = model.chassis, hs = housingOf(c);
   if (document.activeElement !== $('#prodName')) $('#prodName').value = model.name;
   $('#housingSel').value = hs.id;
