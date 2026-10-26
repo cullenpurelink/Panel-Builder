@@ -10,16 +10,22 @@ documents, not something that belongs in the public-ish git history.
   size class (small/medium/large), side cooling-fin cut-out formula,
   heat sink (`XXSUB-PT-ACC-MSINK`) and mounting-foot (`XXSUB-PT-ACC-
   SMOUNT`/`-MMOUNT`) specs, 1U rack ventilation-hole pattern.
-- **`Styleguide PureTools_Silkprint_V1.3.pdf`** — frame/label layout
+- **`Styleguide PureTools_Silkprint_V1.4.pdf`** — frame/label layout
   rules, logo sizing table by housing type (bent housing by width band
   vs. housing-with-heatsink, independent of width), cable/port colour
-  coding, and the underside "function coding" block layout (confirmed
-  generic: it mirrors the same OUTPUT/INPUT/etc. frame groupings
-  already on the front/rear panels, plus fixed MAC-address/rating-
-  label/QR/NOTES elements — not bespoke per-product art). Read in full
-  2026-10-14; `topFace()`/`logoGeom()`/`logoDefault()` now match it.
-  The superseded V1.2 is kept at `archiv/Styleguide PureTools_
-  Silkprint_V1.2.pdf` for reference, not read.
+  coding, and the underside "function coding" block layout (generic: it
+  mirrors the same OUTPUT/INPUT/etc. frame groupings already on the
+  front/rear panels, plus fixed MAC-address/rating-label/QR/NOTES
+  elements — not bespoke per-product art). V1.4 (read in full
+  2026-10-26) added: dedicated 23/25mm front-logo dimensions (18.4 x
+  3.5mm, 5.1mm badge), bumped the 30mm badge font 3.8→4mm (badge cap
+  height always equals the wordmark's own height — p.14/15), a ½U rack
+  row on the top-logo table sharing the heat-sink tier's size (p.17,
+  confirmed explicitly on the new p.20), and official fixed MAC-
+  address/rating-label sticker sizes (39.5x9.6mm / 52.3x21.8mm, p.23).
+  `topFace()`/`logoGeom()`/`logoDefault()`/`topBadgeTier()` and the
+  Housing tab's MAC/rating box styles now match it. The superseded
+  V1.2/V1.3 are kept at `archiv/` for reference, not read.
 - **`Image creation styleguide for suppliers_V1.3.pdf`** — not yet read
   in a Panel Builder session; covers product-photo/render creation
   conventions for suppliers. **Earmarked for the 3D tab**: once that's
@@ -57,7 +63,10 @@ Enclosure guide's measured rules, the Silkprint guide's logo/badge
 tables, plus the real CAD in `3D drawings/` (cap-zone size and rib
 pitch) and `PLK-M-1-04 Heat Sink V0.2.step`.
 
-**Not yet built**: the bottom face's generic "function coding" block
-system (Silkprint V1.3 p.21-23) — reuses the front/rear panels' own
-frame groupings but needs a new per-port "spec text" field and isn't
-started.
+The bottom face's "function coding" block system (Silkprint p.21-22) is
+built: `buildFuncBlockGroups()`/`funcBlockRows()`/
+`insertFuncCodingNotes()` reuse the front/rear panels' own frame
+groupings and per-port spec/LED-legend fields, laid out as draggable
+Housing-tab notes at the guide's 4mm margin / 4mm header / 3mm
+header-gap, with one shared gap constant between blocks so their
+spacing is always even (p.22's explicit rule).

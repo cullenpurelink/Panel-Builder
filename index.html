@@ -1360,10 +1360,12 @@ function logoGeom(it) {
   if (stacked) { wW = 30 * sc; wH = 5.7 * sc; bH = 4.6 * sc; cap = bH * 0.6; bW = cat ? 20 * sc : 0; gap = 1.8 * sc; W = wW; H = wH + (bW ? gap + bH : 0); }
   else {
     // 23/25mm housings get a smaller wordmark/badge than 30mm ones
-    // (Silkprint V1.3 p.14-15): 18.4x3.5mm vs 21x4mm, 3.2mm vs 3.8mm cap,
+    // (Silkprint V1.4 p.14-15): 18.4x3.5mm vs 21x4mm — the badge text is
+    // always the SAME HEIGHT as the wordmark lettering (both guide pages
+    // say so, and both diagrams dimension them identically), giving
     // 0.8mm vs 0.95mm badge padding. Gap and corner radius stay the same.
     const small = model.chassis.height < 27;
-    wW = (small ? 18.4 : 21) * sc; wH = (small ? 3.5 : 4) * sc; cap = (small ? 3.2 : 3.8) * sc;
+    wW = (small ? 18.4 : 21) * sc; wH = (small ? 3.5 : 4) * sc; cap = wH;
     bH = cap + (small ? 1.6 : 1.9) * sc; gap = 1.9 * sc;
     if (cat) bW = textW(cat, cap / 0.7, 700) + 3.8 * sc; W = wW + (bW ? gap + bW : 0); H = Math.max(wH, bH);
   }
@@ -1987,18 +1989,24 @@ function sideFace(x, y, w, h, cooling, roundSide) {
   return s;
 }
 function topBadgeTier(enclosureW, cooling) {
-  // Silkprint V1.3 p.16-17: logo width and the badge/text size next to it
+  // Silkprint V1.4 p.16-17: logo width and the badge/text size next to it
   // are keyed to HOUSING TYPE, not just enclosure width — "housing with
   // heat sink" always gets the 55mm logo band, 18pt/4.6mm text and a
   // 0.8mm badge radius regardless of width; a plain bent housing gets
   // 30/45mm bands with 12.5pt/3.2mm or 15.5pt/3.9mm text and a 0.5/0.6mm
   // radius. White text (the optional text to the badge's left) and the
   // blue badge's own text share the same size per tier.
+  // V1.4 adds a ½U rack row to the same table, sharing the heat-sink
+  // tier's exact values — and p.20 confirms it explicitly ("the logo on
+  // the front and top has the same dimensions as the 30mm heat sink
+  // housing"). A ½U rack is never "heatsink" cooling in this model
+  // (heatsinkAllowed() only allows it on a 30mm std housing), so it has
+  // to be its own check here rather than following from `cooling`.
   // The table's "mm" figure is the CAP HEIGHT at that point size (e.g.
   // 12.5pt Barlow ≈ 3.2mm caps), not the font-size itself — same
   // cap/0.7 relationship logoSVG already uses for the front-panel badge
   // — so the actual font-size to render is cap/0.7, not cap.
-  const heatsink = cooling === 'heatsink';
+  const heatsink = cooling === 'heatsink' || model.chassis.form === 'half';
   const cap = heatsink ? 4.6 : (enclosureW <= 89 ? 3.2 : 3.9);
   return {
     heatsink,
@@ -2338,19 +2346,26 @@ function renderNoteEditor() {
     if (!n) { el.innerHTML = ''; return; }
     if (n.kind === 'box') {
       const isNotes = n.style === 'notes', minW = isNotes ? NOTES_MIN.w : 4, minH = isNotes ? NOTES_MIN.h : 4;
+      // MAC address / rating label are real-world sticker sizes the style
+      // guide calls out as fixed ("the size is always the same" — V1.4
+      // p.23), so unlike every other box style they aren't resizable here.
+      const fixedSize = STICKER_SIZE[n.style];
       el.innerHTML = `<div class="card"><h3>Box</h3>
         <label class="fld"><span>Title</span><input type="text" id="noteTitle" value="${esc(n.title || '')}"></label>
-        <div class="row2"><label class="fld"><span>Width (mm)</span><input type="number" id="noteW" step="0.5" min="${minW}" value="${n.w || 40}"></label>
-        <label class="fld"><span>Height (mm)</span><input type="number" id="noteH" step="0.5" min="${minH}" value="${n.h || 20}"></label></div>
+        ${fixedSize ? `<p class="note">Fixed sticker size: ${fixedSize.w} × ${fixedSize.h} mm.</p>` : `<div class="row2"><label class="fld"><span>Width (mm)</span><input type="number" id="noteW" step="0.5" min="${minW}" value="${n.w || 40}"></label>
+        <label class="fld"><span>Height (mm)</span><input type="number" id="noteH" step="0.5" min="${minH}" value="${n.h || 20}"></label></div>`}
         <div class="fld"><span>Style</span><div class="seg" data-seg="style" style="flex-wrap:wrap;height:auto"><button type="button" data-v="header" aria-pressed="${n.style === 'header'}">Header</button><button type="button" data-v="notes" aria-pressed="${n.style === 'notes'}">Notes</button><button type="button" data-v="mac" aria-pressed="${n.style === 'mac'}">MAC address</button><button type="button" data-v="rating" aria-pressed="${n.style === 'rating'}">Rating label</button><button type="button" data-v="sticker" aria-pressed="${n.style === 'sticker'}">Device info</button><button type="button" data-v="badge" aria-pressed="${n.style === 'badge'}">Badge</button></div></div>
         ${isNotes ? `<small>Notes can’t go smaller than ${NOTES_MIN.w} × ${NOTES_MIN.h} mm.</small>` : ''}
         <small>On the ${esc(n.face)} face${n.group ? ', grouped' : ''}.</small></div>`;
       const t = $('#noteTitle'); t.oninput = () => { n.title = t.value; renderNetOnly(); }; t.onchange = () => commit();
-      const w = $('#noteW'); w.oninput = () => { const v = parseFloat(w.value); if (v > 0) { n.w = Math.max(v, isNotes ? NOTES_MIN.w : 0); renderNetOnly(); } }; w.onchange = () => { commit(); renderNoteEditor(); };
-      const h = $('#noteH'); h.oninput = () => { const v = parseFloat(h.value); if (v > 0) { n.h = Math.max(v, isNotes ? NOTES_MIN.h : 0); renderNetOnly(); } }; h.onchange = () => { commit(); renderNoteEditor(); };
+      if (!fixedSize) {
+        const w = $('#noteW'); w.oninput = () => { const v = parseFloat(w.value); if (v > 0) { n.w = Math.max(v, isNotes ? NOTES_MIN.w : 0); renderNetOnly(); } }; w.onchange = () => { commit(); renderNoteEditor(); };
+        const h = $('#noteH'); h.oninput = () => { const v = parseFloat(h.value); if (v > 0) { n.h = Math.max(v, isNotes ? NOTES_MIN.h : 0); renderNetOnly(); } }; h.onchange = () => { commit(); renderNoteEditor(); };
+      }
       $$('[data-seg="style"] button', el).forEach(b => b.onclick = () => {
         n.style = b.dataset.v;
         if (n.style === 'notes') { n.w = Math.max(n.w || 0, NOTES_MIN.w); n.h = Math.max(n.h || 0, NOTES_MIN.h); }
+        else if (STICKER_SIZE[n.style]) { n.w = STICKER_SIZE[n.style].w; n.h = STICKER_SIZE[n.style].h; }
         commit(); renderNoteEditor(); renderNetOnly();
       });
       return;
@@ -2368,11 +2383,15 @@ function renderNoteEditor() {
   } else el.innerHTML = '';
 }
 function insertFuncCodingNotes() {
-  // Style guide numbers: 4mm margin from the panel edge, white-box headings
-  // are a 4mm-tall box (Barlow Bold 9pt) with a 3mm gap to the text below;
-  // body text is Barlow Regular at the same small/large-enclosure size the
-  // front/rear panel's own labels already use (spec().pt), bold for
-  // table-style sub-headings (e.g. "HDBT LEDS:").
+  // Style guide numbers (V1.4 p.22): 4mm margin from the panel edge,
+  // white-box headings are a 4mm-tall box (Barlow Bold 9pt) with a 3mm
+  // gap to the text below; body text is Barlow Regular at the same
+  // small/large-enclosure size the front/rear panel's own labels already
+  // use (spec().pt), bold for table-style sub-headings (e.g. "HDBT LEDS:").
+  // "The blocks are aligned evenly with each other so that the distances
+  // between the blocks are the same" — the single `gap` constant below is
+  // reused for every block-to-block blank line, so that's always true by
+  // construction, not something to balance per pair of blocks.
   const rows = funcBlockRows(); if (!rows.length) { toast('No port characteristics set yet — set them on a port’s own inspector panel first.'); return; }
   const bodyFs = r3(spec(model.chassis.height).pt * PT), headFs = r3(HEADER_PT * PT);
   const lh = bodyFs * 1.4, gap = lh * 0.5, margin = 4, headH = 4, gapAfterHead = 3;
@@ -2394,6 +2413,9 @@ function insertFuncCodingNotes() {
 }
 const HEADER_PT = 9; // Silkprint style guide: white-box headings are Barlow Bold 9pt
 const NOTES_MIN = { w: 45, h: 15 }; // style guide: Notes field is at least 45 x 15mm
+// Silkprint V1.4 p.23: these two stickers have one official, fixed size —
+// unlike NOTES (a minimum only), MAC/rating are never resized.
+const STICKER_SIZE = { mac: { w: 39.5, h: 9.6 }, rating: { w: 52.3, h: 21.8 } };
 function addHousingBox(style, title, w, h, fs) {
   const c = model.chassis, D = +model.housing.depth || 0, box = noteFaceBox(noteAddFace, netGeom(c, D));
   const id = uid();
@@ -2452,8 +2474,8 @@ function bindNoteToolbar(hv) {
   // freely resizable until the real sizes are known.
   if (boxBtn) boxBtn.onclick = () => addHousingBox('header', 'OUTPUT', 40, 4);
   if (notesBtn) notesBtn.onclick = () => addHousingBox('notes', 'NOTES', NOTES_MIN.w, NOTES_MIN.h);
-  if (macBtn) macBtn.onclick = () => addHousingBox('mac', 'MAC ADDRESS', 30, 8);
-  if (ratingBtn) ratingBtn.onclick = () => addHousingBox('rating', 'RATING LABEL', 35, 15);
+  if (macBtn) macBtn.onclick = () => addHousingBox('mac', 'MAC ADDRESS', STICKER_SIZE.mac.w, STICKER_SIZE.mac.h);
+  if (ratingBtn) ratingBtn.onclick = () => addHousingBox('rating', 'RATING LABEL', STICKER_SIZE.rating.w, STICKER_SIZE.rating.h);
   if (stickerBtn) stickerBtn.onclick = () => addHousingBox('sticker', 'Device Info', 15, 15);
   if (badgeBtn) badgeBtn.onclick = () => addTopBadge();
   if (fn) fn.onclick = () => insertFuncCodingNotes();
