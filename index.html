@@ -703,10 +703,10 @@ const PORTS = {
   jack35: { name: '3.5 mm jack', group: 'Audio & control', ref: true, shape: 'circle', w: 6.8, funcs: ['IR IN', 'IR OUT', 'AUDIO', 'AUDIO IN', 'AUDIO OUT', 'MIC'],
     draw() { return CI(0, 0, 3.4, '#0D0D0D') + CI(0, 0, 3.1, U('dkmetal')) + CI(0, 0, 2.55, '#151515') + CI(0, 0, 1.85, U('hole')) + `<path d="M-2.1 -1.4 A2.55 2.55 0 0 1 1.2 -2.25" stroke="#6A6A6A" stroke-width="0.18" fill="none"/>`; } },
   eb35: { name: 'Phoenix, 3-pin', group: 'Audio & control', ref: true, shape: 'rect', pitch: 3.5, extra: 1.3, h: 8.0, r: 0.3, def: { pins: 3 }, pinHint: 'TX, [gnd], RX',
-    funcs: ['RS232', 'RS-232', 'IR', 'I/O', 'RELAY', 'AUDIO', 'AUDIO IN', 'AUDIO OUT', 'RS-485 | RS-232'],
+    funcs: ['RS232', 'RS-232', 'IR', 'I/O', 'RELAY', 'SWITCH', 'AUDIO', 'AUDIO IN', 'AUDIO OUT', 'RS-485 | RS-232'],
     draw(it) { return phoenix(it.pins || 3, 3.5, 1.3, 8.0); } },
   eb35x2: { name: 'Phoenix 3.5 mm, 2 rows', group: 'Audio & control', ref: true, shape: 'rect', pitch: 3.5, extra: 1.3, h: 14.0, r: 0.3, def: { pins: 3 },
-    funcs: ['SW1', 'SW2', 'RS232', 'RELAY', 'I/O'],
+    funcs: ['SW1', 'SW2', 'RS232', 'RELAY', 'SWITCH', 'I/O'],
     draw(it) { const k = it.pins || 3; return `<g transform="translate(0 -3.5)">${phoenix(k, 3.5, 1.3, 6.8, true)}</g><g transform="translate(0 3.5)">${phoenix(k, 3.5, 1.3, 6.8, true)}</g>`; } },
   dsub9: { name: 'D-sub 9', group: 'Audio & control', ref: false, shape: 'dsub', w: 31, h: 12.5, funcs: ['RS232', 'RS-232'],
     draw() {
@@ -773,8 +773,8 @@ const PORTS = {
   slide: { name: 'Slide switch', group: 'Front panel', ref: true, shape: 'rect', w: 10, h: 5.6, r: 0.4, funcs: ['PoC', 'MODE', 'ON/OFF'],
     draw() { let s = RC(-5, -2.8, 10, 5.6, '#2E2F31', 0.4) + RC(-4.4, -1.5, 8.8, 3, '#141414', 0.3) + RC(-4.2, -1.3, 3.6, 2.6, U('cap'), 0.2); for (let i = 0; i < 3; i++) s += RC(-3.6 + i * 1, -1.0, 0.35, 2.0, '#4A4D50'); return s; } }
 };
-PORTS.eb35p2 = { ...PORTS.eb35, name: 'Phoenix, 2-pin', def: { pins: 2 }, pinHint: '+, −', funcs: ['DC 12V', 'RELAY', 'IR', 'I/O', 'AUDIO'] };
-PORTS.eb35p5 = { ...PORTS.eb35, name: 'Phoenix, 5-pin', def: { pins: 5 }, pinHint: '+, −, [gnd], +, −', funcs: ['AUDIO', 'AUDIO IN', 'AUDIO OUT', 'RS-485 | RS-232', 'RS232'] };
+PORTS.eb35p2 = { ...PORTS.eb35, name: 'Phoenix, 2-pin', def: { pins: 2 }, pinHint: '+, −', funcs: ['DC 12V', 'RELAY', 'SWITCH', 'IR', 'I/O', 'AUDIO'] };
+PORTS.eb35p5 = { ...PORTS.eb35, name: 'Phoenix, 5-pin', def: { pins: 5 }, pinHint: '+, −, [gnd], +, −', funcs: ['AUDIO', 'AUDIO IN', 'AUDIO OUT', 'RS-485 | RS-232', 'RS232', 'RELAY', 'SWITCH'] };
 PORTS.eb35.name = 'Phoenix, 3-pin';
 PORTS.usba2 = { ...PORTS.usba, name: 'USB-A 2.0 (legacy)', def: { usb3: false, rot: 90 } };
 PORTS.usbb2 = { name: 'USB-B 2.0 (legacy)', group: 'USB', ref: true, shape: 'usbb', w: 12.4, h: 11.3, c: 1.4,
@@ -1121,6 +1121,21 @@ const SPEC_FIELDS = {
 for (const [base, fields] of Object.entries(SPEC_FIELDS)) if (!PORTS[base].specFields) PORTS[base].specFields = fields;
 // variants and aliases share their base type's fields
 for (const [a, b] of [['usba2', 'usba'], ['usbb2', 'usbb'], ['rj45lp', 'rj45'], ['dsC6', 'rj45'], ['dsCAT6A', 'rj45'], ['dsEther', 'rj45'], ['dcnut', 'dc21'], ['din4', 'dc21'], ['dclock', 'dc21'], ['eb35p2', 'eb35'], ['eb35x2', 'eb35'], ['eb35x2p5', 'eb35'], ['dsOptDuo', 'lc'], ['dsXLRM', 'dsXLRF'], ['resetRing', 'reset'], ['pinhole', 'reset']]) PORTS[a].specFields = PORTS[b].specFields;
+// Keyed by the selected FUNCTION rather than port type — a port set to
+// TCP/IP always ships with these network-access defaults, printed on
+// the underside function-coding block. Each field's one preset IS the
+// default (editable per port like any other characteristic), and
+// specFieldsFor()/specLineFor() prefer this over the type's own
+// specFields whenever the current function has an entry here.
+const FUNC_SPEC_FIELDS = {
+  'TCP/IP': [
+    { key: 'ip', label: 'Default IP', short: 'IP', options: ['192.168.0.100'] },
+    { key: 'port', label: 'Port', short: 'Port', options: ['4001'] },
+    { key: 'login', label: 'Login', short: 'Login', options: ['Admin'] },
+    { key: 'password', label: 'Password', short: 'Password', options: ['1234'] },
+  ],
+};
+function specFieldsFor(it) { return FUNC_SPEC_FIELDS[it.func] || PORTS[it.type].specFields || []; }
 const TYPE_ORDER =['dsC6', 'dsCAT6A', 'dsEther', 'dsOptDuo', 'dsXLRF', 'dsXLRM', 'hdmi', 'dp', 'bnc', 'rj45', 'rj45lp', 'sfp', 'lc', 'sma', 'usbc', 'usba', 'usba2', 'usbb', 'usbb2', 'jack35', 'slide3', 'eb35p2', 'eb35', 'eb35p5', 'eb35x2', 'eb35x2p5', 'dsub9', 'rca', 'toslink', 'dc21', 'dcnut', 'din4', 'eb508', 'dclock', 'iec', 'ground', 'led', 'button', 'reset', 'resetRing', 'pinhole', 'ir', 'dip2', 'dip4', 'dip', 'dip8', 'slide'];
 const GROUPS = ['Video', 'Network', 'USB', 'Audio & control', 'D-series', 'Power', 'Front panel', 'Display & branding', 'Not yet referenced'];
 /* ============================================================
@@ -1311,12 +1326,28 @@ function computeLabels(pid) {
 function specLineFor(it) {
   const p = PORTS[it.type]; if (!hasSpec(p)) return null;
   const sp = it.spec; if (!sp) return null;
-  const parts = (p.specFields || []).map(f => { const v = sp[f.key]; return v ? (f.short ? `${f.short}: ${v}` : v) : null; }).filter(Boolean);
+  const parts = specFieldsFor(it).map(f => { const v = sp[f.key]; return v ? (f.short ? `${f.short}: ${v}` : v) : null; }).filter(Boolean);
   if (sp.note) parts.push(sp.note);
   if (!parts.length) return null;
   return [p.name, ...parts].join(' | ');
 }
 const RJ45_LED_TYPES = ['rj45', 'rj45lp'];
+function portRole(it, pid, labels) { return ((it.label && it.label.trim()) || (labels || computeLabels(pid)).get(it.id) || PORTS[it.type].name).replace(/\\n/g, ' / '); }
+// The port's auto "role: spec-line" text, plus its free-text "additional
+// info" as a second line if set — shared by the live preview in the
+// port's inspector panel and the real function-coding generator below,
+// so what you see there is exactly what gets inserted. A manually-typed
+// bottomOverride replaces this ENTIRE auto text verbatim (see
+// renderInspector's bottom "Additional info for the bottom" section) —
+// LED/pin sub-lines still come from their own dedicated fields
+// regardless, since those already have their own editing UI.
+function portAutoText(it, pid, labels) {
+  const role = portRole(it, pid, labels);
+  const line = /^dip/.test(it.type) ? null : specLineFor(it);
+  const main = line ? `${role}: ${line}` : role;
+  const note = it.bottomNote && it.bottomNote.trim();
+  return note ? `${main}\n${note}` : main;
+}
 function buildFuncBlockGroups() {
   const order = [], groups = {};
   const add = (gname, text, sub) => { if (!groups[gname]) { groups[gname] = []; order.push(gname); } groups[gname].push({ text, sub: !!sub }); };
@@ -1325,20 +1356,24 @@ function buildFuncBlockGroups() {
     for (const fr of model.panels[pid].filter(i => i.kind === 'frame')) for (const id of fr.members) memberOf.set(id, fr);
     for (const it of model.panels[pid]) {
       if (it.kind !== 'port') continue;
-      const isDip = /^dip/.test(it.type);
-      const pinLines = isDip ? (it.pinFuncs || []).map((v, i) => v ? `SW${i + 1}: ${v}` : null).filter(Boolean) : [];
+      const isDip = /^dip/.test(it.type), hasOverride = it.bottomOverride != null;
+      // DIP pins and a Phoenix wired as a switch/relay (per-pin NO/NC/GND)
+      // both get one line per assigned pin.
+      const pinPrefix = isDip ? 'SW' : (PIN_FUNC_PRESETS[it.func] ? 'Pin ' : null);
+      const pinLines = pinPrefix != null ? (it.pinFuncs || []).map((v, i) => v ? `${pinPrefix}${i + 1}: ${v}` : null).filter(Boolean) : [];
       // Each RJ45-style port has its own LED legend (style guide p.22) —
       // not one shared description — so its lines ride along with that
       // port's own row, not a separate product-wide block.
       const leg = RJ45_LED_TYPES.includes(it.type) ? (it.ledLegend || {}) : null;
       const ledLines = leg ? LED_LEGEND_FIELDS.map(f => leg[f.key] ? `${f.label}: ${leg[f.key]}` : null).filter(Boolean) : [];
       const line = isDip ? null : specLineFor(it);
-      if (!line && !pinLines.length && !ledLines.length) continue;
+      const hasNote = !!(it.bottomNote && it.bottomNote.trim());
+      if (!hasOverride && !line && !hasNote && !pinLines.length && !ledLines.length) continue;
       const fr = memberOf.get(it.id);
       const gname = (fr && fr.title && fr.title.trim()) ? (model.rules.upper ? upperKeep(fr.title.trim()) : fr.title.trim()) : 'OTHER';
-      const role = ((it.label && it.label.trim()) || labels.get(it.id) || PORTS[it.type].name).replace(/\\n/g, ' / ');
-      if (line) add(gname, `${role}: ${line}`);
-      else add(gname, role); // DIP header / LED-only header line, detail follows indented
+      const text = hasOverride ? it.bottomOverride : portAutoText(it, pid, labels);
+      const textLines = text.split('\n').map(s => s.trim()).filter(Boolean);
+      textLines.forEach((l, i) => add(gname, l, i > 0));
       for (const pl of pinLines) add(gname, pl, true);
       for (const ll of ledLines) add(gname, ll, true);
     }
@@ -3018,23 +3053,29 @@ const hasSpec = p => p.group !== 'Front panel' || !!(p.specFields && p.specField
 // learned entries as a <datalist> so one can be picked and edited, or a new
 // one typed — either way it's relearned into the catalog on commit (see the
 // data-combo handlers in bindInspector and the ledLegend section).
-function comboRow(uiKey, catKey, label, options, cur, dataAttr, blank = true, dispFn = o => o) {
+function comboRow(uiKey, catKey, label, options, cur, dataAttr, blank = true, dispFn = o => o, disabled = false) {
   const extra = catalogExtra(catKey).filter(v => !options.includes(v));
   const all = [...options, ...extra];
   const custom = specCustomUI.has(uiKey) || (cur !== '' && !all.includes(cur)) || (!blank && cur === '');
   const dl = 'dl_' + catalogKeySafe(catKey);
-  return `<label class="fld"><span>${esc(label)}</span><select ${dataAttr}>${blank ? `<option value="" ${!custom && cur === '' ? 'selected' : ''}>—</option>` : ''}${all.map(o => `<option value="${esc(o)}" ${!custom && o === cur ? 'selected' : ''}>${esc(dispFn(o))}</option>`).join('')}<option value="__custom" ${custom ? 'selected' : ''}>Custom…</option></select></label>
-    ${custom ? `<label class="fld"><span>Custom ${esc(label.toLowerCase())}</span><input type="text" ${dataAttr} data-combo-custom="1" list="${dl}" value="${esc(cur)}">${extra.length ? `<datalist id="${dl}">${extra.map(o => `<option value="${esc(o)}">`).join('')}</datalist>` : ''}</label>` : ''}`;
+  const dis = disabled ? 'disabled' : '';
+  return `<label class="fld"><span>${esc(label)}</span><select ${dataAttr} ${dis}>${blank ? `<option value="" ${!custom && cur === '' ? 'selected' : ''}>—</option>` : ''}${all.map(o => `<option value="${esc(o)}" ${!custom && o === cur ? 'selected' : ''}>${esc(dispFn(o))}</option>`).join('')}<option value="__custom" ${custom ? 'selected' : ''}>Custom…</option></select></label>
+    ${custom ? `<label class="fld"><span>Custom ${esc(label.toLowerCase())}</span><input type="text" ${dataAttr} data-combo-custom="1" list="${dl}" value="${esc(cur)}" ${dis}>${extra.length ? `<datalist id="${dl}">${extra.map(o => `<option value="${esc(o)}">`).join('')}</datalist>` : ''}</label>` : ''}`;
 }
 // DIP switches have one function per physical pin (e.g. "SW1: HDCP bypass"),
 // unlike every other pitch-based part's single shared pin-labels text — each
 // pin gets its own preset+custom+catalog dropdown, stored as it.pinFuncs[i].
 const DIP_PIN_PRESETS = ['EDID', 'HDCP', 'Bypass', 'Mode select', 'Audio embed', 'Reserved'];
-function dipPinFuncsHTML(it) {
+// A Phoenix terminal block wired as a dry-contact switch or relay output
+// has the same "one preset per physical pin" shape as a DIP switch's
+// pins — just a different preset list, keyed off the port's selected
+// Function so it only shows up for the terminal blocks wired that way.
+const PIN_FUNC_PRESETS = { SWITCH: ['NO', 'NC', 'GND'], RELAY: ['NO', 'NC'] };
+function pinFuncsHTML(it, presets, catKey) {
   const k = it.pins || 5, arr = it.pinFuncs || [];
   let rows = '';
-  for (let i = 0; i < k; i++) rows += comboRow(it.id + ':pinfunc:' + i, 'dippin', `Pin ${i + 1} function`, DIP_PIN_PRESETS, arr[i] || '', `data-combo="pinfunc:${i}" data-catkey="dippin"`);
-  return `<h3>Pin functions</h3><p class="note">What each switch position does, for the file export and the rear-panel function-coding block.</p>${rows}`;
+  for (let i = 0; i < k; i++) rows += comboRow(it.id + ':pinfunc:' + i, catKey, `Pin ${i + 1} function`, presets, arr[i] || '', `data-combo="pinfunc:${i}" data-catkey="${esc(catKey)}"`);
+  return `<h3>Pin functions</h3><p class="note">What each pin/terminal does, for the file export and the rear-panel function-coding block.</p>${rows}`;
 }
 // Per RJ45-style jack — each one on the panel can carry a different
 // signal (HDBaseT, plain Ethernet…), so its two status LEDs can mean
@@ -3064,12 +3105,13 @@ function catalogManagerHTML() {
     <p class="note">Values you've typed into any "Custom…" field, remembered across every product. Remove ones you no longer need.</p>
     <div class="catalog">${keys.map(k => `<div class="catrow"><b>${esc(k)}</b>${catalog[k].map(v => `<span class="catchip">${esc(v)}<button type="button" data-forget="${esc(k)}|${esc(v)}" title="Remove">×</button></span>`).join('')}</div>`).join('')}</div>`;
 }
-function specFieldsHTML(it) {
+function specFieldsHTML(it, disabled = false) {
   const p = PORTS[it.type]; if (!hasSpec(p)) return '';
-  const sp = it.spec || {};
-  const fields = (p.specFields || []).map(f => comboRow(it.id + ':spec:' + f.key, `spec:${it.type}:${f.key}`, f.label, f.options, sp[f.key] || '', `data-combo="spec:${f.key}" data-catkey="spec:${it.type}:${f.key}"`)).join('');
+  const sp = it.spec || {}, sfs = specFieldsFor(it), byFunc = sfs === FUNC_SPEC_FIELDS[it.func];
+  const catBase = byFunc ? `spec:func:${it.func}:` : `spec:${it.type}:`;
+  const fields = sfs.map(f => comboRow(it.id + ':spec:' + f.key, catBase + f.key, f.label, f.options, sp[f.key] || '', `data-combo="spec:${f.key}" data-catkey="${esc(catBase + f.key)}"`, true, o => o, disabled)).join('');
   return `<h3>Port characteristics</h3><p class="note">For the file export and the rear-panel function-coding block (Silkprint style guide p.20).</p>
-    ${fields}<label class="fld"><span>${p.specFields && p.specFields.length ? 'Extra note' : 'Spec line'}</span><input type="text" data-spec="note" value="${esc(sp.note || '')}" placeholder="e.g. free-text spec for this port"></label>`;
+    ${fields}<label class="fld"><span>${sfs.length ? 'Extra note' : 'Spec line'}</span><input type="text" data-spec="note" value="${esc(sp.note || '')}" placeholder="e.g. free-text spec for this port" ${disabled ? 'disabled' : ''}></label>`;
 }
 function renderInspector() {
   const el = $('#inspector');
@@ -3145,13 +3187,14 @@ function renderInspector() {
       const p = PORTS[it.type], d = portDims(it);
       const fr = model.panels[pid].find(x => x.kind === 'frame' && x.members.includes(it.id));
       const autoLbl = computeLabels(pid).get(it.id);
+      const locked = it.bottomOverride != null;
       el.innerHTML = `<div class="ihead"><div class="glyph">${thumbSVG(it.type, 58, 40)}</div><div><h3>${esc(p.name)}</h3><p>Cut-out ${p.shape === 'circle' ? 'Ø ' + f(d.w) : f(d.w) + ' × ' + f(d.h)} mm, ${pid} panel${p.ref ? '' : '. No reference render yet.'}</p><p style="margin-top:3px"><span class="vtag ${isValid('part:' + it.type) ? 'ok' : 'no'}">${isValid('part:' + it.type) ? 'Validated' : 'Unvalidated'}</span> <small>${LEVELS[partLevel(it.type)]}</small></p></div></div>
-        ${comboRow(it.id + ':func', 'func:' + it.type, 'Function', p.funcs, it.func, `data-combo="func" data-catkey="${esc('func:' + it.type)}"`, false, optLabel)}
-        <label class="fld"><span>Port designation</span><input type="text" data-f="label" value="${esc(it.label || '')}" placeholder="${esc(it.label ? '' : (autoLbl || 'No label').replace(/\\n/g, ' / '))}">${insButtons('label')}<small>Blank uses the function and its number.</small></label>
+        ${comboRow(it.id + ':func', 'func:' + it.type, 'Function', p.funcs, it.func, `data-combo="func" data-catkey="${esc('func:' + it.type)}"`, false, optLabel, locked)}
+        <label class="fld"><span>Port designation</span><input type="text" data-f="label" value="${esc(it.label || '')}" placeholder="${esc(it.label ? '' : (autoLbl || 'No label').replace(/\\n/g, ' / '))}" ${locked ? 'disabled' : ''}>${insButtons('label')}<small>Blank uses the function and its number.</small></label>
         ${fr ? `<p class="note">Placed by the frame “${esc(fr.title || 'untitled')}”: ${fr.titlePos === 'bottom' ? 'above the port' : 'on the bottom line'}.</p>` : `<div class="fld"><span>Label position</span>${seg('labelPos', it.labelPos || p.lp || 'below', [['above', 'Above'], ['below', 'Below'], ['left', 'Left'], ['right', 'Right'], ['none', 'None']])}</div>`}
         <label class="fld"><span>Label gap for this port (mm)</span><input type="number" step="0.1" data-f="labelGap" value="${it.labelGap != null && it.labelGap !== '' ? it.labelGap : ''}" placeholder="${model.rules.labelGap} (panel default)"></label>
         <label class="fld"><span>Small label above</span><input type="text" data-f="sub" value="${esc(it.sub || '')}" placeholder="e.g. 100W [bolt]">${insButtons('sub')}</label>
-        ${specFieldsHTML(it)}
+        ${specFieldsHTML(it, locked)}
         ${RJ45_LED_TYPES.includes(it.type) ? ledLegendHTML(it) : ''}
         ${p.cbox ? `<label class="check"><input type="checkbox" data-c="colorBox" ${it.colorBox ? 'checked' : ''}> ${p.cboxName}</label>` : ''}
         ${p.strip ? `<div class="fld"><span>Pin pitch</span>${seg('pitch', +it.pitch || 3.81, [[3.81, '3.81 mm'], [3.5, '3.5 mm']])}</div>` : ''}
@@ -3166,11 +3209,15 @@ function renderInspector() {
         ${it.type === 'usba' ? `<label class="check"><input type="checkbox" data-c="usb3" ${it.usb3 !== false ? 'checked' : ''}> USB 3 (blue insert)</label>` : ''}
         ${it.type === 'led' ? `<div class="row2"><label class="fld"><span>Colour</span><select data-f="color">${Object.keys(LEDC).map(c => `<option ${it.color === c ? 'selected' : ''}>${c}</option>`).join('')}</select></label><label class="fld"><span>Lens Ø (mm)</span><input type="number" step="0.1" min="1" max="6" data-f="size" value="${it.size || 2}"></label></div>` : ''}
         ${(it.type === 'led' || it.type === 'button') ? `<label class="check"><input type="checkbox" data-c="lit" ${it.lit !== false ? 'checked' : ''}> Lit in the render</label>` : ''}
-        ${p.pitch ? `<div class="row2"><label class="fld"><span>Positions</span><input type="number" min="1" max="16" step="1" data-f="pins" value="${it.pins}"></label>${!/^dip/.test(it.type) ? `<label class="fld"><span>${p.posLabels ? 'Position labels' : 'Pin labels'}</span><input type="text" data-f="pinLabels" value="${esc(it.pinLabels || '')}" placeholder="${esc(p.pinHint || 'A, B')}"></label>` : ''}</div>${!/^dip/.test(it.type) && !p.posLabels ? `<label class="fld"><span>Labels over pin groups</span><input type="text" data-f="pinGroups" value="${esc(it.pinGroups || '')}" placeholder="L:1-2, R:4-5"><small>Text, then the pins it spans. Sits one row beyond the pin labels.</small></label>` : ''}${/^dip/.test(it.type) ? dipPinFuncsHTML(it) : ''}` : ''}
+        ${p.pitch ? `<div class="row2"><label class="fld"><span>Positions</span><input type="number" min="1" max="16" step="1" data-f="pins" value="${it.pins}"></label>${!/^dip/.test(it.type) ? `<label class="fld"><span>${p.posLabels ? 'Position labels' : 'Pin labels'}</span><input type="text" data-f="pinLabels" value="${esc(it.pinLabels || '')}" placeholder="${esc(p.pinHint || 'A, B')}"></label>` : ''}</div>${!/^dip/.test(it.type) && !p.posLabels ? `<label class="fld"><span>Labels over pin groups</span><input type="text" data-f="pinGroups" value="${esc(it.pinGroups || '')}" placeholder="L:1-2, R:4-5"><small>Text, then the pins it spans. Sits one row beyond the pin labels.</small></label>` : ''}${/^dip/.test(it.type) ? pinFuncsHTML(it, DIP_PIN_PRESETS, 'dippin') : (PIN_FUNC_PRESETS[it.func] ? pinFuncsHTML(it, PIN_FUNC_PRESETS[it.func], 'pinfunc:' + it.func.toLowerCase()) : '')}` : ''}
         ${posFields}
         <div class="fld"><span>Rotation</span>${seg('rot', it.rot || 0, [[0, '0°'], [90, '90°'], [180, '180°'], [270, '270°']])}</div>
         ${fr ? `<div class="actions"><button class="btn" data-act="leaveFrame">Take out of frame</button></div>` : ''}
-        ${acts}`;
+        ${acts}
+        <h3>Bottom-side description</h3>
+        <label class="fld"><span>Additional info for the bottom</span><textarea id="noteBottomInfo" rows="2" placeholder="Extra detail to print under this port on the bottom side" ${locked ? 'disabled' : ''}>${esc(it.bottomNote || '')}</textarea></label>
+        <label class="fld"><span>Preview — edit directly to override</span><textarea id="noteBottomPreview" rows="3">${esc(locked ? it.bottomOverride : portAutoText(it, pid))}</textarea></label>
+        ${locked ? `<p class="note">Custom text is in use — Function, Port designation and Port characteristics above won't change it until you reset it.</p><div class="actions"><button class="btn" data-act="resetBottomOverride">Reset to automatic text</button></div>` : ''}`;
     }
   }
   bindInspector();
@@ -3225,7 +3272,15 @@ function bindInspector() {
   $$('[data-combo]', el).forEach(inp => {
     const combo = inp.dataset.combo, catKey = inp.dataset.catkey, i = combo.indexOf(':'), domain = i === -1 ? combo : combo.slice(0, i), sub = i === -1 ? '' : combo.slice(i + 1);
     const setCur = v => {
-      if (domain === 'func') { it.func = v; if (it.type === 'rj45') it.colorBox = v === 'HDBaseT'; }
+      if (domain === 'func') {
+        it.func = v; if (it.type === 'rj45') it.colorBox = v === 'HDBaseT';
+        // A function with its own fixed defaults (e.g. TCP/IP's IP/port/
+        // login/password) ships pre-filled the moment it's selected —
+        // only filling blanks, so re-picking the same function later
+        // never clobbers values the user already edited.
+        const fsf = FUNC_SPEC_FIELDS[v];
+        if (fsf) { it.spec = it.spec || {}; for (const f of fsf) if (!it.spec[f.key]) it.spec[f.key] = f.options[0]; }
+      }
       else if (domain === 'spec') { it.spec = it.spec || {}; if (v) it.spec[sub] = v; else delete it.spec[sub]; }
       else if (domain === 'pinfunc') { const a = (it.pinFuncs || []).slice(); while (a.length <= +sub) a.push(''); a[+sub] = v; it.pinFuncs = a; }
       else if (domain === 'ledleg') { it.ledLegend = it.ledLegend || {}; if (v) it.ledLegend[sub] = v; else delete it.ledLegend[sub]; }
@@ -3249,6 +3304,14 @@ function bindInspector() {
     inp.focus(); inp.setSelectionRange(a + tok.length, a + tok.length);
     inp.dispatchEvent(new Event('input')); commit();
   }));
+  const biNote = $('#noteBottomInfo');
+  if (biNote) { biNote.oninput = () => { it.bottomNote = biNote.value; }; biNote.onchange = () => { commit(); renderAll(); }; }
+  const biPrev = $('#noteBottomPreview');
+  // Any direct edit here is the "if the preview is edited" trigger: from
+  // that keystroke on, this exact text is the port's bottom-side line,
+  // and Function/Port designation/Port characteristics above stop
+  // feeding it until "Reset to automatic text" is used.
+  if (biPrev) { biPrev.oninput = () => { it.bottomOverride = biPrev.value; }; biPrev.onchange = () => { commit(); renderAll(); }; }
 }
 function renderAll() {
   renderFlow(); renderHeader(); renderCanvas(); renderInspector(); if (activeTab === 'housing') renderStage(); }
@@ -3354,6 +3417,7 @@ function doAction(a) {
     model.panels[sp] = model.panels[sp].filter(i => !ids.includes(i.id)); model.panels[other].push(...items.filter(isPlaced)); removeFromFrames([]); activePanel = other;
   }
   else if (a === 'logoPos') { items.forEach(it => it.kind === 'logo' && logoDefault(it)); }
+  else if (a === 'resetBottomOverride') { items.forEach(it => delete it.bottomOverride); }
   else {
     const movers = items.filter(isPlaced);
     const box = it => itemCore(sp, it.id);
