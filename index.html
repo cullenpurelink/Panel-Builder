@@ -1743,6 +1743,7 @@ function runChecks() {
    write); the approver list lives in "config/approvers" (owner only).
    ============================================================ */
 let amOwner = false, approverIds = [], approvals = {}, flowReady = false, activeTab = 'panels';
+let clipboard = null; // { items: [cloned snapshots] } from Ctrl/Cmd+C, pasted with Ctrl/Cmd+V onto the active panel
 const nameCache = {};
 
 function fnv(str) { let h = 0x811c9dc5; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193); } return (h >>> 0).toString(16).padStart(8, '0'); }
@@ -3199,11 +3200,12 @@ function renderInspector() {
       <label class="fld"><span>Row tolerance for lining up (mm)</span><input type="number" step="0.5" min="0" data-r="alignRange" value="${R.alignRange}"><small>Labels this close vertically snap to one shared line.</small></label>
       ${catalogManagerHTML()}
       <h3>Shortcuts</h3>
-      <ul class="keys"><li>Drag across empty panel to box-select; <kbd>Shift</kbd>-drag or <kbd>Shift</kbd>-click adds to the selection</li><li><kbd>Ctrl</kbd> <kbd>A</kbd> selects everything on the active panel; drag any selected part to move the group</li><li>Arrow keys nudge by the snap step, add <kbd>Shift</kbd> for 10×</li><li><kbd>Ctrl</kbd> <kbd>D</kbd> duplicates, <kbd>Delete</kbd> removes</li><li><kbd>Ctrl</kbd> <kbd>Z</kbd> undoes, <kbd>Esc</kbd> clears the selection</li></ul>`;
+      <ul class="keys"><li>Drag across empty panel to box-select; <kbd>Shift</kbd>-drag or <kbd>Shift</kbd>-click adds to the selection</li><li><kbd>Ctrl</kbd> <kbd>A</kbd> selects everything on the active panel; drag any selected part to move the group</li><li>Arrow keys nudge by the snap step, add <kbd>Shift</kbd> for 10×</li><li><kbd>Ctrl</kbd> <kbd>D</kbd> duplicates a selection (one part or a whole group) in place; <kbd>Ctrl</kbd> <kbd>C</kbd> then <kbd>Ctrl</kbd> <kbd>V</kbd> copies it, even onto the other panel; <kbd>Delete</kbd> removes</li><li><kbd>Ctrl</kbd> <kbd>Z</kbd> undoes, <kbd>Esc</kbd> clears the selection</li></ul>`;
   } else if (sel.length > 1) {
     el.innerHTML = `<h3>${sel.length} items selected</h3>
       <p class="note">The first item you picked sets the line for aligning.</p>
-      <div class="actions"><button class="btn" data-act="frame">Group in frame</button>${sel.length === 2 ? '<button class="btn" data-act="dash">Add dash between</button>' : ''}<button class="btn" data-act="align">Align centres</button><button class="btn" data-act="spread" ${sel.length < 3 ? 'disabled' : ''}>Spread evenly</button><button class="btn" data-act="centre">Centre on panel</button><button class="btn danger" data-act="del">Delete</button></div>`;
+      <div class="actions"><button class="btn" data-act="dup">Duplicate</button><button class="btn" data-act="frame">Group in frame</button>${sel.length === 2 ? '<button class="btn" data-act="dash">Add dash between</button>' : ''}<button class="btn" data-act="align">Align centres</button><button class="btn" data-act="spread" ${sel.length < 3 ? 'disabled' : ''}>Spread evenly</button><button class="btn" data-act="centre">Centre on panel</button><button class="btn danger" data-act="del">Delete</button></div>
+      <p class="note">Ctrl/Cmd D duplicates, Ctrl/Cmd C then Ctrl/Cmd V copies — both keep the group's layout.</p>`;
   } else {
     const { pid, it } = findItem(sel[0]);
     const other = pid === 'front' ? 'rear' : 'front';
@@ -3418,6 +3420,40 @@ function freeX(pid, it, fromX) {
   const x = (fromX != null ? scan(fromX, end) : null) ?? scan(start, end);
   return x ?? snap(W / 2);
 }
+// Duplicates a whole selection as one rigid group — finds a single
+// rightward shift that clears every existing item for the group's
+// combined footprint, then applies it to every copy, so a cluster (a
+// row of LEDs with specific spacing, say) keeps its shape instead of
+// each item separately hunting for its own nearest free spot.
+function duplicateGroup(pid, items) {
+  const dupables = items.filter(it => isPlaced(it) && it.kind !== 'logo');
+  if (!dupables.length) return [];
+  const W = model.chassis.width, R = model.rules, Lo = layout(pid), S = Lo.S;
+  const taken = [...Lo.map.values()].map(e => union([e.core, ...e.labels.map(l => l.box)])).concat([...Lo.frames.values()].map(G => G.box));
+  const fins = model.chassis.form === 'rack' && pid === 'front' ? FIN.keep : 0;
+  const start = fins + R.edgeClearance, end = W - fins - R.edgeClearance, gap = Math.max(R.minGap, 1.5);
+  const names = computeLabels(pid);
+  const boxOf = it => {
+    const nm = it.kind === 'port' ? ((it.label && it.label.trim()) || names.get(it.id) || it.func || '') : '';
+    const e = entryFor(it, nm, null, S); return union([e.core, ...e.labels.map(l => l.box)]);
+  };
+  const boxes = dupables.map(boxOf);
+  let dx = null;
+  for (let cand = gap; cand < W; cand += ui.step) {
+    const shifted = boxes.map(b => [b[0] + cand, b[1], b[2] + cand, b[3]]);
+    if (shifted.some(b => b[0] < start - 1e-6 || b[2] > end + 1e-6)) continue;
+    if (shifted.every(sb => taken.every(t => gapBetween(sb, t) >= gap))) { dx = cand; break; }
+  }
+  if (dx == null) { const grp = union(boxes); dx = (grp[2] - grp[0]) + gap; } // no clear spot found — shift by the group's own width so it's at least not stacked on the originals
+  const copies = [];
+  for (const it of dupables) {
+    const c = JSON.parse(JSON.stringify(it)); c.id = uid();
+    if (c.kind === 'port') c.label = '';
+    c.x = r3(it.x + dx);
+    model.panels[pid].push(c); copies.push(c);
+  }
+  return copies;
+}
 function logoDefault(it) {
   const H = model.chassis.height, rack = model.chassis.form === 'rack';
   it.style = it.style || (rack ? 'stacked' : 'inline');
@@ -3487,8 +3523,7 @@ function doAction(a) {
     model.panels[sp].push(fr); sel = [fr.id];
   }
   else if (a === 'dup') {
-    const copies = [];
-    for (const it of items) { if (!isPlaced(it) || it.kind === 'logo') continue; const c = JSON.parse(JSON.stringify(it)); c.id = uid(); if (c.kind === 'port') c.label = ''; c.x = freeX(sp, c, it.x); model.panels[sp].push(c); copies.push(c); }
+    const copies = duplicateGroup(sp, items);
     if (copies.length) sel = copies.map(c => c.id);
   }
   else if (a === 'move') {
@@ -3920,6 +3955,18 @@ document.addEventListener('keydown', e => {
     if (k === 'ArrowDown') { e.preventDefault(); nudgeNotes(0, st); return; }
   }
   if (mod && k.toLowerCase() === 'd') { e.preventDefault(); if (sel.length) doAction('dup'); return; }
+  if (mod && k.toLowerCase() === 'c' && activeTab === 'panels') {
+    if (!sel.length) return; e.preventDefault();
+    const items = sel.map(id => findItem(id)).filter(Boolean).map(r => r.it).filter(it => isPlaced(it) && it.kind !== 'logo');
+    if (items.length) clipboard = { items: items.map(it => JSON.parse(JSON.stringify(it))) };
+    return;
+  }
+  if (mod && k.toLowerCase() === 'v' && activeTab === 'panels') {
+    if (!clipboard || !clipboard.items.length) return; e.preventDefault();
+    const copies = duplicateGroup(activePanel, clipboard.items);
+    if (copies.length) { sel = copies.map(c => c.id); commit(); renderAll(); }
+    return;
+  }
   if (mod && k.toLowerCase() === 's') { e.preventDefault(); saveToLibrary(); return; }
   if (mod && k.toLowerCase() === 'a') { e.preventDefault(); sel = model.panels[activePanel].filter(i => i.kind !== 'dash').map(i => i.id); renderAll(); return; }
   if (!sel.length) return;
