@@ -1671,13 +1671,18 @@ function logoSVG(e, forExport) {
 function headerBrandSVG() {
   const cat = 'PRODUCT BUILDER';
   const wW = 21, wH = 4, cap = wH, gap = 1.9, bH = cap + 1.9;
-  const bW = textW(cat, cap / 0.7, 700) + 3.8;
+  const fs = cap / 0.7, ls = fs * 0.02;
+  // textW() measures with canvas, which doesn't know about the SVG
+  // letter-spacing applied below — add it back in (one gap per
+  // character) so the box is sized for what actually renders, instead
+  // of coming out a hair too narrow and reading as off-centre.
+  const bW = textW(cat, fs, 700) + ls * cat.length + 5;
   const W = wW + gap + bW, H = Math.max(wH, bH);
   const k = wW / LOGO_OFFICIAL.w, hh = LOGO_OFFICIAL.h * k;
   let s = `<g transform="translate(0 ${n((H - wH) / 2 + (wH - hh) / 2)}) scale(${k.toFixed(6)})"><g transform="translate(${-LOGO_OFFICIAL.x} ${-LOGO_OFFICIAL.y})" fill="${SILK}">${LOGO_OFFICIAL.paths}</g></g>`;
-  const bx = wW + gap, by = (H - bH) / 2, fs = cap / 0.7;
+  const bx = wW + gap, by = (H - bH) / 2;
   s += RC(bx, by, bW, bH, BLUE, 0.6);
-  s += `<text x="${n(bx + bW / 2)}" y="${n(by + (bH + cap) / 2)}" text-anchor="middle" font-family='${FONT}' font-weight="700" font-size="${n(fs)}" fill="${FACE}" letter-spacing="${n(fs * 0.02)}">${esc(cat)}</text>`;
+  s += `<text x="${n(bx + bW / 2)}" y="${n(by + (bH + cap) / 2)}" text-anchor="middle" font-family='${FONT}' font-weight="700" font-size="${n(fs)}" fill="${FACE}" letter-spacing="${n(ls)}">${esc(cat)}</text>`;
   return `<svg viewBox="0 0 ${n(W)} ${n(H)}" height="22" role="img" aria-label="PureLink Product Builder">${s}</svg>`;
 }
 function itemArt(e) {
