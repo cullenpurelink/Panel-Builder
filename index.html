@@ -1463,11 +1463,12 @@ function entryFor(it, name, frame, S) {
       else if (pos === 'above') {
         const L = lab(name, it.x, 0, 'middle', S); let t0 = top - g - L.h;
         if (hole && t0 < hole[3] + 0.3 && t0 + L.h > hole[1] - 0.3) t0 = hole[1] - g - L.h;
+        t0 += (+it.labelYAdj || 0);
         moveTo(L, t0); L.kind = 'main'; L.pos = 'above'; e.labels.push(L); top = L.box[1];
       }
       else if (pos === 'left') { const L = lab(name, e.cut[0] - g, 0, 'end', S); moveTo(L, it.y - L.cap / 2); L.kind = 'main'; e.labels.push(L); }
       else if (pos === 'right') { const L = lab(name, e.cut[2] + g, 0, 'start', S); moveTo(L, it.y - L.cap / 2); L.kind = 'main'; e.labels.push(L); }
-      else { const L = lab(name, it.x, bot + g, 'middle', S); L.kind = 'main'; L.pos = 'below'; e.labels.push(L); bot = L.box[3]; }
+      else { const L = lab(name, it.x, bot + g + (+it.labelYAdj || 0), 'middle', S); L.kind = 'main'; L.pos = 'below'; e.labels.push(L); bot = L.box[3]; }
     }
     if (it.sub && it.sub.trim()) { const L = lab(model.rules.upper ? upperKeep(it.sub.trim()) : it.sub.trim(), it.x, 0, 'middle', S); moveTo(L, Math.min(top, hole ? hole[1] : top) - g - L.h); L.kind = 'sub'; e.labels.push(L); }
     if (p.posLabels && it.pinLabels) {
@@ -2828,6 +2829,7 @@ function pngText(png, key, text) {
   const out = new Uint8Array(png.length + chunk.length); out.set(png.subarray(0, 33)); out.set(chunk, 33); out.set(png.subarray(33), 33 + chunk.length); return out;
 }
 const fileTag = (kind, pids) => exportIssues(kind, pids).length ? '-UNVALIDATED' : '';
+const revTag = () => { const r = productState().rev; return r ? `-rev${r}` : ''; };
 
 /* ---------- register dialog (approvers sign off) ---------- */
 function startValidation() {
@@ -3226,8 +3228,9 @@ function renderInspector() {
   } else if (sel.length > 1) {
     el.innerHTML = `<h3>${sel.length} items selected</h3>
       <p class="note">The first item you picked sets the line for aligning.</p>
-      <div class="actions"><button class="btn" data-act="dup">Duplicate</button><button class="btn" data-act="frame">Group in frame</button>${sel.length === 2 ? '<button class="btn" data-act="dash">Add dash between</button>' : ''}<button class="btn" data-act="align">Align centres</button><button class="btn" data-act="spread" ${sel.length < 3 ? 'disabled' : ''}>Spread evenly</button><button class="btn" data-act="centre">Centre on panel</button><button class="btn danger" data-act="del">Delete</button></div>
-      <p class="note">Ctrl/Cmd D duplicates, Ctrl/Cmd C then Ctrl/Cmd V copies — both keep the group's layout.</p>`;
+      <div class="actions"><button class="btn" data-act="dup">Duplicate</button><button class="btn" data-act="frame">Group in frame</button>${sel.length === 2 ? '<button class="btn" data-act="dash">Add dash between</button>' : ''}<button class="btn" data-act="align">Align centres</button><button class="btn" data-act="autoAlign">Auto align labels</button><button class="btn" data-act="spread" ${sel.length < 3 ? 'disabled' : ''}>Spread evenly</button><button class="btn" data-act="centre">Centre on panel</button><button class="btn danger" data-act="del">Delete</button></div>
+      <p class="note">Ctrl/Cmd D duplicates, Ctrl/Cmd C then Ctrl/Cmd V copies — both keep the group's layout.</p>
+      <p class="note">Auto align labels matches label side/spacing and lines the labels up into one shared row, and — with two or more frames selected — matches their designation position and padding too.</p>`;
   } else {
     const { pid, it } = findItem(sel[0]);
     const other = pid === 'front' ? 'rear' : 'front';
@@ -3548,6 +3551,32 @@ function doAction(a) {
     const copies = duplicateGroup(sp, items);
     if (copies.length) sel = copies.map(c => c.id);
   }
+  else if (a === 'autoAlign') {
+    const frames = items.filter(i => i.kind === 'frame');
+    if (frames.length > 1) {
+      const ref = frames[0];
+      frames.slice(1).forEach(fr => { fr.titlePos = ref.titlePos; fr.pad = ref.pad; fr.padTop = ref.padTop; fr.padBottom = ref.padBottom; });
+    }
+    const frameMembers = new Set(model.panels[sp].filter(i => i.kind === 'frame').flatMap(fr => fr.members));
+    const freeItems = items.filter(it => it.kind === 'port' && !frameMembers.has(it.id) && !(PORTS[it.type] && PORTS[it.type].rows === 2));
+    if (freeItems.length > 1) {
+      const ref = freeItems[0], p0 = PORTS[ref.type];
+      const refPos = ref.labelPos || (p0 && p0.lp) || 'below';
+      freeItems.slice(1).forEach(it => { it.labelPos = refPos; if (ref.labelGap != null) it.labelGap = ref.labelGap; });
+      const S = silk(), names = computeLabels(sp);
+      for (const posKey of ['below', 'above']) {
+        const rows = freeItems.map(it => {
+          const e = entryFor(it, names.get(it.id), null, S);
+          const L = e.labels.find(l => l.kind === 'main' && l.pos === posKey);
+          return L ? { it, yTop: L.yTop } : null;
+        }).filter(Boolean);
+        if (rows.length > 1) {
+          const target = posKey === 'below' ? Math.max(...rows.map(r => r.yTop)) : Math.min(...rows.map(r => r.yTop));
+          rows.forEach(r => { r.it.labelYAdj = r3((+r.it.labelYAdj || 0) + (target - r.yTop)); });
+        }
+      }
+    }
+  }
   else if (a === 'move') {
     const other = sp === 'front' ? 'rear' : 'front';
     const ids = items.filter(isPlaced).map(i => i.id);
@@ -3845,13 +3874,13 @@ function renderExport() {
   $('#expList').innerHTML = opts.map(([k, t, d]) => { const kd = kindOf(k), bad = kd && exportIssues(kd, pidsOf(k)).length; return `<button data-exp="${k}"><b>${t}${kd ? `<span class="vtag ${bad ? 'no' : 'ok'}">${bad ? 'Unvalidated' : 'Validated'}</span>` : ''}</b><span>${d}</span></button>`; }).join('');
   $$('[data-exp]').forEach(b => b.onclick = () => {
     const k = b.dataset.exp;
-    if (k === 'json') saveFile(`${base}-layout.json`, JSON.stringify({ ...model, validation: { cutouts: exportIssues('cut', ['front', 'rear']), silkscreen: exportIssues('silk', ['front', 'rear']) } }, null, 2));
+    if (k === 'json') saveFile(`${base}${revTag()}-layout.json`, JSON.stringify({ ...model, validation: { cutouts: exportIssues('cut', ['front', 'rear']), silkscreen: exportIssues('silk', ['front', 'rear']) } }, null, 2));
     else if (k.endsWith('-png')) (async () => {
       const pids = k === 'both-png' ? ['front', 'rear'] : [k.split('-')[0]];
-      try { for (const pid of pids) await saveFile(`${base}-${pid}${fileTag('concept', [pid])}.png`, await panelPNG(pid, 300, true)); }
+      try { for (const pid of pids) await saveFile(`${base}-${pid}${revTag()}${fileTag('concept', [pid])}.png`, await panelPNG(pid, 300, true)); }
       catch (e) { toast('The PNG couldn’t be drawn in this browser.'); }
     })();
-    else { const [pid, mode] = k.split('-'); saveFile(`${base}-${pid}-${mode === 'cut' ? 'cutouts' : mode === 'silk' ? 'silkscreen' : 'concept'}${fileTag(mode, [pid])}.svg`, markSVG(exportSVG(pid, mode), mode, [pid], mode !== 'cut')); }
+    else { const [pid, mode] = k.split('-'); saveFile(`${base}-${pid}-${mode === 'cut' ? 'cutouts' : mode === 'silk' ? 'silkscreen' : 'concept'}${revTag()}${fileTag(mode, [pid])}.svg`, markSVG(exportSVG(pid, mode), mode, [pid], mode !== 'cut')); }
   });
   $('#expNote').textContent = downloads ? `In Fusion 360, use Insert > Insert SVG on the panel face and check the outline measures ${f(model.chassis.width)} × ${f(model.chassis.height)} mm. Fusion ignores SVG text, so labels stay in the silkscreen file.` : 'Downloads aren’t available in this view.';
 }
