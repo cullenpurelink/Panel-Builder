@@ -3552,12 +3552,26 @@ function doAction(a) {
     if (copies.length) sel = copies.map(c => c.id);
   }
   else if (a === 'autoAlign') {
-    const frames = items.filter(i => i.kind === 'frame');
-    if (frames.length > 1) {
-      const ref = frames[0];
-      frames.slice(1).forEach(fr => { fr.titlePos = ref.titlePos; fr.pad = ref.pad; fr.padTop = ref.padTop; fr.padBottom = ref.padBottom; });
+    const allFrames = model.panels[sp].filter(i => i.kind === 'frame');
+    const frameOf = id => allFrames.find(fr => fr.members.includes(id));
+    // A frame counts whether it was picked directly or just represented by one of its members,
+    // so selecting a port from each group works as well as selecting the two frame shapes.
+    const frameSet = [];
+    for (const it of items) { const fr = it.kind === 'frame' ? it : frameOf(it.id); if (fr && !frameSet.includes(fr)) frameSet.push(fr); }
+    if (frameSet.length > 1) {
+      const ref = frameSet[0];
+      frameSet.slice(1).forEach(fr => { fr.titlePos = ref.titlePos; });
+      // Port-designation labels sit on each frame's own bottom line (y1), which depends on
+      // that frame's own content height — copying the padBottom *number* across frames with
+      // different-sized parts doesn't line the labels up, it just moves the border by that
+      // much. Solve the padBottom each frame actually needs so the lines land on the same spot.
+      const Lo = layout(sp), refG = Lo.frames.get(ref.id);
+      if (refG) frameSet.slice(1).forEach(fr => {
+        const G = Lo.frames.get(fr.id);
+        if (G) fr.padBottom = r3((+fr.padBottom || 0) + (refG.y1 - G.y1));
+      });
     }
-    const frameMembers = new Set(model.panels[sp].filter(i => i.kind === 'frame').flatMap(fr => fr.members));
+    const frameMembers = new Set(allFrames.flatMap(fr => fr.members));
     const freeItems = items.filter(it => it.kind === 'port' && !frameMembers.has(it.id) && !(PORTS[it.type] && PORTS[it.type].rows === 2));
     if (freeItems.length > 1) {
       const ref = freeItems[0], p0 = PORTS[ref.type];
