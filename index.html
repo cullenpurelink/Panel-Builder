@@ -387,6 +387,15 @@ dialog::backdrop{background:rgba(10,14,18,.45)}
   </form>
 </dialog>
 
+<dialog id="histDlg">
+  <div class="dlg" style="max-width:720px">
+    <h2>Revision history</h2>
+    <p>Every approve, release, return-to-draft, freeze and unlock for this product — archived in full, never overwritten.</p>
+    <div id="histBody"></div>
+    <footer><button class="btn" id="histClose">Close</button></footer>
+  </div>
+</dialog>
+
 <dialog id="askDlg">
   <form class="dlg" method="dialog">
     <h2 id="askTitle"></h2>
@@ -1764,7 +1773,7 @@ function runChecks() {
    Approvals live in db "approvals/<libraryId>" (Editors and up may
    write); the approver list lives in "config/approvers" (owner only).
    ============================================================ */
-let amOwner = false, approverIds = [], approvals = {}, flowReady = false, activeTab = 'panels';
+let amOwner = false, approverIds = [], approvals = {}, freezes = {}, flowReady = false, activeTab = 'panels';
 let clipboard = null; // { items: [cloned snapshots] } from Ctrl/Cmd+C, pasted with Ctrl/Cmd+V onto the active panel
 const nameCache = {};
 
@@ -1777,6 +1786,59 @@ function panelHash(m) {
 const nextRev = r => { const n = (r || '@').toUpperCase().split('').reduce((a, ch) => a * 26 + ch.charCodeAt(0) - 64, 0) + 1; let s = '', x = n; while (x > 0) { const k = (x - 1) % 26; s = String.fromCharCode(65 + k) + s; x = Math.floor((x - 1) / 26); } return s; };
 const canApprove = () => !!db && (amOwner || (!!myId && approverIds.includes(myId)));
 const libClean = () => !!docId && JSON.stringify(model) === savedJSON;
+
+/* ---------- change classification ----------
+   Which fields count as "critical" (changes what the product technically
+   does, or how/whether it physically fits) vs "minor" (cosmetic/layout
+   only). This table is the one place to edit if that policy changes —
+   nothing else needs to. A whole port being added or removed always
+   counts as critical. */
+const CRITICAL_CHASSIS_FIELDS = ['height', 'width', 'form'];
+const CRITICAL_PORT_FIELDS = ['type', 'func', 'pins', 'pinGroups', 'pinLabels', 'lock', 'lockDist', 'lockPlain'];
+function diffItemList(prevList, nextList) {
+  const prevMap = new Map((prevList || []).map(p => [p.id, p])), nextMap = new Map((nextList || []).map(p => [p.id, p]));
+  const changed = []; let critical = false;
+  for (const [id, np] of nextMap) {
+    const pp = prevMap.get(id);
+    if (!pp) { changed.push(`+${id}`); if (np.kind === 'port') critical = true; continue; }
+    for (const k of new Set([...Object.keys(pp), ...Object.keys(np)])) {
+      if (k === 'id' || JSON.stringify(pp[k]) === JSON.stringify(np[k])) continue;
+      changed.push(`${id}.${k}`);
+      if (CRITICAL_PORT_FIELDS.includes(k)) critical = true;
+    }
+  }
+  for (const id of prevMap.keys()) if (!nextMap.has(id)) { changed.push(`-${id}`); critical = true; }
+  return { changed, critical };
+}
+function classifyChange(prevSnap, nextSnap) {
+  if (!prevSnap) return { classification: 'initial', changedFields: [] };
+  const changed = []; let critical = false;
+  const pc = prevSnap.chassis || {}, nc = nextSnap.chassis || {};
+  for (const k of CRITICAL_CHASSIS_FIELDS) if (pc[k] !== nc[k]) { changed.push(`chassis.${k}`); critical = true; }
+  if (JSON.stringify(prevSnap.rules) !== JSON.stringify(nextSnap.rules)) changed.push('rules');
+  if ((prevSnap.logoSvg || '') !== (nextSnap.logoSvg || '')) changed.push('logoSvg');
+  for (const pid of ['front', 'rear']) {
+    const d = diffItemList((prevSnap.panels || {})[pid], (nextSnap.panels || {})[pid]);
+    changed.push(...d.changed.map(c => `${pid}.${c}`));
+    if (d.critical) critical = true;
+  }
+  return { classification: changed.length === 0 ? 'none' : (critical ? 'critical' : 'minor'), changedFields: changed };
+}
+
+/* ---------- structural freeze (chassis size / port positions) ----------
+   Unrelated to a port's own "lock" field (that's a locking-screw-hole
+   spec on the connector). This is an edit-protection rail: once factory
+   data fixes the geometry, freeze it against accidental drags/resizes;
+   unlocking again always needs a reason. */
+function isFrozen(scope) { const fz = docId && freezes[docId]; return !!(fz && fz.scopes && fz.scopes[scope]); }
+async function writeFreeze(frozen, note) {
+  const now = new Date().toISOString();
+  try {
+    if (frozen) await db.collection('freezes').doc(docId).set({ scopes: { chassis: true, portPositions: true }, note, by: myId || '', at: now });
+    else await db.collection('freezes').doc(docId).delete();
+    toast(frozen ? 'Chassis size and port positions frozen' : 'Geometry unlocked');
+  } catch (e) { toast('Couldn’t update the freeze. Check your connection and try again.'); }
+}
 
 function productState() {
   if (!db) return { state: 'nolib' };
@@ -1808,6 +1870,7 @@ function startFlow() {
   if (!db || flowReady) return; flowReady = true; startValidation();
   db.collection('approvals').onSnapshot(snap => { approvals = {}; snap.docs.forEach(d => approvals[d.id] = d.data()); renderFlow(); renderLibrary(); }, () => { });
   db.doc('config/approvers').onSnapshot(d => { approverIds = (d.exists && Array.isArray(d.data().ids)) ? d.data().ids.slice() : []; renderFlow(); }, () => { });
+  db.collection('freezes').onSnapshot(snap => { freezes = {}; snap.docs.forEach(d => freezes[d.id] = d.data()); renderFlow(); renderInspector(); renderHeader(); }, () => { });
 }
 
 /* ---------- status bar ---------- */
@@ -1819,14 +1882,23 @@ function renderFlow() {
   if (st.state === 'nolib') pill = P('', 'Draft');
   else if (st.state === 'unsaved') { pill = P('', 'Draft, not in the library'); who = 'Save to the library to start revisions.'; }
   else if (st.state === 'draft') pill = P('', `Draft, revision ${st.rev}`);
-  else if (st.state === 'changed') { pill = P('changed', `Draft, revision ${st.rev}`); who = `Revision ${st.base} was ${st.a.status}. Panels have changed since.`; }
+  else if (st.state === 'changed') {
+    pill = P('changed', `Draft, revision ${st.rev}`);
+    const diff = classifyChange(st.a.snapshot, { chassis: model.chassis, rules: model.rules, panels: model.panels, logoSvg: model.logoSvg });
+    const tag = diff.classification === 'critical' ? ' (critical: ' + diff.changedFields.slice(0, 3).join(', ') + (diff.changedFields.length > 3 ? '…' : '') + ')' : diff.classification === 'minor' ? ' (cosmetic only)' : '';
+    who = `Revision ${st.base} was ${st.a.status}. Panels have changed since${tag}.`;
+  }
   else pill = P(st.state, `${st.state === 'released' ? 'Released' : 'Approved'}, revision ${st.rev}`);
   if (st.a && (st.state === 'approved' || st.state === 'released')) who = `<span data-who="${esc(st.a.by || '')}" title="${esc(st.a.note || '')}">…</span>, ${fmtDate(st.a.at)}`;
+  const frozen = isFrozen('chassis') || isFrozen('portPositions');
+  if (frozen) pill += P('', '\u{1F512} Frozen');
   if (canApprove() && docId) {
     if (st.state === 'draft' || st.state === 'changed') btns += `<button class="btn primary" data-flow="approve">Approve revision ${st.rev}</button>`;
     if (st.state === 'approved') btns += `<button class="btn" data-flow="release">Release</button>`;
     if (st.state === 'approved' || st.state === 'released') btns += `<button class="btn" data-flow="draft">Return to draft</button>`;
   }
+  if (docId) btns += frozen ? `<button class="btn" data-flow="unfreeze">Unlock geometry</button>` : `<button class="btn" data-flow="freeze">Freeze geometry</button>`;
+  if (docId) btns += `<button class="btn" data-flow="history">History</button>`;
   if (amOwner && db) btns += `<button class="btn" data-flow="approvers">Approvers</button>`;
   bar.innerHTML = pill + (who ? `<span class="who">${who}</span>` : '') + btns;
   $$('[data-flow]', bar).forEach(b => b.onclick = () => flowAction(b.dataset.flow));
@@ -1852,19 +1924,42 @@ async function writeApproval(status, verb, note) {
   const ex = approvals[docId], h = panelHash(model), now = new Date().toISOString();
   // same panels keep their letter; changed panels get the next one
   const rev = status === 'approved' ? (!ex ? 'A' : ex.hash === h ? ex.rev : nextRev(ex.rev)) : ex.rev;
-  const snap = JSON.parse(JSON.stringify({ chassis: model.chassis, rules: model.rules, panels: model.panels }));
+  const snap = JSON.parse(JSON.stringify({ chassis: model.chassis, rules: model.rules, panels: model.panels, logoSvg: model.logoSvg }));
+  const diff = classifyChange(ex && ex.snapshot, snap);
   const doc = {
     rev, status, hash: status === 'draft' ? ex.hash : h, name: model.name, sku: model.sku || '', snapshot: status === 'draft' ? ex.snapshot : snap,
     note, by: myId || '', at: now, history: [...((ex && ex.history) || []).slice(-40), { rev, status, note, by: myId || '', at: now }]
   };
-  try { await db.collection('approvals').doc(docId).set(doc); toast(`${verb} revision ${rev} of ${model.name}`); }
-  catch (e) {
+  try {
+    await db.collection('approvals').doc(docId).set(doc);
+    // Immutable per-event archive: never overwritten, so a superseded
+    // revision's full layout is never lost (unlike `doc.snapshot` above,
+    // which is replaced every time). Cheap — a layout file is only a few KB.
+    await db.collection('revisionLog').doc(`${docId}__${Date.now()}`).set({
+      docId, sku: model.sku || '', name: model.name, rev, status,
+      classification: diff.classification, changedFields: diff.changedFields,
+      snapshot: JSON.parse(JSON.stringify(model)), note, by: myId || '', at: now
+    });
+    toast(`${verb} revision ${rev} of ${model.name}`);
+  } catch (e) {
     if (e && e.code === 'invalid_argument') toast('The library refused this. Approvers need Editor access to the Panel Builder.');
     else toast('Couldn’t record that. Check your connection and try again.');
   }
 }
 async function flowAction(a) {
   if (a === 'approvers') { openApprovers(); return; }
+  if (a === 'history') { openHistory(); return; }
+  if (a === 'freeze') {
+    if (!docId) return;
+    if (await ask('Freeze chassis size and port positions?', 'Protects them from accidental drags or resizes. You can unlock them again at any time.', 'Freeze')) await writeFreeze(true, '');
+    return;
+  }
+  if (a === 'unfreeze') {
+    if (!docId) return;
+    const note = await askNote('Unlock geometry?', 'Chassis size and port positions become editable again. Say why.', 'Unlock');
+    if (note) await writeFreeze(false, note);
+    return;
+  }
   if (!canApprove()) return;
   if (!libClean()) { toast('Save the layout to the library first, so the approved revision matches what everyone sees.'); return; }
   const st = productState();
@@ -1899,6 +1994,44 @@ function openApprovers() {
   renderApprovers(); $('#apprDlg').showModal();
 }
 $('#apprClose').onclick = () => $('#apprDlg').close();
+
+/* ---------- revision history (immutable archive) ---------- */
+function loadRevisionLog(id) {
+  return new Promise(resolve => {
+    const unsub = db.collection('revisionLog').orderBy('at', 'desc').onSnapshot(snap => {
+      unsub();
+      resolve(snap.docs.map(d => Object.assign({ id: d.id }, d.data())).filter(r => r.docId === id));
+    }, () => resolve([]));
+  });
+}
+function openHistory() {
+  if (!db) { toast('History needs the library, which isn’t available in this view.'); return; }
+  if (!docId) { toast('Save this layout to the library first.'); return; }
+  renderHistory(); $('#histDlg').showModal();
+}
+$('#histClose').onclick = () => $('#histDlg').close();
+async function renderHistory() {
+  const body = $('#histBody'), id = docId;
+  body.innerHTML = '<p class="note">Loading…</p>';
+  const rows = await loadRevisionLog(id);
+  if (id !== docId) return; // the library item changed while this was loading
+  if (!rows.length) { body.innerHTML = '<p class="note">No archived revisions yet — approve, release, return to draft, or freeze/unlock this product to start one.</p>'; return; }
+  body.innerHTML = rows.map(r => {
+    const clsWord = r.classification === 'initial' ? 'first revision' : r.classification === 'none' ? 'status only' : r.classification;
+    const clsCls = r.classification === 'critical' ? 'changed' : '';
+    return `<div style="border-bottom:1px solid var(--line);padding:10px 0">
+      <div><b>${esc(r.status)} ${esc(r.rev)}</b> <span class="pill ${clsCls}" style="margin-left:6px">${esc(clsWord)}</span> <span style="color:var(--muted);font-size:12.5px">${fmtDate(r.at)}</span></div>
+      ${r.note ? `<div style="font-size:13px;color:var(--muted);margin:4px 0">${esc(r.note)}</div>` : ''}
+      ${r.changedFields && r.changedFields.length ? `<div style="font-size:12px;color:var(--muted)">Changed: ${r.changedFields.map(esc).join(', ')}</div>` : ''}
+      <button class="btn" data-exp="${esc(r.id)}" style="margin-top:6px">Export this version's layout file</button>
+    </div>`;
+  }).join('');
+  $$('[data-exp]', body).forEach(b => b.onclick = () => {
+    const row = rows.find(r => r.id === b.dataset.exp); if (!row) return;
+    const base = slug(row.snapshot.sku || row.snapshot.name || 'layout');
+    saveFile(`${base}-rev${row.rev}-${row.status}.json`, JSON.stringify(row.snapshot, null, 2));
+  });
+}
 $('#apprSearch').oninput = e => {
   clearTimeout(apprTimer);
   apprTimer = setTimeout(async () => {
@@ -3054,10 +3187,13 @@ function renderHeader() {
   const c = model.chassis, hs = housingOf(c);
   if (document.activeElement !== $('#prodName')) $('#prodName').value = model.name;
   $('#housingSel').value = hs.id;
+  const chassisFrozen = isFrozen('chassis');
   if (document.activeElement !== $('#wIn')) $('#wIn').value = c.width;
-  $('#wIn').disabled = !!hs.fixedW;
+  $('#wIn').disabled = !!hs.fixedW || chassisFrozen;
   $('#hWrap').hidden = !hs.custom; if (hs.custom && document.activeElement !== $('#hIn')) $('#hIn').value = c.height;
-  $('#clsTag').textContent = hs.custom ? 'Custom size, outside the enclosure guide' : hs.fixedW ? 'Fixed width' : hs.range ? `Guide: ${hs.range[0]}–${hs.range[1]} mm wide` : 'Not in the enclosure guide';
+  $('#hIn').disabled = chassisFrozen;
+  $('#housingSel').disabled = chassisFrozen;
+  $('#clsTag').textContent = chassisFrozen ? 'Frozen — unlock geometry to change size' : hs.custom ? 'Custom size, outside the enclosure guide' : hs.fixedW ? 'Fixed width' : hs.range ? `Guide: ${hs.range[0]}–${hs.range[1]} mm wide` : 'Not in the enclosure guide';
   $('#previewBtn').setAttribute('aria-pressed', ui.preview);
 }
 function sampleItem(type) {
@@ -3344,6 +3480,7 @@ function bindInspector() {
   $$('[data-f]', el).forEach(inp => {
     const k = inp.dataset.f;
     const apply = () => {
+      if ((k === 'x' || k === 'yb') && it.kind === 'port' && isFrozen('portPositions')) { toast('Port positions are frozen — unlock geometry to move them.'); return; }
       const v = inp.value;
       if (NUM[k]) {
         const num = parseFloat(v); if (isNaN(num)) { if (k === 'labelGap') { it.labelGap = null; renderCanvas(); } return; }
@@ -3619,7 +3756,12 @@ function doAction(a) {
 }
 function nudge(dx, dy) {
   const ids = sel.flatMap(id => { const r = findItem(id); return r ? (r.it.kind === 'frame' ? r.it.members : r.it.kind === 'dash' ? [] : [id]) : []; });
-  const items = [...new Set(ids)].map(id => findItem(id)).filter(Boolean).map(r => r.it);
+  let items = [...new Set(ids)].map(id => findItem(id)).filter(Boolean).map(r => r.it);
+  if (isFrozen('portPositions')) {
+    const blocked = items.some(it => it.kind === 'port');
+    items = items.filter(it => it.kind !== 'port');
+    if (blocked) toast('Port positions are frozen — unlock geometry to move them.');
+  }
   if (!items.length) return;
   items.forEach(it => { it.x = r3(it.x + dx); it.y = r3(it.y + dy); });
   commit(); renderAll();
@@ -3973,6 +4115,10 @@ for (const pid of ['front', 'rear']) {
     }
     const p = svgPoint(svg, e); let dx = p.x - drag.start.x, dy = p.y - drag.start.y;
     if (!drag.moved && Math.hypot(dx, dy) * ppm < 3) return;
+    if (isFrozen('portPositions') && [...drag.orig.keys()].some(id => { const r = findItem(id); return r && r.it.kind === 'port'; })) {
+      if (!drag.frozenToast) { drag.frozenToast = true; toast('Port positions are frozen — unlock geometry to move them.'); }
+      return;
+    }
     drag.moved = true;
     const { width: W, height: H } = model.chassis, o = drag.orig.get(drag.primary), tol = ui.guides ? 5 / ppm : 0;
     let nx = snap(o.x + dx), ny = snap(o.y + dy); guides = [];
@@ -4048,6 +4194,7 @@ $('#prodName').oninput = e => { model.name = e.target.value; updateToolbar(); };
 $('#prodName').onchange = () => commit();
 $('#housingSel').innerHTML = HOUSINGS.map(x => `<option value="${x.id}">${x.label}</option>`).join('');
 $('#housingSel').onchange = e => {
+  if (isFrozen('chassis')) { toast('Chassis size is frozen — unlock geometry to change it.'); renderHeader(); return; }
   const hs = HOUSINGS.find(x => x.id === e.target.value), c = model.chassis;
   if (hs.custom) { c.custom = true; c.form = 'std'; commit(); renderAll(); $('#hIn').focus(); return; }
   const dh = (hs.h - c.height) / 2;
@@ -4058,14 +4205,15 @@ $('#housingSel').onchange = e => {
   commit(); renderAll();
 };
 $('#hIn').onchange = e => {
+  if (isFrozen('chassis')) { toast('Chassis size is frozen — unlock geometry to change it.'); renderHeader(); return; }
   const v = parseFloat(e.target.value), c = model.chassis; if (!c.custom || !(v >= 10 && v <= 100)) { renderHeader(); return; }
   const dh = (v - c.height) / 2; c.height = r3(v);
   for (const pid of ['front', 'rear']) model.panels[pid].forEach(it => { if (isPlaced(it)) it.y = r3(it.y + dh); });
   for (const pid of ['front', 'rear']) model.panels[pid].forEach(it => { if (it.kind === 'logo') logoDefault(it); });
   commit(); renderAll();
 };
-$('#wIn').oninput = e => { const v = parseFloat(e.target.value); if (v >= 40 && v <= 600) { model.chassis.width = v; renderHeader(); renderCanvas(); } };
-$('#wIn').onchange = () => { commit(); renderAll(); };
+$('#wIn').oninput = e => { if (isFrozen('chassis')) { toast('Chassis size is frozen — unlock geometry to change it.'); renderHeader(); return; } const v = parseFloat(e.target.value); if (v >= 40 && v <= 600) { model.chassis.width = v; renderHeader(); renderCanvas(); } };
+$('#wIn').onchange = () => { if (isFrozen('chassis')) { renderHeader(); return; } commit(); renderAll(); };
 $('#undoBtn').onclick = undo; $('#redoBtn').onclick = redo;
 $('#previewBtn').onclick = () => { ui.preview = !ui.preview; if (ui.preview) sel = []; renderAll(); };
 $('#newBtn').onclick = async () => { if (isDirty() && db && !(await ask('Start a new layout?', 'The current layout has changes that aren’t in the library.', 'Start new'))) return; openNew(true); };
