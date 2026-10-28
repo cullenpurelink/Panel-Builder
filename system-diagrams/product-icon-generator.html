@@ -21,37 +21,38 @@
   .view .btns { margin-top: 6px; display: flex; gap: 6px; justify-content: center; }
   .view button { font-size: 11px; padding: 3px 8px; border: 1px solid #c7cad0; background: #fff; border-radius: 5px; cursor: pointer; }
   .view button:hover { background: #f0f4fb; }
+  .card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .save-btn { font-size: 12px; padding: 6px 12px; border: 1px solid #3c6cb4; background: #3c6cb4; color: #fff; border-radius: 6px; cursor: pointer; white-space: nowrap; }
+  .save-btn:hover { background: #335c9c; }
+  .save-btn:disabled { opacity: 0.6; cursor: default; }
+  .save-status { font-size: 12px; margin-left: 10px; }
+  .save-status.ok { color: #2fa86a; }
+  .save-status.err { color: #e0393e; }
+  #saveAllBtn { font-size: 13px; padding: 8px 14px; border: 1px solid #3c6cb4; background: #3c6cb4; color: #fff; border-radius: 6px; cursor: pointer; margin-left: 12px; }
+  #saveAllBtn:hover { background: #335c9c; }
 </style>
 </head>
 <body>
 <a class="back" href="index.html">&larr; System Diagrams</a>
 <h1>Product Icon Generator</h1>
 <p class="sub">
-  Renders a small isometric "cartoon box" icon for each product directly from its Panel Builder
-  layout JSON (<code>data/library/*.json</code>). The front/rear panel is a flat 2D drawing
+  Renders a small isometric "cartoon box" icon for every product currently listed in
+  <code>data/library/manifest.json</code> — add a product to the library and it appears here
+  automatically next reload, no code change needed. The front/rear panel is a flat 2D drawing
   (chassis bar + realistic port-shape approximations) mapped onto the isometric face with a
   single affine transform; the top/side faces are plain flat-shaded polygons behind it, with the
   "PureLink" wordmark sheared onto the top face. Left-facing views are a true mirror of the
   right-facing geometry (never upside-down); the front panel content and the top wordmark each
   have their own independently-tuned affine map so text is never reversed, upside-down, or
   rigidly rotated (which reads as italic). Re-run this page any time the source JSON changes;
-  nothing here is hand-edited afterwards.
+  nothing here is hand-edited afterwards. "Save to library" writes straight into
+  <code>system-diagrams/assets/products/</code> via the dev server — only works when opened
+  through <code>start.bat</code>/<code>http://localhost:8743/...</code>, not as a <code>file://</code> page.
 </p>
 <div id="status">Loading…</div>
 <div id="cards"></div>
 
 <script>
-const PILOT = [
-  '../data/library/pt-con-pex-110-layout.json',
-  '../data/library/pt-hdbt-150-layout.json',
-  '../data/library/pt-psw-21hc-kvm-layout.json',
-  '../data/library/pt-poe-4av-layout.json',
-  '../data/library/pt-poe-8av-layout.json',
-  '../data/library/8-port-switch-v1-layout.json',
-  '../data/library/ipav-3x1-tranceiver-v0-2-layout.json',
-  '../data/library/pt-psw-21kvm-40g-rx-layout.json',
-  '../data/library/pt-psw-21kvm-40g-tx-layout.json'
-];
 
 // Matches assets/README.md: 30° isometric, devices drawn at ~1.8x for readability.
 const SCALE = 1.78;
@@ -263,33 +264,67 @@ function download(filename, href) {
   a.href = href; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
 }
 
+// Writes one file straight into system-diagrams/assets/products/ via the dev server's
+// /api/save-product-icon route — no manual download+move. Only works when this page is served
+// by tools/dev_server.py (i.e. opened through start.bat), not as a file:// page.
+async function saveToServer(filename, dataBase64) {
+  const r = await fetch('/api/save-product-icon', { method: 'POST', body: JSON.stringify({ filename, dataBase64 }) });
+  return r.json();
+}
+
+function toBase64(str) { return btoa(unescape(encodeURIComponent(str))); }
+
 const VIEWS = [
   ['front', 'right', 'Front-Right'], ['front', 'left', 'Front-Left'],
   ['rear', 'right', 'Rear-Right'], ['rear', 'left', 'Rear-Left']
 ];
 
+async function saveProductIcons(baseNames, statusEl) {
+  statusEl.textContent = 'Saving…'; statusEl.className = 'save-status';
+  try {
+    for (const base of baseNames) {
+      const { svg, pngDataUrl } = OUTPUTS[base];
+      const svgRes = await saveToServer(base + '.svg', toBase64(svg));
+      if (!svgRes.ok) throw new Error(svgRes.msg);
+      const pngRes = await saveToServer(base + '.png', pngDataUrl);
+      if (!pngRes.ok) throw new Error(pngRes.msg);
+    }
+    statusEl.textContent = `Saved ${baseNames.length} icon${baseNames.length === 1 ? '' : 's'} (SVG+PNG) ✓`;
+    statusEl.className = 'save-status ok';
+  } catch (e) {
+    statusEl.textContent = 'Save failed: ' + e.message;
+    statusEl.className = 'save-status err';
+  }
+}
+
 async function run() {
   const cardsEl = document.getElementById('cards');
   const statusEl = document.getElementById('status');
+  const manifest = await fetch('../data/library/manifest.json').then(r => r.json());
+  const allBaseNames = [];
   let done = 0;
-  for (const path of PILOT) {
-    const product = await fetch(path).then(r => r.json());
+  for (const filename of manifest) {
+    const product = await fetch('../data/library/' + filename).then(r => r.json());
     const sku = product.sku;
     const knownDepth = product.housing && product.housing.depth != null;
     const depth = knownDepth ? product.housing.depth : r2(clamp(product.chassis.width * 0.46, 50, 110));
     const card = document.createElement('div');
     card.className = 'card';
-    card.innerHTML = `<h2>${sku}</h2><div class="meta">${r2(product.chassis.width)} × ${r2(product.chassis.height)} mm chassis, ` +
-      `depth ${depth} mm (${knownDepth ? 'known' : 'assumed: 46% of width'})</div>` +
+    card.innerHTML = `<div class="card-head"><div><h2>${sku}</h2><div class="meta">${r2(product.chassis.width)} × ${r2(product.chassis.height)} mm chassis, ` +
+      `depth ${depth} mm (${knownDepth ? 'known' : 'assumed: 46% of width'})</div></div>` +
+      `<div><button class="save-btn" data-save-card>Save to library</button><span class="save-status" data-card-status></span></div></div>` +
       `<div class="views"></div>`;
     const viewsEl = card.querySelector('.views');
+    const cardBaseNames = [];
     for (const [face, side, label] of VIEWS) {
       const svg = buildIconSVG(product, face, side);
       const pngDataUrl = await rasterize(svg, 3);
       const base = `Product_${slug(sku)}_${label}`;
       OUTPUTS[base] = { svg, pngDataUrl };
+      cardBaseNames.push(base);
+      allBaseNames.push(base);
 
-      const svgBlobUrl = 'data:image/svg+xml;charset=utf-8;base64,' + btoa(unescape(encodeURIComponent(svg)));
+      const svgBlobUrl = 'data:image/svg+xml;charset=utf-8;base64,' + toBase64(svg);
       const viewEl = document.createElement('div');
       viewEl.className = 'view';
       viewEl.innerHTML = `<div class="frame">${svg}</div><div class="label">${label}</div>` +
@@ -299,9 +334,12 @@ async function run() {
       viewsEl.appendChild(viewEl);
       done++;
     }
+    card.querySelector('[data-save-card]').onclick = () => saveProductIcons(cardBaseNames, card.querySelector('[data-card-status]'));
     cardsEl.appendChild(card);
   }
-  statusEl.textContent = `Done — ${done} icons generated (${PILOT.length} products × 4 views).`;
+  statusEl.innerHTML = `Done — ${done} icons generated (${manifest.length} products × 4 views). ` +
+    `<button id="saveAllBtn">Save all to library</button><span class="save-status" id="saveAllStatus"></span>`;
+  document.getElementById('saveAllBtn').onclick = () => saveProductIcons(allBaseNames, document.getElementById('saveAllStatus'));
   window.GEN_DONE = true;
 }
 run().catch(e => { document.getElementById('status').textContent = 'Error: ' + e.message; throw e; });

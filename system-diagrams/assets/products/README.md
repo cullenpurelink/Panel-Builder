@@ -1,4 +1,4 @@
-# PureLink Product Icon Library — v1.0 (all 9 library products)
+# PureLink Product Icon Library
 
 Small isometric "cartoon box" icons for individual products, generated directly from
 Panel Builder's own layout data (`data/library/*.json`) rather than hand-drawn.
@@ -9,6 +9,28 @@ Panel Builder's own layout data (`data/library/*.json`) rather than hand-drawn.
 [`../product-icon-generator.html`](../product-icon-generator.html) reading the product's
 layout JSON. To change an icon, change the generator (or the underlying product data) and
 re-run it — never touch the PNG/SVG directly.
+
+## Generating icons for a finished panel
+
+Once a panel design in Panel Builder (`index.html`) is in `data/library/` (exported as a
+"Layout file" and listed in `data/library/manifest.json` — see that file's own workflow), its
+icons are available with **no code change**: the generator reads `manifest.json` dynamically
+and lists every product in it.
+
+1. Open [`../product-icon-generator.html`](../product-icon-generator.html) through the dev
+   server — `start.bat`, or `http://localhost:8743/system-diagrams/product-icon-generator.html`
+   — not as a `file://` page (it needs the server both to fetch `data/library/*.json` and to
+   save files back).
+2. Find the product's card and check all 4 views look right.
+3. Click that card's **"Save to library"** button — it writes the 4 SVG + 4 PNG files straight
+   into this folder via `tools/dev_server.py`'s `/api/save-product-icon` route (the same pattern
+   as the Hub's existing "Push to GitHub" button). No manual download-and-move.
+4. **"Save all to library"** (top of the page, once generation finishes) re-saves every product
+   in the manifest in one go — use this after a change to the generator itself (a shape, colour,
+   or geometry fix) so every icon picks it up, not just the one you were working on.
+
+The per-view **SVG / PNG buttons** still trigger a normal browser download instead — useful for
+a one-off copy, or if you're previewing the page without the dev server running.
 
 ## Technique
 
@@ -45,6 +67,7 @@ Same visual language as `assets/rooms/` and `assets/classroom_system/` (see
   (flips left/right only, never up/down, so it can never look upside-down). The front content's
   own affine map is independently rebuilt (swapped corner-correspondence) on the mirror side so
   its text comes out right-reading rather than mirrored.
+
 ### Why the top wordmark isn't computed from a mirror
 
 This went through several wrong attempts worth recording so they aren't retried:
@@ -98,35 +121,23 @@ doesn't read as one uniform strip of same-sized dots:
 
 Any future port `type` not listed above falls back to a plain raised nub rather than erroring.
 
-## Register — all 9 library products
+## Register
 
-| SKU | Filename slug | Chassis | Depth |
-|---|---|---|---|
-| PT-CON-PEX-110 | `PT-CON-PEX-110` | 98 × 23 mm | 50mm (assumed) |
-| PT-HDBT-150 | `PT-HDBT-150` | 145 × 25 mm | 66.7mm (assumed) |
-| PT-PSW-21HC-KVM | `PT-PSW-21HC-KVM` | 268 × 30 mm | 122mm (known) |
-| PT-POE-4AV | `PT-POE-4AV` | 210 × 30 mm | 96.6mm (assumed) |
-| PT-POE-8AV | `PT-POE-8AV` | 270 × 30 mm | 110mm (assumed, clamp max) |
-| 8 port Switch V1 | `8-port-Switch-V1` | 240 × 30 mm | 110mm (assumed, clamp max) |
-| IPAV - 3x1 Tranceiver V0.2 | `IPAV-3x1-Tranceiver-V0-2` | 220 × 30 mm | 101.2mm (assumed) |
-| PT-PSW-21KVM-40G RX | `PT-PSW-21KVM-40G-RX` | 247 × 29 mm | 110mm (assumed, clamp max) |
-| PT-PSW-21KVM-40G TX | `PT-PSW-21KVM-40G-TX` | 301 × 29 mm | 110mm (assumed, clamp max) |
+The product list is **not** hardcoded here or in the generator — it's always whatever
+`data/library/manifest.json` currently lists, fetched at page load. As of this writing that's
+10 products (`HDP-EUB40CD-TX-DE0012`, `PT-PSW-21HC-KVM`, `PT-POE-4AV`, `PT-POE-8AV`,
+`8 port Switch V1`, `IPAV - 3x1 Tranceiver V0.2`, `PT-HDBT-150`, `PT-CON-PEX-110`,
+`PT-PSW-21KVM-40G RX`, `PT-PSW-21KVM-40G TX`) — treat that list as a snapshot, not a source of
+truth; `manifest.json` always has the current count.
 
-Three SKUs aren't filename-safe as written (spaces, mixed case, punctuation), so the generator
-slugs the SKU for filenames via `slug()` — the on-screen card title and the SVG's own content
+Some SKUs aren't filename-safe as written (spaces, mixed case, punctuation — e.g.
+`8 port Switch V1`, `IPAV - 3x1 Tranceiver V0.2`), so the generator slugs the SKU for filenames
+via `slug()` (e.g. `8-port-Switch-V1`) — the on-screen card title and the SVG's own content
 still show the real `sku` field unchanged.
 
 Each product has 4 files × 2 formats: `Product_<slug>_Front-Right`, `_Front-Left`,
 `_Rear-Right`, `_Rear-Left`, as `.svg` and `.png` (PNG rasterised at 3× for crispness when
-scaled down) — 72 files total.
-
-## Adding a new product to the library
-
-Add its JSON path to the `PILOT` array at the top of
-[`../product-icon-generator.html`](../product-icon-generator.html) and re-run — no other
-code changes needed, same as the roadmap in `../assets/README.md` describes for rooms/systems.
-(`PILOT` covers the whole current library now, despite the name — kept for continuity with
-earlier revisions of this file.)
+scaled down).
 
 ## Next steps (not built yet, on purpose)
 
