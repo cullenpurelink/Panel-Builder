@@ -4007,6 +4007,17 @@ async function saveFile(filename, data) {
     else toast('That file couldn’t be saved here.');
   }
 }
+async function publishToLibrary() {
+  const filename = `${slug(model.sku || model.name)}-layout.json`;
+  const content = JSON.stringify({ ...model, validation: { cutouts: exportIssues('cut', ['front', 'rear']), silkscreen: exportIssues('silk', ['front', 'rear']) } }, null, 2);
+  try {
+    const r = await fetch('/api/publish-to-library', { method: 'POST', body: JSON.stringify({ filename, content }) });
+    const res = await r.json();
+    toast(res.ok ? res.msg : `Publish failed: ${res.msg}`);
+  } catch (e) {
+    toast('Publish needs the local server — open this via start.bat, not as a file.');
+  }
+}
 function renderExport() {
   const base = slug(model.sku || model.name);
   const opts = [
@@ -4019,9 +4030,10 @@ function renderExport() {
     ['rear-silk', 'Rear silkscreen artwork', 'Labels, frames, logo and colour boxes over the cut-outs.'],
     ['front-cut', 'Front cut-outs for Fusion 360', 'Panel outline and closed cut-out profiles only.'],
     ['rear-cut', 'Rear cut-outs for Fusion 360', 'Panel outline and closed cut-out profiles only.'],
-    ['json', 'Layout file', 'The whole layout as JSON, to import later or share.']
+    ['json', 'Layout file', 'The whole layout as JSON, to import later or share.'],
+    ['publish', 'Publish to System Diagrams library', 'Writes this layout straight into data/library/ and registers it in manifest.json, so the Product Icon Generator picks it up on next reload — no manual file copy or manifest edit.']
   ];
-  const kindOf = k => k === 'json' ? null : k.endsWith('-png') || k.endsWith('-concept') ? 'concept' : k.endsWith('-silk') ? 'silk' : 'cut';
+  const kindOf = k => k === 'json' || k === 'publish' ? null : k.endsWith('-png') || k.endsWith('-concept') ? 'concept' : k.endsWith('-silk') ? 'silk' : 'cut';
   const pidsOf = k => k.startsWith('front') ? ['front'] : k.startsWith('rear') ? ['rear'] : ['front', 'rear'];
   const prodIssues = [...new Set([...exportIssues('cut', ['front', 'rear']), ...exportIssues('silk', ['front', 'rear'])])];
   $('#expWarn').innerHTML = prodIssues.length
@@ -4031,6 +4043,7 @@ function renderExport() {
   $$('[data-exp]').forEach(b => b.onclick = () => {
     const k = b.dataset.exp;
     if (k === 'json') saveFile(`${base}${revTag()}-layout.json`, JSON.stringify({ ...model, validation: { cutouts: exportIssues('cut', ['front', 'rear']), silkscreen: exportIssues('silk', ['front', 'rear']) } }, null, 2));
+    else if (k === 'publish') publishToLibrary();
     else if (k.endsWith('-png')) (async () => {
       const pids = k === 'both-png' ? ['front', 'rear'] : [k.split('-')[0]];
       try { for (const pid of pids) await saveFile(`${base}-${pid}${revTag()}${fileTag('concept', [pid])}.png`, await panelPNG(pid, 300, true)); }

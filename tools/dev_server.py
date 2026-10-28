@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
 """
-Static file server for the PureLink module suite, plus two extra routes:
+Static file server for the PureLink module suite, plus three extra routes:
 POST /api/git-push — commits any changes with an auto message and pushes.
 POST /api/save-product-icon — writes a generated product icon file to
   system-diagrams/assets/products/ (used by the Product Icon Generator's
   "Save to library" button instead of a manual browser download).
+POST /api/publish-to-library — writes a panel's layout JSON into
+  data/library/ and registers it in data/library/manifest.json (used by
+  Panel Builder's "Publish to System Diagrams library" export option).
 
 Used by start.bat instead of plain `python -m http.server` so the Hub's
-"Push to GitHub" button and the icon generator's save button have something
-to call. Everything else behaves exactly like the plain static server.
+"Push to GitHub" button, the icon generator's save button, and Panel
+Builder's publish button have something to call. Everything else behaves
+exactly like the plain static server.
 """
 import base64
 import http.server
@@ -23,6 +27,9 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 PORT = 8743
 PRODUCT_ICONS_DIR = REPO_ROOT / "system-diagrams" / "assets" / "products"
 SAFE_ICON_NAME = re.compile(r"^Product_[A-Za-z0-9_-]+\.(svg|png)$")
+LIBRARY_DIR = REPO_ROOT / "data" / "library"
+MANIFEST_PATH = LIBRARY_DIR / "manifest.json"
+SAFE_LIBRARY_NAME = re.compile(r"^[a-z0-9-]+-layout\.json$")
 
 
 def run_git(*args, timeout=30):
@@ -56,6 +63,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         elif self.path == "/api/save-product-icon":
             ok, msg = self.save_product_icon()
             self._send_json({"ok": ok, "msg": msg}, status=200 if ok else 400)
+        elif self.path == "/api/publish-to-library":
+            ok, msg = self.publish_to_library()
+            self._send_json({"ok": ok, "msg": msg}, status=200 if ok else 400)
         else:
             self.send_response(404)
             self.end_headers()
@@ -82,6 +92,33 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             PRODUCT_ICONS_DIR.mkdir(parents=True, exist_ok=True)
             (PRODUCT_ICONS_DIR / filename).write_bytes(raw)
             return True, f"saved {filename} ({len(raw)} bytes)"
+        except Exception as e:
+            return False, str(e)
+
+    def publish_to_library(self):
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            payload = json.loads(self.rfile.read(length))
+            filename = payload["filename"]
+            if not SAFE_LIBRARY_NAME.match(filename):
+                return False, f"rejected filename: {filename}"
+            content = payload["content"]
+            json.loads(content)  # validate it's real JSON before writing anything
+
+            LIBRARY_DIR.mkdir(parents=True, exist_ok=True)
+            (LIBRARY_DIR / filename).write_text(content, encoding="utf-8", newline="\n")
+
+            manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8")) if MANIFEST_PATH.exists() else []
+            added = filename not in manifest
+            if added:
+                manifest.insert(0, filename)
+                MANIFEST_PATH.write_text(
+                    json.dumps(manifest, indent=2) + "\n", encoding="utf-8", newline="\n"
+                )
+
+            return True, (
+                f"published {filename}" + (" and added to manifest.json" if added else " (already in manifest.json)")
+            )
         except Exception as e:
             return False, str(e)
 
@@ -118,5 +155,5 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 if __name__ == "__main__":
     port = int(sys.argv[1]) if len(sys.argv) > 1 else PORT
     server = http.server.ThreadingHTTPServer(("127.0.0.1", port), Handler)
-    print(f"Serving {REPO_ROOT} at http://127.0.0.1:{port} (with /api/git-push, /api/save-product-icon)")
+    print(f"Serving {REPO_ROOT} at http://127.0.0.1:{port} (with /api/git-push, /api/save-product-icon, /api/publish-to-library)")
     server.serve_forever()

@@ -12,25 +12,27 @@ re-run it — never touch the PNG/SVG directly.
 
 ## Generating icons for a finished panel
 
-Once a panel design in Panel Builder (`index.html`) is in `data/library/` (exported as a
-"Layout file" and listed in `data/library/manifest.json` — see that file's own workflow), its
-icons are available with **no code change**: the generator reads `manifest.json` dynamically
-and lists every product in it.
+End to end, from a panel you're happy with to its icons sitting in this folder:
 
-1. Open [`../product-icon-generator.html`](../product-icon-generator.html) through the dev
-   server — `start.bat`, or `http://localhost:8743/system-diagrams/product-icon-generator.html`
-   — not as a `file://` page (it needs the server both to fetch `data/library/*.json` and to
-   save files back).
-2. Find the product's card and check all 4 views look right.
-3. Click that card's **"Save to library"** button — it writes the 4 SVG + 4 PNG files straight
-   into this folder via `tools/dev_server.py`'s `/api/save-product-icon` route (the same pattern
-   as the Hub's existing "Push to GitHub" button). No manual download-and-move.
-4. **"Save all to library"** (top of the page, once generation finishes) re-saves every product
-   in the manifest in one go — use this after a change to the generator itself (a shape, colour,
-   or geometry fix) so every icon picks it up, not just the one you were working on.
+1. In Panel Builder (`index.html`), open **Export → Publish to System Diagrams library**. This
+   writes the layout JSON into `data/library/` and registers it in `manifest.json` in one click
+   (via `tools/dev_server.py`'s `/api/publish-to-library` route) — no manual file copy or
+   manifest edit. Requires the dev server (`start.bat` / `http://localhost:8743/...`); it fails
+   gracefully with a toast if opened as a `file://` page.
+2. Open [`../product-icon-generator.html`](../product-icon-generator.html) through the same dev
+   server — it reads `manifest.json` dynamically, so the product from step 1 is already listed,
+   no code change needed.
+3. Find the product's card and check all 4 views look right.
+4. Click that card's **"Save to library"** button — writes the 4 SVG + 4 PNG files straight into
+   this folder via the `/api/save-product-icon` route (same pattern as step 1 and as the Hub's
+   existing "Push to GitHub" button). No manual download-and-move.
+5. **"Save all to library"** (top of the generator page) re-saves every product in the manifest
+   in one go — use this after a change to the generator itself (a shape, colour, or geometry
+   fix) so every icon picks it up, not just the one you were working on.
 
-The per-view **SVG / PNG buttons** still trigger a normal browser download instead — useful for
-a one-off copy, or if you're previewing the page without the dev server running.
+The per-view **SVG / PNG buttons** on the generator still trigger a normal browser download
+instead — useful for a one-off copy, or if you're previewing the page without the dev server
+running.
 
 ## Technique
 
