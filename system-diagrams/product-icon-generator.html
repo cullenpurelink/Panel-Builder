@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Product Icon Generator — PureLink System Diagrams</title>
+<style>
+  :root { color-scheme: light; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f2f3f5; margin: 0; padding: 24px 32px 60px; color: #1e1f22; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  p.sub { color: #5a5c60; margin: 0 0 24px; max-width: 72ch; line-height: 1.5; }
+  a.back { font-size: 13px; color: #3c6cb4; text-decoration: none; }
+  #status { font-size: 13px; color: #5a5c60; margin-bottom: 18px; }
+  .card { background: #fff; border: 1px solid #dcdfe3; border-radius: 10px; padding: 18px 20px; margin-bottom: 20px; }
+  .card h2 { font-size: 15px; margin: 0 0 2px; }
+  .card .meta { font-size: 12px; color: #767a80; margin-bottom: 14px; }
+  .views { display: flex; gap: 18px; flex-wrap: wrap; }
+  .view { text-align: center; }
+  .view .frame { background: #e9ebee; border-radius: 8px; padding: 10px; display: flex; align-items: center; justify-content: center; min-height: 130px; min-width: 190px; }
+  .view .frame svg { max-width: 260px; max-height: 160px; }
+  .view .label { font-size: 12px; margin-top: 6px; color: #333; }
+  .view .btns { margin-top: 6px; display: flex; gap: 6px; justify-content: center; }
+  .view button { font-size: 11px; padding: 3px 8px; border: 1px solid #c7cad0; background: #fff; border-radius: 5px; cursor: pointer; }
+  .view button:hover { background: #f0f4fb; }
+</style>
+</head>
+<body>
+<a class="back" href="index.html">&larr; System Diagrams</a>
+<h1>Product Icon Generator</h1>
+<p class="sub">
+  Renders a small isometric "cartoon box" icon for each product directly from its Panel Builder
+  layout JSON (<code>data/library/*.json</code>). The front/rear panel is a flat 2D drawing
+  (chassis bar + realistic port-shape approximations) mapped onto the isometric face with a
+  single affine transform; the top/side faces are plain flat-shaded polygons behind it, with the
+  "PureLink" wordmark sheared onto the top face. Left-facing views are a true mirror of the
+  right-facing geometry (never upside-down); the front panel content and the top wordmark each
+  have their own independently-tuned affine map so text is never reversed, upside-down, or
+  rigidly rotated (which reads as italic). Re-run this page any time the source JSON changes;
+  nothing here is hand-edited afterwards.
+</p>
+<div id="status">Loading…</div>
+<div id="cards"></div>
+
+<script>
+const PILOT = [
+  '../data/library/pt-con-pex-110-layout.json',
+  '../data/library/pt-hdbt-150-layout.json',
+  '../data/library/pt-psw-21hc-kvm-layout.json',
+  '../data/library/pt-poe-4av-layout.json',
+  '../data/library/pt-poe-8av-layout.json',
+  '../data/library/8-port-switch-v1-layout.json',
+  '../data/library/ipav-3x1-tranceiver-v0-2-layout.json',
+  '../data/library/pt-psw-21kvm-40g-rx-layout.json',
+  '../data/library/pt-psw-21kvm-40g-tx-layout.json'
+];
+
+// Matches assets/README.md: 30° isometric, devices drawn at ~1.8x for readability.
+const SCALE = 1.78;
+const COSA = Math.cos(Math.PI / 6), SINA = 0.5;
+const STEP_RIGHT = [SCALE * COSA, SCALE * SINA];  // local +x (panel width, rightward)
+const STEP_DOWN = [0, SCALE];                      // local +y (panel height, downward)
+const STEP_BACK = [SCALE * COSA, -SCALE * SINA];   // depth, receding up-right (the only direction that reads right-side-up)
+
+const FACE_FRONT = '#3F4145', FACE_SIDE = '#4A4C50', FACE_TOP = '#5A5C60';
+const PORT_DARK = '#202124', PORT_RAISED = '#6b6e73';
+const LED_COLOR = { red: '#E0393E', green: '#2FA86A', amber: '#D9A83A', blue: '#7FB2FF' };
+const FONT = "Barlow, 'Barlow Semi Condensed', 'DIN Alternate', Arial, sans-serif";
+
+const OUTPUTS = window.OUTPUTS = {};
+
+function r2(n) { return Math.round(n * 100) / 100; }
+function clamp(n, lo, hi) { return Math.max(lo, Math.min(hi, n)); }
+function add(a, b) { return [a[0] + b[0], a[1] + b[1]]; }
+function mul(v, k) { return [v[0] * k, v[1] * k]; }
+function mirrorX(p) { return [-p[0], p[1]]; }
+// Some library SKUs aren't filename-safe (spaces, lowercase, punctuation — e.g. "8 port Switch
+// V1", "IPAV - 3x1 Tranceiver V0.2"), so filenames use a slug rather than the raw sku field.
+function slug(s) { return s.replace(/[^A-Za-z0-9]+/g, '-').replace(/^-+|-+$/g, ''); }
+
+// Matrix mapping local (0,0)->origin, (W,0)->alongW, (0,H)->alongH.
+function matrixFromCorrespondence(origin, alongW, alongH, W, H) {
+  const a = (alongW[0] - origin[0]) / W, b = (alongW[1] - origin[1]) / W;
+  const c = (alongH[0] - origin[0]) / H, d = (alongH[1] - origin[1]) / H;
+  return `matrix(${r2(a)},${r2(b)},${r2(c)},${r2(d)},${r2(origin[0])},${r2(origin[1])})`;
+}
+
+function classify(it) {
+  const t = it.type || '';
+  if (t === 'led') return { shape: 'led', color: LED_COLOR[it.color] || '#7FB2FF' };
+  if (t === 'hdmi') return { shape: 'hdmi' };
+  if (t === 'usbc') return { shape: 'usbc' };
+  if (t === 'usba' || t === 'usba2' || t === 'usbb' || t === 'usbb2') return { shape: 'usbrect' };
+  if (t === 'rj45' || t === 'rj45lp' || t === 'sfp') return { shape: 'rj' };
+  if (t === 'dc21' || t === 'din4' || t === 'dcnut' || t === 'dclock') return { shape: 'barrel' };
+  if (t === 'jack35') return { shape: 'audio' };
+  if (t.indexOf('eb35') === 0) return { shape: 'terminal', pins: it.pins || 2 };
+  if (t === 'button') return { shape: 'button' };
+  return { shape: 'nub' }; // dip, reset, resetRing, pinhole, ground, slide, and any future type
+}
+
+const RIM = '#55585d';          // thin rim stroke on recessed (dark) ports, for definition
+const BUTTON_RIM = '#3a3c40';   // darker rim on raised (light) buttons/nubs
+
+// All glyphs are centred at (cx, cy); sized relative to panel height H, proportioned after the
+// real connector family (HDMI/USB are wide and flat; USB-C is a flat pill, not round; etc.)
+function glyphSVG(cls, cx, cy, H) {
+  const f = PORT_DARK;
+  switch (cls.shape) {
+    case 'led': {
+      const r = H * 0.055;
+      return `<circle cx="${r2(cx)}" cy="${r2(cy)}" r="${r2(r * 2.2)}" fill="${cls.color}" opacity="0.28"/>` +
+        `<circle cx="${r2(cx)}" cy="${r2(cy)}" r="${r2(r)}" fill="${cls.color}"/>`;
+    }
+    case 'barrel': {
+      const r = H * 0.16;
+      return `<circle cx="${r2(cx)}" cy="${r2(cy)}" r="${r2(r)}" fill="${f}" stroke="${RIM}" stroke-width="${r2(H * 0.015)}"/>` +
+        `<circle cx="${r2(cx)}" cy="${r2(cy)}" r="${r2(r * 0.4)}" fill="#0a0a0b"/>`;
+    }
+    case 'audio':
+      return `<circle cx="${r2(cx)}" cy="${r2(cy)}" r="${r2(H * 0.1)}" fill="${f}" stroke="${RIM}" stroke-width="${r2(H * 0.015)}"/>`;
+    case 'rj': { // RJ45 modular jack: squarish, slightly taller than wide
+      const w = H * 0.38, h = H * 0.56;
+      return `<rect x="${r2(cx - w / 2)}" y="${r2(cy - h / 2)}" width="${r2(w)}" height="${r2(h)}" rx="${r2(H * 0.02)}" fill="${f}" stroke="${RIM}" stroke-width="${r2(H * 0.015)}"/>`;
+    }
+    case 'usbrect': { // USB-A/B: wide and flat
+      const w = H * 0.5, h = H * 0.2;
+      return `<rect x="${r2(cx - w / 2)}" y="${r2(cy - h / 2)}" width="${r2(w)}" height="${r2(h)}" rx="${r2(H * 0.02)}" fill="${f}" stroke="${RIM}" stroke-width="${r2(H * 0.015)}"/>`;
+    }
+    case 'usbc': { // USB-C: wide flat pill, not round
+      const w = H * 0.42, h = H * 0.17;
+      return `<rect x="${r2(cx - w / 2)}" y="${r2(cy - h / 2)}" width="${r2(w)}" height="${r2(h)}" rx="${r2(h / 2)}" fill="${f}" stroke="${RIM}" stroke-width="${r2(H * 0.015)}"/>`;
+    }
+    case 'hdmi': { // HDMI type-A: wide, short, gently tapered — not tall
+      const wTop = H * 0.62, wBot = H * 0.5, h = H * 0.3;
+      const x0 = cx - wBot / 2, x1 = cx + wBot / 2, x2 = cx + wTop / 2, x3 = cx - wTop / 2;
+      const yTop = cy - h / 2, yBot = cy + h / 2;
+      return `<polygon points="${r2(x0)},${r2(yBot)} ${r2(x1)},${r2(yBot)} ${r2(x2)},${r2(yTop)} ${r2(x3)},${r2(yTop)}" fill="${f}" stroke="${RIM}" stroke-width="${r2(H * 0.015)}"/>`;
+    }
+    case 'terminal': {
+      const n = Math.max(2, Math.min(cls.pins, 5));
+      const w = Math.max(H * 0.42, n * H * 0.18), h = H * 0.4;
+      let s = `<rect x="${r2(cx - w / 2)}" y="${r2(cy - h / 2)}" width="${r2(w)}" height="${r2(h)}" fill="${f}" stroke="${RIM}" stroke-width="${r2(H * 0.015)}"/>`;
+      for (let i = 0; i < n; i++) {
+        const sx = cx - w / 2 + (w / n) * (i + 0.5);
+        s += `<circle cx="${r2(sx)}" cy="${r2(cy)}" r="${r2(H * 0.04)}" fill="${PORT_RAISED}"/>`;
+      }
+      return s;
+    }
+    case 'button': { // square with a blue edge, matching the real button style
+      const s = H * 0.26;
+      return `<rect x="${r2(cx - s / 2)}" y="${r2(cy - s / 2)}" width="${r2(s)}" height="${r2(s)}" rx="${r2(s * 0.13)}" fill="${PORT_RAISED}" stroke="#A9E3FF" stroke-width="${r2(H * 0.035)}"/>`;
+    }
+    default: { // nub: dip, reset, resetRing, pinhole, ground, slide, and any future type
+      const s = H * 0.15;
+      return `<rect x="${r2(cx - s / 2)}" y="${r2(cy - s / 2)}" width="${r2(s)}" height="${r2(s)}" rx="${r2(s * 0.2)}" fill="${PORT_RAISED}" stroke="${BUTTON_RIM}" stroke-width="${r2(H * 0.012)}"/>`;
+    }
+  }
+}
+
+// Flat 2D front/rear panel template, local coords: (0,0) top-left, (W,H) bottom-right — mm.
+function panelContent(product, face, W, H) {
+  let s = `<rect x="0" y="0" width="${r2(W)}" height="${r2(H)}" fill="${FACE_FRONT}"/>`;
+  const items = (face === 'front' ? (product.panels.front || []) : (product.panels.rear || []))
+    .filter(it => it.kind === 'port')
+    .slice()
+    .sort((a, b) => a.x - b.x);
+  const portRowY = H * 0.5, ledRowY = H * 0.82;
+  const minX = W * 0.04, maxX = W * 0.96;
+  items.forEach(it => {
+    const x = clamp(it.x, minX, maxX);
+    const cls = classify(it);
+    s += glyphSVG(cls, x, cls.shape === 'led' ? ledRowY : portRowY, H);
+  });
+  return s;
+}
+
+// "PureLink" wordmark on top: a genuine affine shear (not a pure rotation, which just spins the
+// word rigidly like italics). Right-facing (confirmed correct, do not change: bx=STEP_RIGHT,
+// by=-STEP_BACK) and left-facing each need their own basis pair — they are not simple mirrors
+// of each other, since naively mirroring either reflects the text or reproduces the italic look.
+// Left-facing's by was STEP_DOWN; confirmed still italic-looking, so mirrored to STEP_RIGHT
+// instead (by symmetry with right-facing's by being the mirror-ish of STEP_BACK) — positive
+// determinant, so still not a reflection.
+function topLabelSVG(topCorners, face, side, W, D) {
+  const cx = topCorners.reduce((s, p) => s + p[0], 0) / 4;
+  const cy = topCorners.reduce((s, p) => s + p[1], 0) / 4;
+  let bx = side === 'right' ? STEP_RIGHT : STEP_BACK;
+  let by = side === 'right' ? [-STEP_BACK[0], -STEP_BACK[1]] : STEP_RIGHT;
+  if (face === 'rear') { bx = [-bx[0], -bx[1]]; by = [-by[0], -by[1]]; }
+  const fontSize = r2(clamp(W * 0.075, 8, 26));
+  const ox = cx - bx[0] * (W / 2) - by[0] * (D / 2);
+  const oy = cy - bx[1] * (W / 2) - by[1] * (D / 2);
+  const matrix = `matrix(${r2(bx[0])},${r2(bx[1])},${r2(by[0])},${r2(by[1])},${r2(ox)},${r2(oy)})`;
+  return `<g transform="${matrix}">` +
+    `<text x="${r2(W / 2)}" y="${r2(D / 2 + fontSize * 0.32)}" text-anchor="middle" ` +
+    `font-family="${FONT}" font-size="${fontSize}" font-weight="700" fill="#F2F3F5">PureLink</text></g>`;
+}
+
+function buildIconSVG(product, face, side) {
+  const W = product.chassis.width, H = product.chassis.height;
+  const D = (product.housing && product.housing.depth != null) ? product.housing.depth : clamp(W * 0.46, 50, 110);
+
+  const frontTL = [0, 0];
+  const frontTR = add(frontTL, mul(STEP_RIGHT, W));
+  const frontBL = add(frontTL, mul(STEP_DOWN, H));
+  const frontBR = add(frontTR, mul(STEP_DOWN, H));
+  const farTL = add(frontTL, mul(STEP_BACK, D));
+  const farTR = add(frontTR, mul(STEP_BACK, D));
+  const farBR = add(frontBR, mul(STEP_BACK, D));
+
+  let c, frontMatrix;
+  if (side === 'right') {
+    c = { frontTL, frontTR, frontBL, frontBR, farTL, farTR, farBR };
+    frontMatrix = matrixFromCorrespondence(frontTL, frontTR, frontBL, W, H);
+  } else {
+    // True mirror of the right-facing box (flips left/right only, never up/down — see README).
+    const m = { frontTL: mirrorX(frontTL), frontTR: mirrorX(frontTR), frontBL: mirrorX(frontBL), frontBR: mirrorX(frontBR), farTL: mirrorX(farTL), farTR: mirrorX(farTR), farBR: mirrorX(farBR) };
+    c = m;
+    // Front content's own affine map is independently corrected so text comes out right-reading
+    // rather than mirrored, while the box shell stays a true mirror. Mirroring flips the
+    // determinant once, so the correspondence that was reflective pre-mirror needs the swap.
+    frontMatrix = matrixFromCorrespondence(m.frontTR, m.frontTL, m.frontBR, W, H);
+  }
+
+  const top = [c.frontTL, c.frontTR, c.farTR, c.farTL];
+  const sideFace = [c.frontTR, c.frontBR, c.farBR, c.farTR];
+
+  const allPts = [c.frontTL, c.frontTR, c.frontBL, c.frontBR, c.farTL, c.farTR, c.farBR];
+  const pad = Math.max(W, H) * 0.12 + 6;
+  const xs = allPts.map(p => p[0]), ys = allPts.map(p => p[1]);
+  const minX = Math.min(...xs) - pad, maxX = Math.max(...xs) + pad;
+  const minY = Math.min(...ys) - pad, maxY = Math.max(...ys) + pad;
+  const vw = Math.round(maxX - minX), vh = Math.round(maxY - minY);
+
+  const poly = (pts, fill) => `<polygon points="${pts.map(p => `${r2(p[0])},${r2(p[1])}`).join(' ')}" fill="${fill}"/>`;
+
+  let body = poly(top, FACE_TOP) + poly(sideFace, FACE_SIDE);
+  body += `<g transform="${frontMatrix}">${panelContent(product, face, W, H)}</g>`;
+  body += topLabelSVG(top, face, side, W, D);
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${r2(minX)} ${r2(minY)} ${vw} ${vh}" width="${vw}" height="${vh}">${body}</svg>`;
+}
+
+async function rasterize(svgString, upscale) {
+  const m = svgString.match(/width="([\d.]+)" height="([\d.]+)"/);
+  const w = parseFloat(m[1]), h = parseFloat(m[2]);
+  const img = new Image();
+  img.src = 'data:image/svg+xml;charset=utf-8;base64,' + btoa(unescape(encodeURIComponent(svgString)));
+  await img.decode();
+  await new Promise(r => setTimeout(r, 60));
+  const c = document.createElement('canvas');
+  c.width = Math.round(w * upscale); c.height = Math.round(h * upscale);
+  const ctx = c.getContext('2d');
+  ctx.drawImage(img, 0, 0, c.width, c.height);
+  return new Promise(res => c.toBlob(blob => {
+    const fr = new FileReader();
+    fr.onload = () => res(fr.result);
+    fr.readAsDataURL(blob);
+  }, 'image/png'));
+}
+
+function download(filename, href) {
+  const a = document.createElement('a');
+  a.href = href; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+}
+
+const VIEWS = [
+  ['front', 'right', 'Front-Right'], ['front', 'left', 'Front-Left'],
+  ['rear', 'right', 'Rear-Right'], ['rear', 'left', 'Rear-Left']
+];
+
+async function run() {
+  const cardsEl = document.getElementById('cards');
+  const statusEl = document.getElementById('status');
+  let done = 0;
+  for (const path of PILOT) {
+    const product = await fetch(path).then(r => r.json());
+    const sku = product.sku;
+    const knownDepth = product.housing && product.housing.depth != null;
+    const depth = knownDepth ? product.housing.depth : r2(clamp(product.chassis.width * 0.46, 50, 110));
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `<h2>${sku}</h2><div class="meta">${r2(product.chassis.width)} × ${r2(product.chassis.height)} mm chassis, ` +
+      `depth ${depth} mm (${knownDepth ? 'known' : 'assumed: 46% of width'})</div>` +
+      `<div class="views"></div>`;
+    const viewsEl = card.querySelector('.views');
+    for (const [face, side, label] of VIEWS) {
+      const svg = buildIconSVG(product, face, side);
+      const pngDataUrl = await rasterize(svg, 3);
+      const base = `Product_${slug(sku)}_${label}`;
+      OUTPUTS[base] = { svg, pngDataUrl };
+
+      const svgBlobUrl = 'data:image/svg+xml;charset=utf-8;base64,' + btoa(unescape(encodeURIComponent(svg)));
+      const viewEl = document.createElement('div');
+      viewEl.className = 'view';
+      viewEl.innerHTML = `<div class="frame">${svg}</div><div class="label">${label}</div>` +
+        `<div class="btns"><button data-svg="${base}">SVG</button><button data-png="${base}">PNG</button></div>`;
+      viewEl.querySelector('[data-svg]').onclick = () => download(base + '.svg', svgBlobUrl);
+      viewEl.querySelector('[data-png]').onclick = () => download(base + '.png', pngDataUrl);
+      viewsEl.appendChild(viewEl);
+      done++;
+    }
+    cardsEl.appendChild(card);
+  }
+  statusEl.textContent = `Done — ${done} icons generated (${PILOT.length} products × 4 views).`;
+  window.GEN_DONE = true;
+}
+run().catch(e => { document.getElementById('status').textContent = 'Error: ' + e.message; throw e; });
+</script>
+</body>
+</html>
