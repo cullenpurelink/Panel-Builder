@@ -1,0 +1,238 @@
+{
+  "format": "purelink-panel-layout",
+  "version": 3,
+  "sku": "HDP-EUB40CD-TX-DE0012",
+  "name": "PureLink VCX2 LX (TX) — silk print replica",
+  "logoSvg": "",
+  "chassis": {
+    "form": "std",
+    "height": 30,
+    "width": 160
+  },
+  "housing": {
+    "depth": 110
+  },
+  "panels": {
+    "front": [
+      {
+        "id": "logo",
+        "kind": "logo",
+        "cat": "LX",
+        "showBox": true,
+        "scale": 1,
+        "style": "inline",
+        "x": 21.9,
+        "y": 9.45
+      },
+      {
+        "id": "pwr",
+        "kind": "port",
+        "type": "led",
+        "func": "[power]",
+        "label": "",
+        "sub": "",
+        "color": "red",
+        "size": 1.6,
+        "rot": 0,
+        "x": 18,
+        "y": 20.4
+      },
+      {
+        "id": "link",
+        "kind": "port",
+        "type": "led",
+        "func": "LINK",
+        "label": "",
+        "sub": "",
+        "color": "green",
+        "size": 1.6,
+        "rot": 0,
+        "x": 30,
+        "y": 20.4
+      },
+      {
+        "id": "reset",
+        "kind": "port",
+        "type": "reset",
+        "func": "RESET",
+        "label": "",
+        "sub": "",
+        "rot": 0,
+        "x": 41,
+        "y": 20.4
+      },
+      {
+        "id": "chgled",
+        "kind": "port",
+        "type": "led",
+        "func": "",
+        "label": "",
+        "sub": "",
+        "color": "blue",
+        "size": 1.6,
+        "lit": false,
+        "rot": 0,
+        "x": 79.9,
+        "y": 14
+      },
+      {
+        "id": "input",
+        "kind": "port",
+        "type": "usbc",
+        "func": "USB-C",
+        "label": "",
+        "sub": "100W",
+        "lock": false,
+        "rot": 0,
+        "x": 79.9,
+        "y": 20.6
+      },
+      {
+        "id": "fInput",
+        "kind": "frame",
+        "members": ["chgled", "input"],
+        "pad": 2,
+        "padTop": 1,
+        "padBottom": 0,
+        "title": "INPUT",
+        "titlePos": "top"
+      }
+    ],
+    "rear": [
+      {
+        "id": "edid",
+        "kind": "port",
+        "type": "dip",
+        "func": "EDID",
+        "label": "",
+        "sub": "",
+        "pins": 5,
+        "rot": 0,
+        "x": 32,
+        "y": 15.2
+      },
+      {
+        "id": "dev1",
+        "kind": "port",
+        "type": "usba",
+        "func": "1",
+        "label": "",
+        "sub": "",
+        "rot": 90,
+        "x": 58,
+        "y": 15.2
+      },
+      {
+        "id": "dev2",
+        "kind": "port",
+        "type": "usba",
+        "func": "2",
+        "label": "",
+        "sub": "",
+        "rot": 90,
+        "x": 71,
+        "y": 15.2
+      },
+      {
+        "id": "dev3",
+        "kind": "port",
+        "type": "usbc",
+        "func": "3",
+        "label": "",
+        "sub": "",
+        "lock": true,
+        "rot": 0,
+        "x": 84,
+        "y": 15.2
+      },
+      {
+        "id": "fDevice",
+        "kind": "frame",
+        "members": ["dev1", "dev2", "dev3"],
+        "pad": 2,
+        "padTop": 1,
+        "padBottom": 0,
+        "title": "DEVICE",
+        "titlePos": "top"
+      },
+      {
+        "id": "vcx",
+        "kind": "port",
+        "type": "rj45",
+        "func": "VCX",
+        "label": "",
+        "sub": "",
+        "colorBox": true,
+        "rot": 0,
+        "x": 110,
+        "y": 15.2
+      },
+      {
+        "id": "fOutput",
+        "kind": "frame",
+        "members": ["vcx"],
+        "pad": 2,
+        "padTop": 1,
+        "padBottom": 0,
+        "title": "OUTPUT",
+        "titlePos": "top"
+      },
+      {
+        "id": "service",
+        "kind": "port",
+        "type": "usbc",
+        "func": "SERVICE",
+        "label": "",
+        "sub": "",
+        "lock": false,
+        "rot": 90,
+        "x": 129,
+        "y": 15.2
+      },
+      {
+        "id": "pd",
+        "kind": "port",
+        "type": "usbc",
+        "func": "PD",
+        "label": "",
+        "sub": "",
+        "lock": true,
+        "rot": 0,
+        "x": 145,
+        "y": 15.2
+      }
+    ]
+  },
+  "rules": {
+    "fontWeight": 400,
+    "edgeClearance": 3,
+    "minGap": 1,
+    "labelGap": 1,
+    "autoNumber": false,
+    "upper": false,
+    "fontPt": 0,
+    "alignLabels": true,
+    "alignRange": 4
+  },
+  "render": {},
+  "validation": {
+    "cutouts": [
+      "Fusion cut-out SVG: Cut-outs trace each connector’s visible outline, not the manufacturer’s recommended panel cut-out with clearance and tolerance.",
+      "LED: positions estimated from supplier silkprint drawing V1.1 (HDP-EUB40CD-TX-DE0012), not signed off.",
+      "Reset hole: estimated from supplier silkprint drawing V1.1, not signed off.",
+      "USB-C: estimated from supplier silkprint drawing V1.1, not signed off.",
+      "USB-A: estimated from supplier silkprint drawing V1.1, not signed off.",
+      "RJ45: estimated from supplier silkprint drawing V1.1, not signed off.",
+      "DIP switch, 5-way: estimated from supplier silkprint drawing V1.1, not signed off."
+    ],
+    "silkscreen": [
+      "Silkscreen SVG: Silk artwork replicated from the supplier's own silkprint drawing V1.1 (2026-10-20); dimensions on that drawing are guides only and were not treated as exact. Not compared against production silk files.",
+      "LED: positions estimated from supplier silkprint drawing V1.1, not signed off.",
+      "Reset hole: estimated from supplier silkprint drawing V1.1, not signed off.",
+      "USB-C: estimated from supplier silkprint drawing V1.1, not signed off.",
+      "USB-A: estimated from supplier silkprint drawing V1.1, not signed off.",
+      "RJ45: estimated from supplier silkprint drawing V1.1, not signed off.",
+      "DIP switch, 5-way: estimated from supplier silkprint drawing V1.1, not signed off."
+    ]
+  }
+}

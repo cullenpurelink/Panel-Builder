@@ -1,0 +1,264 @@
+{
+  "format": "purelink-panel-layout",
+  "version": 3,
+  "sku": "HDPRX-EUB40D-DE0012",
+  "name": "PureLink VCX2 RX — silk print replica",
+  "logoSvg": "",
+  "chassis": {
+    "form": "std",
+    "height": 30,
+    "width": 160
+  },
+  "housing": {
+    "depth": 110
+  },
+  "panels": {
+    "front": [
+      {
+        "id": "logo",
+        "kind": "logo",
+        "cat": "RX",
+        "showBox": true,
+        "scale": 1,
+        "style": "inline",
+        "x": 21.9,
+        "y": 9.45
+      },
+      {
+        "id": "pwr",
+        "kind": "port",
+        "type": "led",
+        "func": "[power]",
+        "label": "",
+        "sub": "",
+        "color": "red",
+        "size": 1.6,
+        "rot": 0,
+        "x": 18.9,
+        "y": 21.85
+      },
+      {
+        "id": "link",
+        "kind": "port",
+        "type": "led",
+        "func": "LINK",
+        "label": "",
+        "sub": "",
+        "color": "green",
+        "size": 1.6,
+        "rot": 0,
+        "x": 28.9,
+        "y": 21.85
+      },
+      {
+        "id": "vcx",
+        "kind": "port",
+        "type": "rj45",
+        "func": "VCX",
+        "label": "",
+        "sub": "",
+        "colorBox": true,
+        "rot": 0,
+        "x": 80.4,
+        "y": 15.5
+      },
+      {
+        "id": "fInput",
+        "kind": "frame",
+        "members": ["vcx"],
+        "pad": 2,
+        "padTop": 1,
+        "padBottom": 0,
+        "title": "INPUT",
+        "titlePos": "top"
+      }
+    ],
+    "rear": [
+      {
+        "id": "gndOut",
+        "kind": "port",
+        "type": "ground",
+        "func": "[gnd]",
+        "label": "",
+        "sub": "",
+        "rot": 0,
+        "x": 10.0,
+        "y": 11.0
+      },
+      {
+        "id": "hdmi",
+        "kind": "port",
+        "type": "hdmi",
+        "func": "HDMI",
+        "label": "",
+        "sub": "",
+        "rot": 0,
+        "x": 15.4,
+        "y": 19.8
+      },
+      {
+        "id": "audio",
+        "kind": "port",
+        "type": "eb35p5",
+        "func": "AUDIO",
+        "label": "",
+        "sub": "",
+        "pins": 5,
+        "pinGroups": "L:1-2, R:4-5",
+        "pinLabels": "+, −, [gnd], +, −",
+        "rot": 0,
+        "x": 40.2,
+        "y": 19.0
+      },
+      {
+        "id": "fOutput",
+        "kind": "frame",
+        "members": ["gndOut", "hdmi", "audio"],
+        "pad": 2,
+        "padTop": 1,
+        "padBottom": 0,
+        "title": "OUTPUT",
+        "titlePos": "top"
+      },
+      {
+        "id": "dev1",
+        "kind": "port",
+        "type": "usba",
+        "func": "1",
+        "label": "",
+        "sub": "",
+        "rot": 90,
+        "x": 59.6,
+        "y": 17.3
+      },
+      {
+        "id": "dev2",
+        "kind": "port",
+        "type": "usba",
+        "func": "2",
+        "label": "",
+        "sub": "",
+        "rot": 90,
+        "x": 71.3,
+        "y": 17.3
+      },
+      {
+        "id": "dev3",
+        "kind": "port",
+        "type": "usbc",
+        "func": "3",
+        "label": "",
+        "sub": "",
+        "lock": false,
+        "rot": 0,
+        "x": 87.3,
+        "y": 20.8
+      },
+      {
+        "id": "gndDev3",
+        "kind": "port",
+        "type": "ground",
+        "func": "[gnd]",
+        "label": "",
+        "sub": "",
+        "rot": 0,
+        "x": 95.0,
+        "y": 12.9
+      },
+      {
+        "id": "fDevice",
+        "kind": "frame",
+        "members": ["dev1", "dev2", "dev3", "gndDev3"],
+        "pad": 2,
+        "padTop": 1,
+        "padBottom": 0,
+        "title": "DEVICE",
+        "titlePos": "top"
+      },
+      {
+        "id": "ethernet",
+        "kind": "port",
+        "type": "rj45",
+        "func": "ETHERNET",
+        "label": "",
+        "sub": "",
+        "rot": 0,
+        "x": 110.5,
+        "y": 17.6
+      },
+      {
+        "id": "service",
+        "kind": "port",
+        "type": "usbc",
+        "func": "SERVICE",
+        "label": "",
+        "sub": "",
+        "lock": false,
+        "rot": 90,
+        "x": 129.5,
+        "y": 17.4
+      },
+      {
+        "id": "pd",
+        "kind": "port",
+        "type": "usbc",
+        "func": "PD",
+        "label": "",
+        "sub": "",
+        "lock": false,
+        "rot": 0,
+        "x": 145.5,
+        "y": 18.4
+      },
+      {
+        "id": "gndPd",
+        "kind": "port",
+        "type": "ground",
+        "func": "[gnd]",
+        "label": "",
+        "sub": "",
+        "rot": 0,
+        "x": 139.5,
+        "y": 10.7
+      }
+    ]
+  },
+  "rules": {
+    "fontWeight": 400,
+    "edgeClearance": 3,
+    "minGap": 1,
+    "labelGap": 1,
+    "autoNumber": false,
+    "upper": false,
+    "fontPt": 0,
+    "alignLabels": true,
+    "alignRange": 4
+  },
+  "render": {},
+  "validation": {
+    "cutouts": [
+      "Fusion cut-out SVG: Cut-outs trace each connector’s visible outline, not the manufacturer’s recommended panel cut-out with clearance and tolerance.",
+      "Rear panel: supplier drawing V1.1 draws the ports view rotated 180° (upside-down) relative to how the panel actually mounts; all rear-panel positions below were corrected by mirroring both axes (real_x = 160 − raw_x, real_y = 30 − raw_y), not signed off against the physical part.",
+      "HDMI (OUTPUT): estimated from supplier silkprint drawing V1.1 (HDPRX-EUB40D-DE0012), not signed off.",
+      "RJ45, ETHERNET: estimated from supplier silkprint drawing V1.1, not signed off.",
+      "RJ45/Amphenol, VCX input (front panel): estimated from supplier silkprint drawing V1.1, not signed off.",
+      "USB-A, DEVICE 1/2: estimated from supplier silkprint drawing V1.1, not signed off.",
+      "USB-C, DEVICE 3 / SERVICE / PD: estimated from supplier silkprint drawing V1.1, not signed off.",
+      "Phoenix 5-pin, AUDIO (OUTPUT): estimated from supplier silkprint drawing V1.1, not signed off.",
+      "Ground screw (M4): three positions (near PD, near DEVICE 3, inside OUTPUT) estimated from supplier silkprint drawing V1.1; the drawing's own icon reads smaller than this tool's fixed M4 ground-screw art, so positions were nudged apart from their neighbouring port to avoid a false overlap — not signed off.",
+      "LED (power, LINK): positions estimated from supplier silkprint drawing V1.1, not signed off."
+    ],
+    "silkscreen": [
+      "Silkscreen SVG: Silk artwork replicated from the supplier's own silkprint drawing V1.1 (2026-10-20, HDCVT / Shenzhen Wanshi Technology); dimensions on that drawing are guides only and were not treated as exact. Not compared against production silk files.",
+      "The drawing's top (lid) view, left/right side views, and the separate bottom-face legend rectangle (Rating Label / MAC address / NOTES) were used only as context — not reproduced as additional panels.",
+      "Rear panel: corrected from the drawing's 180°-rotated ports view (see cutouts note); frame titlePos chosen so that, after correction, each frame's own title sits at the top and each member's function label breaks the frame's bottom border, matching the as-drawn relationship once both axes are flipped.",
+      "HDMI: estimated from supplier silkprint drawing V1.1, not signed off.",
+      "RJ45 (ETHERNET, VCX): estimated from supplier silkprint drawing V1.1, not signed off.",
+      "USB-A (DEVICE 1/2): estimated from supplier silkprint drawing V1.1, not signed off.",
+      "USB-C (DEVICE 3, SERVICE, PD): estimated from supplier silkprint drawing V1.1, not signed off.",
+      "Phoenix 5-pin (AUDIO): pin order read off the rotated drawing and corrected (reversed) to \"+, −, [gnd], +, −\" with L on pins 1-2 and R on pins 4-5; estimated, not signed off.",
+      "Ground screw (M4) x3: estimated from supplier silkprint drawing V1.1, not signed off.",
+      "LED (power, LINK): colours assumed red/green by PureLink convention (drawing is monochrome line art); not signed off."
+    ]
+  }
+}

@@ -1,0 +1,415 @@
+{
+  "format": "purelink-panel-layout",
+  "version": 3,
+  "sku": "HDP-EUB40HCD-TX-DE0012",
+  "name": "PureLink VCX2 LX (TX, HCD) — silk print replica",
+  "logoSvg": "",
+  "chassis": {
+    "form": "std",
+    "height": 30,
+    "width": 240
+  },
+  "housing": {
+    "depth": 110
+  },
+  "panels": {
+    "front": [
+      {
+        "id": "logo",
+        "kind": "logo",
+        "cat": "LX",
+        "showBox": true,
+        "scale": 1,
+        "style": "inline",
+        "x": 21.9,
+        "y": 9.2
+      },
+      {
+        "id": "pwr",
+        "kind": "port",
+        "type": "led",
+        "func": "[power]",
+        "label": "",
+        "sub": "",
+        "color": "red",
+        "size": 1.6,
+        "rot": 0,
+        "x": 24.3,
+        "y": 21.4
+      },
+      {
+        "id": "link",
+        "kind": "port",
+        "type": "led",
+        "func": "LINK",
+        "label": "",
+        "sub": "",
+        "color": "green",
+        "size": 1.6,
+        "rot": 0,
+        "x": 34.4,
+        "y": 21.4
+      },
+      {
+        "id": "reset",
+        "kind": "port",
+        "type": "reset",
+        "func": "RESET",
+        "label": "",
+        "sub": "",
+        "rot": 0,
+        "x": 47.4,
+        "y": 18.2
+      },
+      {
+        "id": "usbhost",
+        "kind": "port",
+        "type": "usbb",
+        "func": "USB HOST",
+        "label": "",
+        "sub": "",
+        "rot": 0,
+        "x": 85.1,
+        "y": 15.3
+      },
+      {
+        "id": "hdmiIn",
+        "kind": "port",
+        "type": "hdmi",
+        "func": "HDMI",
+        "label": "",
+        "sub": "",
+        "lock": true,
+        "rot": 0,
+        "x": 107.5,
+        "y": 18.5
+      },
+      {
+        "id": "usbcIn",
+        "kind": "port",
+        "type": "usbc",
+        "func": "USB-C",
+        "label": "",
+        "sub": "100W [bolt]",
+        "colorBox": true,
+        "lock": true,
+        "rot": 0,
+        "x": 128.4,
+        "y": 20.6
+      },
+      {
+        "id": "fInput",
+        "kind": "frame",
+        "members": ["usbhost", "hdmiIn", "usbcIn"],
+        "pad": 2,
+        "padTop": 1,
+        "padBottom": 0,
+        "title": "INPUT",
+        "titlePos": "top"
+      },
+      {
+        "id": "ledHdmiSel",
+        "kind": "port",
+        "type": "led",
+        "func": "HDMI",
+        "label": "",
+        "sub": "",
+        "color": "blue",
+        "size": 1.6,
+        "rot": 0,
+        "x": 153.0,
+        "y": 21.3
+      },
+      {
+        "id": "ledUsbcSel",
+        "kind": "port",
+        "type": "led",
+        "func": "USB-C",
+        "label": "",
+        "sub": "",
+        "color": "blue",
+        "size": 1.6,
+        "rot": 0,
+        "x": 163.1,
+        "y": 21.3
+      },
+      {
+        "id": "ledRxSel",
+        "kind": "port",
+        "type": "led",
+        "func": "RX",
+        "label": "",
+        "sub": "",
+        "color": "blue",
+        "size": 1.6,
+        "rot": 0,
+        "x": 173.0,
+        "y": 21.3
+      },
+      {
+        "id": "btnAuto",
+        "kind": "port",
+        "type": "button",
+        "func": "AUTO/3S",
+        "label": "",
+        "sub": "",
+        "labelPos": "above",
+        "rot": 0,
+        "x": 192.6,
+        "y": 18.4
+      },
+      {
+        "id": "btnDisplay",
+        "kind": "port",
+        "type": "button",
+        "func": "DISPLAY\\nON/OFF",
+        "label": "",
+        "sub": "",
+        "labelPos": "above",
+        "rot": 0,
+        "x": 207.6,
+        "y": 18.4
+      },
+      {
+        "id": "btnBlack",
+        "kind": "port",
+        "type": "button",
+        "func": "BLACK\\nSCREEN",
+        "label": "",
+        "sub": "",
+        "labelPos": "above",
+        "rot": 0,
+        "x": 224.6,
+        "y": 18.4
+      }
+    ],
+    "rear": [
+      {
+        "id": "vcx",
+        "kind": "port",
+        "type": "rj45",
+        "func": "VCX",
+        "label": "",
+        "sub": "",
+        "colorBox": true,
+        "rot": 0,
+        "x": 18.1,
+        "y": 15.8
+      },
+      {
+        "id": "hdmiOut",
+        "kind": "port",
+        "type": "hdmi",
+        "func": "HDMI",
+        "label": "",
+        "sub": "",
+        "lock": true,
+        "rot": 0,
+        "x": 40.4,
+        "y": 18.9
+      },
+      {
+        "id": "audio",
+        "kind": "port",
+        "type": "eb35p5",
+        "func": "AUDIO",
+        "label": "",
+        "sub": "",
+        "pins": 5,
+        "pinGroups": "L:1-2, R:4-5",
+        "pinLabels": "+, −, [gnd], +, −",
+        "rot": 0,
+        "x": 61.4,
+        "y": 19.5
+      },
+      {
+        "id": "dante",
+        "kind": "port",
+        "type": "rj45",
+        "func": "DANTE",
+        "label": "",
+        "sub": "",
+        "rot": 0,
+        "x": 84.4,
+        "y": 16.4
+      },
+      {
+        "id": "fOutput",
+        "kind": "frame",
+        "members": ["vcx", "hdmiOut", "audio", "dante"],
+        "pad": 2,
+        "padTop": 1,
+        "padBottom": 0,
+        "title": "OUTPUT",
+        "titlePos": "top"
+      },
+      {
+        "id": "dev1",
+        "kind": "port",
+        "type": "usba",
+        "func": "1",
+        "label": "",
+        "sub": "",
+        "rot": 90,
+        "x": 101.9,
+        "y": 15.7
+      },
+      {
+        "id": "dev2",
+        "kind": "port",
+        "type": "usba",
+        "func": "2",
+        "label": "",
+        "sub": "",
+        "rot": 90,
+        "x": 113.5,
+        "y": 15.7
+      },
+      {
+        "id": "dev3",
+        "kind": "port",
+        "type": "usbc",
+        "func": "3",
+        "label": "",
+        "sub": "",
+        "lock": true,
+        "rot": 0,
+        "x": 127.4,
+        "y": 20.8
+      },
+      {
+        "id": "fDevice",
+        "kind": "frame",
+        "members": ["dev1", "dev2", "dev3"],
+        "pad": 2,
+        "padTop": 1,
+        "padBottom": 0,
+        "title": "DEVICE",
+        "titlePos": "top"
+      },
+      {
+        "id": "tcpip",
+        "kind": "port",
+        "type": "rj45",
+        "func": "TCP/IP",
+        "label": "",
+        "sub": "",
+        "rot": 0,
+        "x": 146.0,
+        "y": 16.5
+      },
+      {
+        "id": "swblock",
+        "kind": "port",
+        "type": "eb35x2",
+        "func": "SW2",
+        "label": "",
+        "sub": "SW1",
+        "pins": 3,
+        "rot": 0,
+        "x": 163.9,
+        "y": 15.7
+      },
+      {
+        "id": "rs232",
+        "kind": "port",
+        "type": "eb35x2",
+        "func": "RS232",
+        "label": "",
+        "sub": "TX [gnd] RX",
+        "pins": 3,
+        "rot": 0,
+        "x": 185.0,
+        "y": 15.7
+      },
+      {
+        "id": "tLocal",
+        "kind": "text",
+        "text": "LOCAL",
+        "pt": 7,
+        "weight": 400,
+        "rot": 270,
+        "x": 174.5,
+        "y": 9.5
+      },
+      {
+        "id": "tPass",
+        "kind": "text",
+        "text": "PASS",
+        "pt": 7,
+        "weight": 400,
+        "rot": 270,
+        "x": 174.5,
+        "y": 21.0
+      },
+      {
+        "id": "edid",
+        "kind": "port",
+        "type": "dip",
+        "func": "EDID",
+        "label": "",
+        "sub": "",
+        "pins": 5,
+        "rot": 0,
+        "x": 201.4,
+        "y": 17.6
+      },
+      {
+        "id": "service",
+        "kind": "port",
+        "type": "usbc",
+        "func": "SERVICE",
+        "label": "",
+        "sub": "",
+        "lock": false,
+        "rot": 90,
+        "x": 215.6,
+        "y": 17.5
+      },
+      {
+        "id": "dc24v",
+        "kind": "port",
+        "type": "din4",
+        "func": "DC 24V",
+        "label": "",
+        "sub": "",
+        "rot": 0,
+        "x": 229.6,
+        "y": 15.5
+      }
+    ]
+  },
+  "rules": {
+    "fontWeight": 400,
+    "edgeClearance": 3,
+    "minGap": 1,
+    "labelGap": 1,
+    "autoNumber": false,
+    "upper": false,
+    "fontPt": 0,
+    "alignLabels": true,
+    "alignRange": 4
+  },
+  "render": {},
+  "validation": {
+    "cutouts": [
+      "Fusion cut-out SVG: Cut-outs trace each connector’s visible outline, not the manufacturer’s recommended panel cut-out with clearance and tolerance.",
+      "Rear panel view in the supplier drawing (V1.1) was drawn rotated 180° relative to how it actually mounts (text and port order appeared upside-down); all rear positions below were corrected for that rotation (real_x = width - raw_x, real_y = height - raw_y) before being entered, not read directly off the drawing's own pixel coordinates.",
+      "Dimensions shown in red on the supplier drawing (12mm, 2.6mm, 6.1mm, 3.4mm, 11.5mm corner offsets; 240/110/30mm outline dims) are construction/outline guides only, per the drawing's own title block (丝印白色 vs 底托颜色 legend) — not treated as exact silkscreen-critical tolerances.",
+      "The large rectangle with 'PureLink' wordmark + vents + 4 corner screws, and the two small vented end-cap views, are the enclosure's top view and side-profile views — mechanical/outline reference only, not a third silkscreen panel; not reproduced here.",
+      "The separate bottom-face rectangle (Rating Label / MAC address / NOTES, 93.6mm callouts) is the function-coding legend face, not a front/rear silk panel; out of scope for this layout per the replicate-silkprint-panel skill (build via the Housing tab's own legend generator if needed, not as a panel).",
+      "RJ45 'VCX' port on the rear shows an 'Amphenol' wordmark inside the jack outline in the supplier drawing — read as the connector manufacturer's own reference label on their CAD symbol, not as silkscreen text to reproduce, and omitted.",
+      "HDMI (front INPUT, rear OUTPUT): locking-screw hole shown in the drawing directly above each HDMI jack — modelled as lock:true.",
+      "USB-C (front INPUT 100W, rear DEVICE port 3): locking-screw hole shown directly above each — modelled as lock:true. Rear SERVICE USB-C shows no such hole — modelled as lock:false.",
+      "EDID: 5-way DIP switch, count read directly off the drawing's own switch icon (5 toggle segments visible at high zoom).",
+      "SW1/SW2 and RS-232 (LOCAL/PASS): each is one physical 2-row x 3-pin Phoenix terminal block (eb35x2) per the drawing's own icon shape, not two separate connectors.",
+      "Positions measured from the supplier's silkprint drawing V1.1 (HDP-EUB40HCD-TX-DE0012, dated 2026-10-20) via pixel calibration against the drawing's own 240x30mm panel outline and 110mm depth side-view — not signed off."
+    ],
+    "silkscreen": [
+      "Silkscreen SVG: Silk artwork replicated from the supplier's own silkprint drawing V1.1 (2026-10-20, HDP-EUB40HCD-TX-DE0012); dimensions on that drawing are guides only and were not treated as exact. Not compared against production silk files.",
+      "Rear panel was drawn rotated 180° in the source file; corrected to true mounting orientation before replication (see cutout notes). titlePos:'top' on OUTPUT/DEVICE frames was re-derived from the corrected (un-rotated) pixel layout, not assumed from other library files.",
+      "DANTE rear RJ45 carries the Audinate 'Dante' logo in the source drawing in place of a plain text label; represented here with func:'DANTE' (plain text), matching this repo's existing convention (see ipav-3x1-tranceiver-v0-2-layout.json) rather than attempting to reproduce the logo mark.",
+      "All port positions, types, and groupings: estimated from supplier silkprint drawing V1.1, not signed off."
+    ]
+  }
+}

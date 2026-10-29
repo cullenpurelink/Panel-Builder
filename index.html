@@ -1177,7 +1177,7 @@ let catalog = {}; // global, cross-product "learned custom entries" (catalogKey 
 function newModel(o = {}) {
   return {
     format: 'purelink-panel-layout', version: 3,
-    name: o.name || 'Untitled product', sku: o.sku || '',
+    name: o.name || 'Untitled product', sku: o.sku || '', supplierSku: o.supplierSku || '',
     chassis: { height: o.height || 30, width: o.width || 250, form: o.form || 'std' },
     rules: { ...DEFAULT_RULES },
     logoSvg: '',
@@ -3341,7 +3341,8 @@ function renderInspector() {
     el.innerHTML = `
       <h3>This product</h3>
       <dl class="sum"><dt>Housing</dt><dd>${housingOf(model.chassis).label}</dd><dt>Size</dt><dd>${f(W)} × ${hLabel(H)}</dd><dt>Front</dt><dd>${n2('front')} ports</dd><dt>Rear</dt><dd>${n2('rear')} ports</dd></dl>
-      <label class="fld" style="margin-top:12px"><span>Product code</span><input type="text" data-m="sku" value="${esc(model.sku)}" placeholder="e.g. PT-HDBT-150"></label>
+      <label class="fld" style="margin-top:12px"><span>PureLink Partnumber</span><input type="text" data-m="sku" value="${esc(model.sku)}" placeholder="e.g. PT-HDBT-150"></label>
+      <label class="fld"><span>Supplier Partnumber</span><input type="text" data-m="supplierSku" value="${esc(model.supplierSku || '')}" placeholder="e.g. supplier's own part number"></label>
       <h3>PureLink logo artwork</h3>
       <p class="note">${model.logoSvg ? 'Using your uploaded logo file instead of the built-in one.' : 'Uses the official PureLink 2025 logo (vector), printed in white. Upload an SVG only if you need a different version.'}</p>
       <div class="actions"><button class="btn" data-act="logoUp">${model.logoSvg ? 'Replace logo file' : 'Use a different logo SVG'}</button>${model.logoSvg ? '<button class="btn" data-act="logoClear">Use built-in logo</button>' : ''}</div>
@@ -3472,6 +3473,7 @@ function bindInspector() {
     else { inp.oninput = () => { const v = parseFloat(inp.value); if (!isNaN(v) && v >= 0) { model.rules[k] = v; renderCanvas(); } }; inp.onchange = () => { commit(); renderAll(); }; }
   });
   const sku = $('[data-m="sku"]', el); if (sku) { sku.oninput = () => { model.sku = sku.value; updateToolbar(); }; sku.onchange = () => commit(); }
+  const supplierSku = $('[data-m="supplierSku"]', el); if (supplierSku) { supplierSku.oninput = () => { model.supplierSku = supplierSku.value; }; supplierSku.onchange = () => commit(); }
   $$('[data-act]', el).forEach(b => b.onclick = () => doAction(b.dataset.act));
   $$('[data-forget]', el).forEach(b => b.onclick = () => { const i = b.dataset.forget.indexOf('|'); forgetCustom(b.dataset.forget.slice(0, i), b.dataset.forget.slice(i + 1)); });
   if (sel.length !== 1) return;
@@ -3822,7 +3824,7 @@ function normalise(m) {
     }
   }
   delete m.ledLegend;
-  m.name = m.name || 'Untitled product'; m.sku = m.sku || ''; m.logoSvg = m.logoSvg || '';
+  m.name = m.name || 'Untitled product'; m.sku = m.sku || ''; m.supplierSku = m.supplierSku || ''; m.logoSvg = m.logoSvg || '';
   return m;
 }
 function loadModel(m, meta = {}) {
@@ -3958,6 +3960,24 @@ async function panelPNG(pid, dpi = 300, mark = false) {
   const png = withDPI(new Uint8Array(await blob.arrayBuffer()), dpi);
   return issues.length ? pngText(png, 'Comment', UNVAL + '. ' + issues.join(' ')) : png;
 }
+// Front-over-rear composite, both panels at true 1:1 scale on one
+// transparent canvas with a small gap between them. Never carries the
+// red UNVALIDATED stamp on the image itself (fileTag still flags the
+// filename), since this is meant as a clean reference, not a production doc.
+async function panelPNGCombined(dpi = 300) {
+  const { width: W, height: H } = model.chassis, k = dpi / 25.4, gapMM = 10;
+  const svgFront = exportSVG('front', 'concept', true), svgRear = exportSVG('rear', 'concept', true);
+  const imgFront = new Image(); imgFront.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgFront)));
+  const imgRear = new Image(); imgRear.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgRear)));
+  await Promise.all([imgFront.decode(), imgRear.decode()]); await new Promise(r => setTimeout(r, 250));
+  const panelPx = Math.round(H * k), gapPx = Math.round(gapMM * k);
+  const c = document.createElement('canvas'); c.width = Math.round(W * k); c.height = panelPx * 2 + gapPx;
+  const ctx = c.getContext('2d');
+  const draw = () => { ctx.clearRect(0, 0, c.width, c.height); ctx.drawImage(imgFront, 0, 0, c.width, panelPx); ctx.drawImage(imgRear, 0, panelPx + gapPx, c.width, panelPx); };
+  draw(); await new Promise(r => setTimeout(r, 120)); draw();
+  const blob = await new Promise(r => c.toBlob(r, 'image/png'));
+  return withDPI(new Uint8Array(await blob.arrayBuffer()), dpi);
+}
 function exportSVG(pid, mode, forPNG) {
   const { width: W, height: H } = model.chassis, Lo = layout(pid);
   const head = `<?xml version="1.0" encoding="UTF-8"?>\n<!-- ${esc(model.name)}${model.sku ? ' (' + esc(model.sku) + ')' : ''}, ${pid} panel, ${f(W)} x ${hLabel(H)}. 1 unit = 1 mm. PureLink Panel Builder. -->\n`;
@@ -4022,6 +4042,7 @@ function renderExport() {
   const base = slug(model.sku || model.name);
   const opts = [
     ['both-png', 'Front and rear panels as PNG', 'Two transparent PNGs at 1:1 scale (300 dpi). They print at true size.'],
+    ['stacked-png', 'Front + rear, one drawing', 'Both panels on a single transparent PNG at 1:1 scale (300 dpi), front above rear with a small gap. No red validation stamp is drawn on the image itself.'],
     ['front-png', 'Front panel PNG', 'Transparent background, 1:1 at 300 dpi.'],
     ['rear-png', 'Rear panel PNG', 'Transparent background, 1:1 at 300 dpi.'],
     ['front-concept', 'Front panel concept render', 'The photo-style view, as SVG, for presentations.'],
@@ -4044,6 +4065,10 @@ function renderExport() {
     const k = b.dataset.exp;
     if (k === 'json') saveFile(`${base}${revTag()}-layout.json`, JSON.stringify({ ...model, validation: { cutouts: exportIssues('cut', ['front', 'rear']), silkscreen: exportIssues('silk', ['front', 'rear']) } }, null, 2));
     else if (k === 'publish') publishToLibrary();
+    else if (k === 'stacked-png') (async () => {
+      try { await saveFile(`${base}-front-rear${revTag()}${fileTag('concept', ['front', 'rear'])}.png`, await panelPNGCombined(300)); }
+      catch (e) { toast('The PNG couldn’t be drawn in this browser.'); }
+    })();
     else if (k.endsWith('-png')) (async () => {
       const pids = k === 'both-png' ? ['front', 'rear'] : [k.split('-')[0]];
       try { for (const pid of pids) await saveFile(`${base}-${pid}${revTag()}${fileTag('concept', [pid])}.png`, await panelPNG(pid, 300, true)); }
