@@ -152,6 +152,7 @@ details summary{cursor:pointer;color:var(--accent);font-size:13.5px;margin-botto
 .empty{position:absolute;right:14px;top:10px;font-size:13px;color:var(--muted)}
 .item{cursor:grab}
 .preview .item{cursor:default}
+.measuring{cursor:crosshair}
 
 .checks{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 14px}
 .checks h2{font-size:15px;margin:0 0 6px;font-weight:600;display:flex;gap:8px;align-items:baseline}
@@ -286,6 +287,7 @@ dialog::backdrop{background:rgba(10,14,18,.45)}
       <label><input type="checkbox" id="gridChk" checked> Grid</label>
       <label><input type="checkbox" id="rulerChk" checked> Rulers</label>
       <label><input type="checkbox" id="crossChk"> Crosshair</label>
+      <label title="Click-drag a straight horizontal or vertical measurement. Shown in the design view and the silkscreen export only."><input type="checkbox" id="measureChk"> Measure</label>
       <span class="sep"></span>
       <button class="btn icon" id="zoomOut" aria-label="Zoom out" title="Zoom out">−</button>
       <button class="btn" id="zoomFit" title="Fit the panel width (Ctrl + scroll to zoom)">Fit</button><span id="zoomPct" style="font-size:13px;color:var(--muted);min-width:42px;text-align:center"></span>
@@ -1166,11 +1168,11 @@ const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;'
 const uid = () => 'i' + Math.random().toString(36).slice(2, 9);
 const hLabel = h => f(h) + ' mm';
 const DRAFT_KEY = 'purelink-panel-builder:draft';
-const DEFAULT_RULES = { fontWeight: 400, edgeClearance: 3, minGap: 1, labelGap: 1, autoNumber: true, upper: false, fontPt: 0, alignLabels: true, alignRange: 4 };
+const DEFAULT_RULES = { fontWeight: 400, edgeClearance: 3, minGap: 1, labelGap: 1, autoNumber: true, upper: false, fontPt: 0, alignLabels: true, alignRange: 4, pcba: { on: true, top: 6.3, thick: 1 } };
 
 let model, docId = null, savedJSON = null, loadedStamp = null;
 let sel = [], activePanel = 'front';
-let ui = { preview: false, grid: true, step: 0.5, zoom: 1, rulers: true, cross: false, guides: true, dimEdit: null };
+let ui = { preview: false, grid: true, step: 0.5, zoom: 1, rulers: true, cross: false, guides: true, dimEdit: null, measuring: false };
 const specCustomUI = new Set(); // transient "Custom…" toggle per item+field, not persisted
 let hist = [], hIdx = -1;
 let drag = null, guides = [], dragType = null, ppm = 4;
@@ -1351,6 +1353,19 @@ function specLineFor(type, func, spec) {
   return [p.name, ...parts].join(' | ');
 }
 const RJ45_LED_TYPES = ['rj45', 'rj45lp'];
+// Port types that can physically straddle the PCBA (through-hole connectors
+// mounted mid-board) rather than sitting above it — these get the
+// "Mid-mount component" checkbox, which pins the part to the centre of the
+// PCBA guideline and exempts it from the "below the PCBA" warning.
+const MID_MOUNT_TYPES = ['usbc', 'hdmi', 'usba', 'usbb', 'rj45', 'dp'];
+function pcbaCenterY(H) {
+  const R = (model.rules && model.rules.pcba) || {}, top = +R.top || 0, thick = Math.max(0.01, +R.thick || 1);
+  return r3(H - (top - thick / 2));
+}
+function reapplyMidMount() {
+  const H = model.chassis.height;
+  for (const pid of ['front', 'rear']) for (const it of model.panels[pid]) if (it.kind === 'port' && it.midMount) it.y = pcbaCenterY(H);
+}
 // A Phoenix wired as a relay (its Function) or a switch (its Mode =
 // 'Switch') gets a preset NO/NC[/GND] list per physical pin.
 function pinPresetsFor(func, spec) {
@@ -1540,7 +1555,7 @@ function layout(pid) {
   const frames = items.filter(i => i.kind === 'frame'), memberOf = new Map();
   for (const fr of frames) for (const id of fr.members) memberOf.set(id, fr);
   const map = new Map();
-  for (const it of items) if (isPlaced(it)) map.set(it.id, entryFor(it, names.get(it.id), memberOf.get(it.id), S));
+  for (const it of items) if (isPlaced(it) && it.kind !== 'measure') map.set(it.id, entryFor(it, names.get(it.id), memberOf.get(it.id), S));
   if (model.rules.alignLabels) {
     // line up free-standing labels that sit on roughly the same row
     for (const pos of ['below', 'above']) {
@@ -1584,7 +1599,15 @@ function layout(pid) {
     const cx = (L.cut[2] + Rr.cut[0]) / 2, y = (L.it.y + Rr.it.y) / 2 + (+d.dy || 0);
     dashes.set(d.id, { d, x0: cx - len / 2, x1: cx + len / 2, y, box: [cx - len / 2, y - 0.4, cx + len / 2, y + 0.4] });
   }
-  return { map, frames: fgeo, dashes, S };
+  const measures = new Map();
+  for (const m of items.filter(i => i.kind === 'measure')) {
+    const len = +m.len || 0;
+    const box = m.axis === 'v'
+      ? [m.x - 2.2, Math.min(m.y, m.y + len) - 0.5, m.x + 2.2, Math.max(m.y, m.y + len) + 0.5]
+      : [Math.min(m.x, m.x + len) - 0.5, m.y - 2.2, Math.max(m.x, m.x + len) + 2.2, m.y + 2.2];
+    measures.set(m.id, { m, box });
+  }
+  return { map, frames: fgeo, dashes, measures, S };
 }
 function framePath(G) {
   const { x0, y0, x1, y1, R } = G;
@@ -1740,6 +1763,10 @@ function runChecks() {
         else if (c[1] < clr - 1e-6 || c[3] > H - clr + 1e-6 || c[0] < clr - 1e-6 || c[2] > W - clr + 1e-6) out.push({ lvl: 'err', pid, ids: [id], msg: `${nm} breaks the ${f(clr)} mm edge clearance.` });
         for (const k of keep) if (c[2] > k[0] && c[0] < k[1]) out.push({ lvl: 'err', pid, ids: [id], msg: `${nm} sits on the front fins.` });
         if (e.it.kind === 'port') for (const z of heatZones) if (c[2] > z[0] && c[0] < z[1]) out.push({ lvl: 'warn', pid, ids: [id], msg: `${nm} is in the heat sink zone (${f(FIN.keep)} mm from the ${z[0] === 0 ? 'left' : 'right'} edge) — check clearance against the CAD file.` });
+        if (e.cut && R.pcba && R.pcba.on && !e.it.midMount) {
+          const ybC = H - e.it.y;
+          if (ybC < +R.pcba.top - 1e-6) out.push({ lvl: 'warn', pid, ids: [id], msg: `${nm} sits below the PCBA guideline (${f(ybC)} mm vs ${f(+R.pcba.top)} mm from the base) — check it still reaches the board, or tick "Mid-mount component".` });
+        }
       }
       for (const l of e.labels) {
         const b = l.box;
@@ -3037,6 +3064,7 @@ function renderPanel(pid, checks) {
   svg.style.width = Math.round((vx1 - vx0) * ppm) + 'px';
   svg.style.height = Math.round((vy1 - vy0) * ppm) + 'px';
   svg.classList.toggle('preview', ui.preview);
+  svg.classList.toggle('measuring', ui.measuring);
   svg.dataset.vb = [vx0, vy0, vx1, vy1].join(',');
   const errIds = new Set(), warnIds = new Set();
   for (const c of checks) if (c.pid === pid) for (const id of c.ids) (c.lvl === 'err' ? errIds : warnIds).add(id);
@@ -3059,6 +3087,10 @@ function renderPanel(pid, checks) {
     const clr = R.edgeClearance;
     s += `<rect x="${clr}" y="${clr}" width="${r3(W - 2 * clr)}" height="${r3(H - 2 * clr)}" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="${px(1)}" stroke-dasharray="${px(4)} ${px(3)}" pointer-events="none"/>`;
     s += `<path d="M0 ${H / 2} H${W}" stroke="rgba(255,255,255,.22)" stroke-width="${px(0.75)}" stroke-dasharray="${px(1)} ${px(5)}" pointer-events="none"/>`;
+    if (R.pcba && R.pcba.on) {
+      const top = +R.pcba.top || 0, thick = Math.max(0.01, +R.pcba.thick || 1), yTop = r3(H - top), yH = r3(thick);
+      s += `<g pointer-events="none"><rect x="0" y="${yTop}" width="${W}" height="${yH}" fill="#22C55E" fill-opacity=".5"/><path d="M0 ${r3(H - top)} H${W} M0 ${r3(H - top + thick)} H${W}" stroke="#22C55E" stroke-width="${px(0.5)}"/></g>`;
+    }
   }
   for (const e of Lo.map.values()) {
     const it = e.it;
@@ -3074,6 +3106,16 @@ function renderPanel(pid, checks) {
     if (!ui.preview) s += RC(D.x0 - 0.6, D.y - 1, D.x1 - D.x0 + 1.2, 2, 'transparent');
     if (sel.includes(D.d.id) && !ui.preview) s += `<rect x="${r3(D.x0 - 0.5)}" y="${r3(D.y - 0.7)}" width="${r3(D.x1 - D.x0 + 1)}" height="1.4" rx="${px(2)}" fill="none" stroke="${accent}" stroke-width="${px(1.5)}"/>`;
     s += `</g>`;
+  }
+  if (!ui.preview) for (const M of Lo.measures.values()) {
+    s += `<g class="item" data-id="${M.m.id}">${measureArt(M.m)}`;
+    s += RC(M.box[0], M.box[1], M.box[2] - M.box[0], M.box[3] - M.box[1], 'transparent');
+    if (sel.includes(M.m.id)) s += `<rect x="${r3(M.box[0])}" y="${r3(M.box[1])}" width="${r3(M.box[2] - M.box[0])}" height="${r3(M.box[3] - M.box[1])}" rx="${px(2)}" fill="none" stroke="${accent}" stroke-width="${px(1.5)}" stroke-dasharray="${px(2)} ${px(2)}"/>`;
+    s += `</g>`;
+  }
+  if (!ui.preview && drag && drag.measure && drag.pid === pid && drag.cur) {
+    const a = drag.start, len = drag.axis === 'v' ? drag.cur.y - a.y : drag.cur.x - a.x;
+    s += measureArt({ axis: drag.axis, x: a.x, y: a.y, len }, accent);
   }
   for (const G of Lo.frames.values()) {
     s += `<g class="item" data-id="${G.fr.id}">${frameArt(G)}`;
@@ -3102,7 +3144,7 @@ function renderPanel(pid, checks) {
     }
     if (sel.length === 1) {
       const r = findItem(sel[0]);
-      if (r && r.pid === pid && isPlaced(r.it)) {
+      if (r && r.pid === pid && isPlaced(r.it) && r.it.kind !== 'measure') {
         const it = r.it, yb = H - it.y, dy = H + M * 0.45, dx = W + M * 0.45, tk = px(3), fs = px(11);
         s += `<g stroke="${accent}" stroke-width="${px(1)}" fill="none" pointer-events="none"><path d="M0 ${r3(dy)} H${r3(it.x)} M0 ${r3(dy - tk)} V${r3(dy + tk)} M${r3(it.x)} ${H} V${r3(dy + tk)} M${r3(dx)} ${H} V${r3(it.y)} M${r3(dx - tk)} ${H} H${r3(dx + tk)} M${W} ${r3(it.y)} H${r3(dx + tk)}" stroke-dasharray="${px(3)} ${px(2)}"/></g>`;
         s += `<text x="${r3(it.x / 2)}" y="${r3(dy + px(13))}" text-anchor="middle" font-size="${fs}" fill="${accent}" font-family="Barlow, sans-serif">${f(it.x)}</text>`;
@@ -3139,6 +3181,21 @@ function rulersSVG(W, H, RB, px, ink) {
   return s + `<path d="${d}" stroke="${ink}" stroke-width="${px(0.8)}" fill="none"/>` + t;
 }
 function dashArt(D) { return `<path d="M${r3(D.x0)} ${r3(D.y)} H${r3(D.x1)}" stroke="${SILK}" stroke-width="0.4"/>`; }
+const MEASURE_C = '#FF9A1F';
+// Point-to-point reference dimension, locked to horizontal or vertical.
+// Shown in the design view and the silkscreen export only — never in
+// Presentation view, the concept render or the Fusion cut-out file.
+function measureArt(M, color) {
+  const c = color || MEASURE_C, len = +M.len || 0, fs = 2.6;
+  if (M.axis === 'v') {
+    const y0 = Math.min(M.y, M.y + len), y1 = Math.max(M.y, M.y + len), x = M.x;
+    return `<g stroke="${c}" fill="none"><path d="M${r3(x - 1.2)} ${r3(y0)} H${r3(x + 1.2)} M${r3(x - 1.2)} ${r3(y1)} H${r3(x + 1.2)} M${r3(x)} ${r3(y0)} V${r3(y1)}" stroke-width="0.25"/></g>` +
+      `<text x="${r3(x + 1.8)}" y="${r3((y0 + y1) / 2)}" dominant-baseline="middle" font-size="${fs}" font-family="Barlow, sans-serif" fill="${c}">${f(Math.abs(len))} mm</text>`;
+  }
+  const x0 = Math.min(M.x, M.x + len), x1 = Math.max(M.x, M.x + len), y = M.y;
+  return `<g stroke="${c}" fill="none"><path d="M${r3(x0)} ${r3(y - 1.2)} V${r3(y + 1.2)} M${r3(x1)} ${r3(y - 1.2)} V${r3(y + 1.2)} M${r3(x0)} ${r3(y)} H${r3(x1)}" stroke-width="0.25"/></g>` +
+    `<text x="${r3((x0 + x1) / 2)}" y="${r3(y - 1.6)}" text-anchor="middle" font-size="${fs}" font-family="Barlow, sans-serif" fill="${c}">${f(Math.abs(len))} mm</text>`;
+}
 const cursorAt = {};
 function drawCross(pid) {
   const svg = $('#svg-' + pid), g = svg && svg.querySelector('.xh'); if (!g) return;
@@ -3362,6 +3419,14 @@ function renderInspector() {
       <label class="check"><input type="checkbox" data-r="upper" ${R.upper ? 'checked' : ''}> Force uppercase</label>
       <label class="check"><input type="checkbox" data-r="alignLabels" ${R.alignLabels ? 'checked' : ''}> Line up labels on the same row</label>
       <label class="fld"><span>Row tolerance for lining up (mm)</span><input type="number" step="0.5" min="0" data-r="alignRange" value="${R.alignRange}"><small>Labels this close vertically snap to one shared line.</small></label>
+      <h3>PCBA guideline</h3>
+      <p class="note">A reference line for where the main board sits, so port heights can be checked against it. Shown in the design view only.</p>
+      <label class="check"><input type="checkbox" data-pcba="on" ${R.pcba && R.pcba.on ? 'checked' : ''}> Show PCBA guideline</label>
+      <div class="row2">
+        <label class="fld"><span>Top height above base (mm)</span><input type="number" step="0.1" min="0" data-pcba="top" value="${R.pcba ? R.pcba.top : 6.3}"></label>
+        <label class="fld"><span>Thickness (mm)</span><input type="number" step="0.1" min="0.1" data-pcba="thick" value="${R.pcba ? R.pcba.thick : 1}"></label>
+      </div>
+      <p class="note">A port below this line is flagged with a warning, unless it has "Mid-mount component" ticked — that pins it to the centre of the line instead.</p>
       ${catalogManagerHTML()}
       <h3>Shortcuts</h3>
       <ul class="keys"><li>Drag across empty panel to box-select; <kbd>Shift</kbd>-drag or <kbd>Shift</kbd>-click adds to the selection</li><li><kbd>Ctrl</kbd> <kbd>A</kbd> selects everything on the active panel; drag any selected part to move the group</li><li>Arrow keys nudge by the snap step, add <kbd>Shift</kbd> for 10×</li><li><kbd>Ctrl</kbd> <kbd>D</kbd> duplicates a selection (one part or a whole group) in place; <kbd>Ctrl</kbd> <kbd>C</kbd> then <kbd>Ctrl</kbd> <kbd>V</kbd> copies it, even onto the other panel; <kbd>Delete</kbd> removes</li><li><kbd>Ctrl</kbd> <kbd>Z</kbd> undoes, <kbd>Esc</kbd> clears the selection</li></ul>`;
@@ -3377,7 +3442,12 @@ function renderInspector() {
     const posFields = `<div class="row2"><label class="fld"><span>X from left edge</span><input type="number" step="${ui.step}" data-f="x" value="${f(it.x)}"></label><label class="fld"><span>Y from base</span><input type="number" step="${ui.step}" data-f="yb" value="${f(H - it.y)}"></label></div>`;
     const acts = `<div class="actions"><button class="btn" data-act="dup">Duplicate</button><button class="btn" data-act="move">Move to ${other} panel</button><button class="btn danger" data-act="del">Delete</button></div>`;
     const seg = (field, cur, opts) => `<div class="seg" data-seg="${field}">${opts.map(([v, l]) => `<button type="button" data-v="${v}" aria-pressed="${String(cur) === String(v)}">${l}</button>`).join('')}</div>`;
-    if (it.kind === 'dash') {
+    if (it.kind === 'measure') {
+      el.innerHTML = `<div class="ihead"><div><h3>Measurement</h3><p>${it.axis === 'v' ? 'Vertical' : 'Horizontal'}, ${pid} panel</p></div></div>
+        <label class="fld"><span>Length (mm)</span><input type="number" step="0.1" data-f="len" value="${f(it.len)}"></label>
+        <p class="note">Shown in the design view and the silkscreen export only — never in Presentation view.</p>
+        <div class="actions"><button class="btn danger" data-act="del">Delete</button></div>`;
+    } else if (it.kind === 'dash') {
       el.innerHTML = `<div class="ihead"><div><h3>Pairing dash</h3><p>Silkscreen dash between two ports, ${pid} panel</p></div></div>
         <div class="row2"><label class="fld"><span>Length (mm, 0 = auto)</span><input type="number" step="0.1" min="0" data-f="len" value="${+it.len || 0}"></label><label class="fld"><span>Vertical offset (mm)</span><input type="number" step="0.1" data-f="dy" value="${+it.dy || 0}"></label></div>
         <div class="actions"><button class="btn danger" data-act="undash">Remove dash</button></div>`;
@@ -3449,6 +3519,7 @@ function renderInspector() {
         ${p.ledSwapable ? `<label class="check"><input type="checkbox" data-c="ledSwap" ${it.ledSwap ? 'checked' : ''}> Green LED on the left</label>` : ''}
         ${p.lock && p.lock.insert && it.lock ? `<label class="check"><input type="checkbox" data-c="lockPlain" ${it.lockPlain ? 'checked' : ''}> Plain hole instead of threaded insert</label>` : ''}
         ${p.lock ? `<label class="check"><input type="checkbox" data-c="lock" ${it.lock ? 'checked' : ''}> Locking screw hole, Ø${f(it.lockPlain ? 2.5 : p.lock.d)} mm</label>${it.lock ? `<label class="fld"><span>Hole centre above port centre (mm)</span><input type="number" step="0.1" min="0" data-f="lockDist" value="${it.lockDist != null ? it.lockDist : p.lock.dist}"><small>Measured from the reference renders: ${f(p.lock.dist)} mm.</small></label>` : ''}` : ''}
+        ${MID_MOUNT_TYPES.includes(it.type) ? `<label class="check"><input type="checkbox" data-c="midMount" ${it.midMount ? 'checked' : ''}> Mid-mount component</label><small>Snaps to the centre of the PCBA guideline and is exempt from the "below the PCBA" warning.</small>` : ''}
         ${p.colors ? `<label class="fld"><span>Colour</span><select data-f="color">${p.colors.map(([v, l]) => `<option value="${v}" ${(it.color || (p.def && p.def.color) || p.colors[0][0]) === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>` : ''}
         ${p.finishes ? `<div class="fld"><span>Finish</span>${seg('finish', it.finish || (p.def && p.def.finish) || 'silver', p.finishes)}</div>` : ''}
         ${it.type === 'usba' ? `<label class="check"><input type="checkbox" data-c="usb3" ${it.usb3 !== false ? 'checked' : ''}> USB 3 (blue insert)</label>` : ''}
@@ -3477,6 +3548,15 @@ function bindInspector() {
   });
   const sku = $('[data-m="sku"]', el); if (sku) { sku.oninput = () => { model.sku = sku.value; updateToolbar(); }; sku.onchange = () => commit(); }
   const supplierSku = $('[data-m="supplierSku"]', el); if (supplierSku) { supplierSku.oninput = () => { model.supplierSku = supplierSku.value; }; supplierSku.onchange = () => commit(); }
+  $$('[data-pcba]', el).forEach(inp => {
+    const k = inp.dataset.pcba;
+    model.rules.pcba = model.rules.pcba || { on: true, top: 6.3, thick: 1 };
+    if (inp.type === 'checkbox') inp.onchange = () => { model.rules.pcba.on = inp.checked; commit(); renderCanvas(); };
+    else {
+      inp.oninput = () => { const v = parseFloat(inp.value); if (!isNaN(v) && v >= (k === 'thick' ? 0.1 : 0)) { model.rules.pcba[k] = v; reapplyMidMount(); renderCanvas(); } };
+      inp.onchange = () => { commit(); renderAll(); };
+    }
+  });
   $$('[data-act]', el).forEach(b => b.onclick = () => doAction(b.dataset.act));
   $$('[data-forget]', el).forEach(b => b.onclick = () => { const i = b.dataset.forget.indexOf('|'); forgetCustom(b.dataset.forget.slice(0, i), b.dataset.forget.slice(i + 1)); });
   if (sel.length !== 1) return;
@@ -3504,6 +3584,8 @@ function bindInspector() {
     else { inp.oninput = apply; inp.onchange = () => { commit(); updateToolbar(); }; inp.onblur = () => setTimeout(renderInspector, 0); }
   });
   $$('[data-c]', el).forEach(c => c.onchange = () => { it[c.dataset.c] = c.checked; commit(); renderAll(); });
+  const midMountChk = $('[data-c="midMount"]', el);
+  if (midMountChk) midMountChk.onchange = () => { it.midMount = midMountChk.checked; if (it.midMount) it.y = pcbaCenterY(H); commit(); renderAll(); };
   $$('[data-ps]', el).forEach(inp => inp.onchange = () => {
     const a = Array.isArray(it.posShift) ? it.posShift.slice() : []; a[+inp.dataset.ps] = r3(parseFloat(inp.value) || 0);
     it.posShift = a; commit(); renderCanvas();
@@ -3593,7 +3675,7 @@ function freeX(pid, it, fromX) {
 // row of LEDs with specific spacing, say) keeps its shape instead of
 // each item separately hunting for its own nearest free spot.
 function duplicateGroup(pid, items) {
-  const dupables = items.filter(it => isPlaced(it) && it.kind !== 'logo');
+  const dupables = items.filter(it => isPlaced(it) && it.kind !== 'logo' && it.kind !== 'measure');
   if (!dupables.length) return [];
   const W = model.chassis.width, R = model.rules, Lo = layout(pid), S = Lo.S;
   const taken = [...Lo.map.values()].map(e => union([e.core, ...e.labels.map(l => l.box)])).concat([...Lo.frames.values()].map(G => G.box));
@@ -3742,7 +3824,7 @@ function doAction(a) {
   else if (a === 'logoPos') { items.forEach(it => it.kind === 'logo' && logoDefault(it)); }
   else if (a === 'resetBottomOverride') { items.forEach(it => delete it.bottomOverride); }
   else {
-    const movers = items.filter(isPlaced);
+    const movers = items.filter(it => isPlaced(it) && it.kind !== 'measure');
     const box = it => itemCore(sp, it.id);
     if (a === 'align' && movers.length) { const y0 = movers[0].y; movers.forEach(it => it.y = y0); }
     else if (a === 'spread' && movers.length >= 3) {
@@ -3797,7 +3879,7 @@ function loadDraft() {
 }
 function validModel(m) {
   return m && m.chassis && typeof m.chassis.height === 'number' && m.panels && Array.isArray(m.panels.front) && Array.isArray(m.panels.rear)
-    && [...m.panels.front, ...m.panels.rear].every(i => i && (['text', 'screen', 'logo', 'frame', 'dash'].includes(i.kind) || (i.kind === 'port' && PORTS[i.type])));
+    && [...m.panels.front, ...m.panels.rear].every(i => i && (['text', 'screen', 'logo', 'frame', 'dash', 'measure'].includes(i.kind) || (i.kind === 'port' && PORTS[i.type])));
 }
 function normalise(m) {
   m.rules = { ...DEFAULT_RULES, ...(m.version >= 2 ? m.rules : {}) };
@@ -4013,10 +4095,12 @@ function exportSVG(pid, mode, forPNG) {
     }
   }
   if (mode === 'silk') for (const D of Lo.dashes.values()) silkArt += `<path d="M${r3(D.x0)} ${r3(D.y)} H${r3(D.x1)}" stroke="#FFFFFF" stroke-width="0.4"/>`;
+  let measureArtSvg = '';
+  if (mode === 'silk') for (const M of Lo.measures.values()) measureArtSvg += measureArt(M.m);
   if (mode === 'silk') for (const G of Lo.frames.values()) silkArt += `<path d="${framePath(G)}" fill="none" stroke="#FFFFFF" stroke-width="0.4"/>` + (G.title ? labSVG(G.title, '#FFFFFF') : '');
   return compat(head + `<svg xmlns="http://www.w3.org/2000/svg" width="${W}mm" height="${H}mm" viewBox="0 0 ${W} ${H}">${mode === 'silk' ? FONT_IMPORT + `<defs>${defsCompat()}</defs><g id="panel_preview" opacity="1"><rect width="${W}" height="${H}" fill="${FACE}"/></g>` : ''}
   <g id="panel_outline" fill="none" stroke="#000000" stroke-width="0.1"><rect x="0" y="0" width="${W}" height="${H}"/></g>
-  <g id="cutouts" fill="none" stroke="#FF0000" stroke-width="0.1">${cuts}</g>${mode === 'silk' ? `\n  <g id="silkscreen">${silkArt}</g>` : ''}
+  <g id="cutouts" fill="none" stroke="#FF0000" stroke-width="0.1">${cuts}</g>${mode === 'silk' ? `\n  <g id="silkscreen">${silkArt}</g>` : ''}${mode === 'silk' && measureArtSvg ? `\n  <g id="measurements">${measureArtSvg}</g>` : ''}
 </svg>`);
 }
 function slug(s) { return (s || 'panel').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'panel'; }
@@ -4123,8 +4207,12 @@ for (const pid of ['front', 'rear']) {
     if (ui.preview || e.button > 0) return;
     const ae = document.activeElement; if (ae && ae !== document.body && $('#inspector').contains(ae)) ae.blur();
     try { window.focus(); wrap.focus({ preventScroll: true }); } catch (err) { }
-    const g = e.target.closest('[data-id]'), id = g && g.dataset.id;
     activePanel = pid;
+    if (ui.measuring) {
+      sel = []; drag = { pid, svg, measure: true, axis: 'h', start: svgPoint(svg, e), cur: null };
+      svg.setPointerCapture(e.pointerId); renderAll(); e.preventDefault(); return;
+    }
+    const g = e.target.closest('[data-id]'), id = g && g.dataset.id;
     if (!id) {
       if (!e.shiftKey) sel = [];
       drag = { pid, svg, marquee: true, start: svgPoint(svg, e), cur: null, base: sel.slice(), vb: (svg.dataset.vb || '').split(',').map(Number) };
@@ -4145,6 +4233,12 @@ for (const pid of ['front', 'rear']) {
   svg.addEventListener('pointermove', e => {
     if (ui.cross) { cursorAt[pid] = svgPoint(svg, e); drawCross(pid); }
     if (!drag || drag.pid !== pid) return;
+    if (drag.measure) {
+      const p = svgPoint(svg, e), dx = p.x - drag.start.x, dy = p.y - drag.start.y;
+      drag.axis = Math.abs(dx) >= Math.abs(dy) ? 'h' : 'v';
+      drag.cur = drag.axis === 'h' ? { x: snap(drag.start.x + dx), y: drag.start.y } : { x: drag.start.x, y: snap(drag.start.y + dy) };
+      renderCanvas(); return;
+    }
     if (drag.marquee) {
       drag.cur = svgPoint(svg, e);
       const a = drag.start, b = drag.cur, r = [Math.min(a.x, b.x), Math.min(a.y, b.y), Math.max(a.x, b.x), Math.max(a.y, b.y)];
@@ -4152,6 +4246,7 @@ for (const pid of ['front', 'rear']) {
       const Lo = layout(pid), picked = new Set(drag.base);
       for (const en of Lo.map.values()) if (hit(union([en.core, ...en.labels.map(l => l.box)]), false)) picked.add(en.it.id);
       for (const G of Lo.frames.values()) if (hit(G.box, true)) picked.add(G.fr.id);
+      for (const M of Lo.measures.values()) if (hit(M.box, false)) picked.add(M.m.id);
       sel = [...picked]; renderCanvas(); return;
     }
     const p = svgPoint(svg, e); let dx = p.x - drag.start.x, dy = p.y - drag.start.y;
@@ -4172,10 +4267,27 @@ for (const pid of ['front', 'rear']) {
     const bx = tol ? near(o.x + dx, [W / 2, ...others.map(i => i.x)], drag.gx) : null; drag.gx = bx; if (bx !== null) { nx = bx; guides.push({ pid, x: bx }); }
     const by = tol ? near(o.y + dy, [H / 2, ...others.map(i => i.y)], drag.gy) : null; drag.gy = by; if (by !== null) { ny = by; guides.push({ pid, y: by }); }
     dx = nx - o.x; dy = ny - o.y;
-    for (const [id, op] of drag.orig) { const r = findItem(id); if (r) { r.it.x = r3(op.x + dx); r.it.y = r3(op.y + dy); } }
+    for (const [id, op] of drag.orig) {
+      const r = findItem(id); if (!r) continue;
+      r.it.x = r3(op.x + dx);
+      r.it.y = r.it.midMount ? op.y : r3(op.y + dy); // mid-mount parts are pinned to the PCBA centre, so only X is draggable
+    }
     renderCanvas();
   });
-  const end = () => { if (!drag || drag.pid !== pid) return; if (drag.marquee) { drag = null; renderAll(); return; } const moved = drag.moved; drag = null; guides = []; if (moved) commit(); renderAll(); };
+  const end = () => {
+    if (!drag || drag.pid !== pid) return;
+    if (drag.measure) {
+      const a = drag.start, b = drag.cur, axis = drag.axis, len = axis === 'v' ? (b ? b.y - a.y : 0) : (b ? b.x - a.x : 0);
+      drag = null;
+      if (Math.abs(len) * ppm >= 3) {
+        const mId = uid();
+        model.panels[pid].push({ id: mId, kind: 'measure', axis, x: a.x, y: a.y, len: r3(len) });
+        sel = [mId]; commit();
+      }
+      renderAll(); return;
+    }
+    if (drag.marquee) { drag = null; renderAll(); return; } const moved = drag.moved; drag = null; guides = []; if (moved) commit(); renderAll();
+  };
   svg.addEventListener('pointerleave', () => { delete cursorAt[pid]; drawCross(pid); });
   svg.addEventListener('pointerup', end); svg.addEventListener('pointercancel', end);
   wrap.addEventListener('dragover', e => { if (!dragType) return; e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; wrap.classList.add('dropping'); });
@@ -4280,6 +4392,7 @@ $('#stage').addEventListener('wheel', e => {
 $('#dashBtn').onclick = () => doAction('dash');
 $('#rulerChk').onchange = e => { ui.rulers = e.target.checked; renderCanvas(); };
 $('#crossChk').onchange = e => { ui.cross = e.target.checked; renderCanvas(); };
+$('#measureChk').onchange = e => { ui.measuring = e.target.checked; if (!ui.measuring) { drag = null; } sel = []; renderAll(); };
 $('#guideChk').onchange = e => { ui.guides = e.target.checked; };
 $('#zoomFit').onclick = () => { ui.zoom = 1; renderCanvas(); };
 $('#frameBtn').onclick = () => doAction('frame');
