@@ -12,21 +12,29 @@ POST /api/export-content-xlsx — builds a .xlsx from a Content Builder
   record, shaped to match the real PureTools product masterfile tabs
   (Silk&feature data / BURO+ info / PIM Upload row 5 / Label Text), and
   returns it as a file download (used by Content Builder's Export button).
+POST /api/draft-content — drafts Feature Title, the 5 Features, Use Case
+  and Label Text for a Content Builder record from its seed notes and
+  linked Product Builder panels' real ports, via the Anthropic API (used
+  by Content Builder's "Draft with AI" button). Needs an API key — see
+  get_anthropic_key() below.
 
 Used by start.bat instead of plain `python -m http.server` so the Hub's
 "Push to GitHub" button, the icon generator's save button, Panel
-Builder's publish button, and Content Builder's Excel export have
-something to call. Everything else behaves exactly like the plain
-static server.
+Builder's publish button, Content Builder's Excel export, and Content
+Builder's AI drafting have something to call. Everything else behaves
+exactly like the plain static server.
 """
 import base64
 import http.server
 import io
 import json
+import os
 import re
 import subprocess
 import sys
 import datetime
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 import openpyxl
@@ -39,6 +47,143 @@ SAFE_ICON_NAME = re.compile(r"^Product_[A-Za-z0-9_-]+\.(svg|png)$")
 LIBRARY_DIR = REPO_ROOT / "data" / "library"
 MANIFEST_PATH = LIBRARY_DIR / "manifest.json"
 SAFE_LIBRARY_NAME = re.compile(r"^[a-z0-9-]+-layout\.json$")
+
+ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages"
+ANTHROPIC_MODEL = "claude-sonnet-5-5"
+ANTHROPIC_KEY_FILE = REPO_ROOT / "tools" / "anthropic_key.txt"
+
+DRAFT_SYSTEM_PROMPT = (
+    "You write PIM, label and sales copy for PureLink, an AV-over-IP hardware brand. "
+    "Write only in British English (colour, optimise, licence as a noun, and so on). "
+    "Base every claim strictly on the product facts and port list you are given — "
+    "never invent a connector, spec or capability that isn't listed, and never "
+    "guess a port count that wasn't given to you. "
+    "Match the terse, feature-led style of real PureLink copy, "
+    "for example a Feature Title like \"2x1 5K HDBaseT Presentation Switch\". "
+    "Reply with ONLY a single JSON object — no markdown code fences, no commentary "
+    "before or after it — shaped exactly as: "
+    '{"featureTitle": "...", "features": ["...", "...", "...", "...", "..."], '
+    '"useCase": "...", "labelFeatures": ["...", "...", "...", "...", "..."]}. '
+    "featureTitle is one short product title line. "
+    "features is exactly 5 concise feature/benefit sentences drawn from the seed "
+    "notes and port list. "
+    "useCase is a short paragraph describing one real-world scenario this product "
+    "solves for the people who'd buy it. "
+    "labelFeatures is the same 5 features abbreviated to 24 characters or fewer "
+    "each (count every character, including spaces), for printing on a physical "
+    "product label — abbreviate aggressively while staying clear."
+)
+
+
+def get_anthropic_key():
+    """ANTHROPIC_API_KEY env var wins; otherwise a plain-text key in
+    tools/anthropic_key.txt (gitignored) — easier to set for anyone who
+    isn't comfortable with environment variables."""
+    key = os.environ.get("ANTHROPIC_API_KEY")
+    if key and key.strip():
+        return key.strip()
+    if ANTHROPIC_KEY_FILE.exists():
+        key = ANTHROPIC_KEY_FILE.read_text(encoding="utf-8").strip()
+        if key:
+            return key
+    return None
+
+
+def build_draft_prompt(payload):
+    product = payload.get("product") or {}
+    existing = payload.get("existing") or {}
+    ports = payload.get("ports") or []
+
+    lines = [
+        f"Product name: {product.get('name') or '(not set)'}",
+        f"SKU: {product.get('sku') or '(not set)'}",
+    ]
+    if product.get("supplierModel"):
+        lines.append(f"Supplier model: {product['supplierModel']}")
+    lines.append("")
+    lines.append("Seed notes from the product owner:")
+    lines.append(payload.get("seed") or "(none given)")
+
+    if payload.get("additionalContext"):
+        lines.append("")
+        lines.append("Additional context (extra raw material for a complex product):")
+        lines.append(payload["additionalContext"])
+
+    if ports:
+        lines.append("")
+        lines.append(
+            "Real ports/connectors from the linked Product Builder panel(s) — "
+            "ground features in these, do not invent others:"
+        )
+        for p in ports:
+            bits = [p.get("panel") or "", p.get("side") or "", p.get("type") or "", p.get("func") or "", p.get("label") or ""]
+            lines.append("- " + " / ".join(b for b in bits if b))
+    else:
+        lines.append("")
+        lines.append(
+            "No panels linked yet — do not invent specific port counts or "
+            "connector types; keep features general to the seed notes."
+        )
+
+    if existing.get("featureTitle") or any(existing.get("features") or []) or existing.get("useCase"):
+        lines.append("")
+        lines.append("Existing draft text to improve on rather than discard outright:")
+        if existing.get("featureTitle"):
+            lines.append(f"Feature Title: {existing['featureTitle']}")
+        for i, f in enumerate(existing.get("features") or []):
+            if f:
+                lines.append(f"Feature {i + 1}: {f}")
+        if existing.get("useCase"):
+            lines.append(f"Use Case: {existing['useCase']}")
+
+    return "\n".join(lines)
+
+
+def call_anthropic_draft(key, payload):
+    body = json.dumps({
+        "model": ANTHROPIC_MODEL,
+        "max_tokens": 1500,
+        "system": DRAFT_SYSTEM_PROMPT,
+        "messages": [{"role": "user", "content": build_draft_prompt(payload)}],
+    }).encode("utf-8")
+    req = urllib.request.Request(
+        ANTHROPIC_API_URL,
+        data=body,
+        headers={
+            "x-api-key": key,
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            result = json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        detail = e.read().decode("utf-8", "replace")
+        raise RuntimeError(f"Anthropic API error {e.code}: {detail[:300]}")
+    except urllib.error.URLError as e:
+        raise RuntimeError(f"Couldn't reach the Anthropic API: {e.reason}")
+
+    text = "".join(
+        block.get("text", "") for block in result.get("content", []) if block.get("type") == "text"
+    )
+    text = re.sub(r"^```(?:json)?|```$", "", text.strip(), flags=re.MULTILINE).strip()
+    try:
+        draft = json.loads(text)
+    except json.JSONDecodeError:
+        raise RuntimeError("The draft wasn't valid JSON — try again. Raw reply: " + text[:200])
+
+    features = (draft.get("features") or [])[:5]
+    features += [""] * (5 - len(features))
+    label_features = (draft.get("labelFeatures") or [])[:5]
+    label_features += [""] * (5 - len(label_features))
+    return {
+        "featureTitle": str(draft.get("featureTitle") or ""),
+        "features": [str(f) for f in features],
+        "useCase": str(draft.get("useCase") or ""),
+        "labelFeatures": [str(f) for f in label_features],
+    }
 
 
 def build_content_workbook(r):
@@ -176,6 +321,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self._send_json({"ok": ok, "msg": msg}, status=200 if ok else 400)
         elif self.path == "/api/export-content-xlsx":
             self.export_content_xlsx()
+        elif self.path == "/api/draft-content":
+            self.draft_content()
         else:
             self.send_response(404)
             self.end_headers()
@@ -252,6 +399,29 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
+    def draft_content(self):
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            payload = json.loads(self.rfile.read(length))
+        except Exception as e:
+            self._send_json({"ok": False, "msg": f"bad request: {e}"}, status=400)
+            return
+        key = get_anthropic_key()
+        if not key:
+            self._send_json({
+                "ok": False,
+                "msg": "No Anthropic API key configured. Set the ANTHROPIC_API_KEY "
+                       "environment variable, or put the key alone in "
+                       "tools/anthropic_key.txt, then restart the server.",
+            }, status=400)
+            return
+        try:
+            draft = call_anthropic_draft(key, payload)
+        except Exception as e:
+            self._send_json({"ok": False, "msg": str(e)}, status=502)
+            return
+        self._send_json({"ok": True, "draft": draft})
+
     def git_push(self):
         log_lines = []
 
@@ -285,5 +455,5 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 if __name__ == "__main__":
     port = int(sys.argv[1]) if len(sys.argv) > 1 else PORT
     server = http.server.ThreadingHTTPServer(("127.0.0.1", port), Handler)
-    print(f"Serving {REPO_ROOT} at http://127.0.0.1:{port} (with /api/git-push, /api/save-product-icon, /api/publish-to-library, /api/export-content-xlsx)")
+    print(f"Serving {REPO_ROOT} at http://127.0.0.1:{port} (with /api/git-push, /api/save-product-icon, /api/publish-to-library, /api/export-content-xlsx, /api/draft-content)")
     server.serve_forever()

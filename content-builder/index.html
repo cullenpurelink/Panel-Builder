@@ -65,6 +65,8 @@ main{overflow-y:auto;padding:20px 16px 60px}
 .fld input:focus,.fld select:focus,.fld textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
 .fld small{font-size:12px;color:var(--muted)}
 .fld[data-over] small.count{color:var(--err);font-weight:600}
+.draftRow{display:flex;align-items:center;gap:12px;margin-top:2px;flex-wrap:wrap}
+.draftRow small{color:var(--err);font-size:12.5px}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
 .chip{display:inline-flex;align-items:center;gap:6px;background:var(--surface-2);border:1px solid var(--line);border-radius:14px;padding:3px 10px 3px 12px;font-size:13px}
 .chip button{all:unset;cursor:pointer;color:var(--muted);font-size:14px;line-height:1}
@@ -366,6 +368,71 @@ async function openLinkDialog() {
 }
 
 /* ============================================================
+   AI drafting (server-side, via tools/dev_server.py -> Anthropic API —
+   grounded on the seed notes and the real ports on any linked panels)
+   ============================================================ */
+async function loadLinkedPorts() {
+  if (!db || !model.linkedPanels.length) return [];
+  const out = [];
+  for (const p of model.linkedPanels) {
+    try {
+      const doc = await db.collection('layouts').doc(p.id).get();
+      const data = doc && (typeof doc.data === 'function' ? doc.data() : doc);
+      if (!data || !data.panels) continue;
+      for (const side of ['front', 'rear']) {
+        for (const item of (data.panels[side] || [])) {
+          if (item.kind !== 'port') continue;
+          out.push({ panel: data.name || data.sku || p.name || p.sku || '', side, type: item.type || '', func: item.func || '', label: item.label || '' });
+        }
+      }
+    } catch (e) { /* skip a panel that can't be read */ }
+  }
+  return out;
+}
+
+let drafting = false;
+async function draftWithAI() {
+  if (drafting) return;
+  const msg = $('#draftMsg'); if (msg) msg.textContent = '';
+  if (!model.seed.trim()) { toast('Write a few seed notes first — what this product is and does.'); return; }
+  const hasExisting = model.featureTitle.trim() || model.features.some(f => f.trim()) || model.useCase.trim();
+  if (hasExisting && !(await ask('Redraft with AI?', 'This replaces Feature Title, the 5 Features, Use Case and Label Text with a fresh AI draft. You can still edit everything afterwards.', 'Draft'))) return;
+
+  drafting = true;
+  const btn = $('#draftBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Drafting…'; }
+  try {
+    const ports = await loadLinkedPorts();
+    const res = await fetch('http://127.0.0.1:8743/api/draft-content', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        product: { name: model.name, sku: model.sku, supplierModel: model.supplierModel },
+        seed: model.seed,
+        additionalContext: model.additionalContext,
+        existing: { featureTitle: model.featureTitle, features: model.features, useCase: model.useCase },
+        ports,
+      }),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok || !body.ok) throw new Error(body.msg || `Server returned ${res.status}`);
+    const d = body.draft || {};
+    if (d.featureTitle) model.featureTitle = d.featureTitle;
+    if (Array.isArray(d.features) && d.features.length === 5) model.features = d.features;
+    if (d.useCase) model.useCase = d.useCase;
+    if (Array.isArray(d.labelFeatures) && d.labelFeatures.length === 5) model.labelFeatures = d.labelFeatures;
+    commit();
+    toast('Drafted — review before committing.');
+  } catch (e) {
+    if (msg) msg.textContent = e.message;
+    toast('AI draft failed — see the note under the Seed field.');
+  } finally {
+    drafting = false;
+    const btn2 = $('#draftBtn');
+    if (btn2) { btn2.disabled = false; btn2.textContent = 'Draft with AI →'; }
+  }
+}
+
+/* ============================================================
    Feature image library (reference/Feature Image library/Buttons)
    ============================================================ */
 async function loadImageManifest() {
@@ -505,8 +572,9 @@ function renderForm() {
       'A commercial SKU can cover more than one physical panel (e.g. a TX and an RX sold as one kit) — link every panel that belongs to this product.',
       renderLinkedChips() + `<button class="btn" id="linkBtn">Link panels…</button>`),
 
-    section('Seed', 'What you’d give the drafting GPT today — a product intro, highlight bullets, or a rough use case. (AI drafting lands in a later pass; for now, write the fields below yourself from this.)',
-      field('', 'seed', { area: true, rows: 4, ph: 'e.g. A 2x1 presentation switcher for classrooms and meeting rooms that also extends over HDBaseT up to 100m, with a 100W USB-C input for laptops…' })),
+    section('Seed', 'A product intro, highlight bullets, or a rough use case. "Draft with AI" fills in Feature Title, the 5 Features, Use Case and Label Text from this plus the real ports on any linked panels — review everything before committing.',
+      field('', 'seed', { area: true, rows: 4, ph: 'e.g. A 2x1 presentation switcher for classrooms and meeting rooms that also extends over HDBaseT up to 100m, with a 100W USB-C input for laptops…' }) +
+      `<div class="draftRow"><button class="btn primary" id="draftBtn" type="button">Draft with AI &rarr;</button><small id="draftMsg"></small></div>`),
 
     section('Identity & silkscreen text', '',
       `<div class="row2">
@@ -559,6 +627,7 @@ function renderForm() {
   ].join('');
 
   $('#linkBtn').onclick = openLinkDialog;
+  $('#draftBtn').onclick = draftWithAI;
   $$('[data-unlink]', el).forEach(b => b.onclick = () => { model.linkedPanels = model.linkedPanels.filter(p => p.id !== b.dataset.unlink); commit(); });
   $$('[data-pick]', el).forEach(b => b.onclick = () => openImagePicker(+b.dataset.pick));
 

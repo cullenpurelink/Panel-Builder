@@ -9,3 +9,7 @@ __pycache__/
 # what belongs here)
 reference/*
 !reference/INDEX.md
+
+# Anthropic API key for Content Builder's AI drafting (tools/dev_server.py
+# also accepts it via the ANTHROPIC_API_KEY environment variable instead)
+tools/anthropic_key.txt
