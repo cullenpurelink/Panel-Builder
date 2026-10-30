@@ -1,0 +1,1102 @@
+[
+{
+"file": "100W_PD_USBC.png",
+"label": "100W PD USBC"
+},
+{
+"file": "1080p_downscaling.png",
+"label": "1080p downscaling"
+},
+{
+"file": "10GbE.png",
+"label": "10GbE"
+},
+{
+"file": "10_2_Gbps_HDMI_1_4.png",
+"label": "10 2 Gbps HDMI 1 4"
+},
+{
+"file": "10_8GbpsFullBandwith.png",
+"label": "10 8GbpsFullBandwith"
+},
+{
+"file": "10_8_Gbps_DP_1_1.png",
+"label": "10 8 Gbps DP 1 1"
+},
+{
+"file": "120_Hz.png",
+"label": "120 Hz"
+},
+{
+"file": "16_10_Aspect_Ratio.png",
+"label": "16 10 Aspect Ratio"
+},
+{
+"file": "16_9_Aspect_Ratio.png",
+"label": "16 9 Aspect Ratio"
+},
+{
+"file": "16kplus.png",
+"label": "16kplus"
+},
+{
+"file": "18_Gbps_HDMI_2_0.png",
+"label": "18 Gbps HDMI 2 0"
+},
+{
+"file": "18gbpsFullBandwidth.png",
+"label": "18gbpsFullBandwidth"
+},
+{
+"file": "1_1_Aspect_Ratio.png",
+"label": "1 1 Aspect Ratio"
+},
+{
+"file": "1_Euro_Donation.png",
+"label": "1 Euro Donation"
+},
+{
+"file": "21_6_Gbps_DP_1_2.png",
+"label": "21 6 Gbps DP 1 2"
+},
+{
+"file": "21_6_Gbps_Full_Bandwidth.png",
+"label": "21 6 Gbps Full Bandwidth"
+},
+{
+"file": "21_9_Aspect_Ratio.png",
+"label": "21 9 Aspect Ratio"
+},
+{
+"file": "240W_PD_USBC.png",
+"label": "240W PD USBC"
+},
+{
+"file": "2KFullHD.png",
+"label": "2KFullHD"
+},
+{
+"file": "2K_Quad_HD.png",
+"label": "2K Quad HD"
+},
+{
+"file": "2K_ultra_HD.png",
+"label": "2K ultra HD"
+},
+{
+"file": "2_1_Aspect_Ratio.png",
+"label": "2 1 Aspect Ratio"
+},
+{
+"file": "2_4u5_GHz.png",
+"label": "2 4u5 GHz"
+},
+{
+"file": "2_Euro_Donation.png",
+"label": "2 Euro Donation"
+},
+{
+"file": "32_4_Gbps_DP_1_4.png",
+"label": "32 4 Gbps DP 1 4"
+},
+{
+"file": "3D.png",
+"label": "3D"
+},
+{
+"file": "40_Gbps_DP_2_0.png",
+"label": "40 Gbps DP 2 0"
+},
+{
+"file": "40_Gbps_HDMI_2_1.png",
+"label": "40 Gbps HDMI 2 1"
+},
+{
+"file": "45GradRotation.png",
+"label": "45GradRotation"
+},
+{
+"file": "48Gbps.png",
+"label": "48Gbps"
+},
+{
+"file": "48Gbps_2.png",
+"label": "48Gbps 2"
+},
+{
+"file": "48_Gbps_HDMI_2_1.png",
+"label": "48 Gbps HDMI 2 1"
+},
+{
+"file": "4K.png",
+"label": "4K"
+},
+{
+"file": "4K_120 Hz.png",
+"label": "4K 120 Hz"
+},
+{
+"file": "4K_120_Hz.png",
+"label": "4K 120 Hz"
+},
+{
+"file": "4_3_Aspect_Ratio.png",
+"label": "4 3 Aspect Ratio"
+},
+{
+"file": "4k_Scaling.png",
+"label": "4k Scaling"
+},
+{
+"file": "4kplus.png",
+"label": "4kplus"
+},
+{
+"file": "54_Gbps_DP_2_0.png",
+"label": "54 Gbps DP 2 0"
+},
+{
+"file": "5K_Ultra_Wide.png",
+"label": "5K Ultra Wide"
+},
+{
+"file": "80_Gbps_DP_2_0.png",
+"label": "80 Gbps DP 2 0"
+},
+{
+"file": "8k.png",
+"label": "8k"
+},
+{
+"file": "8kplus.png",
+"label": "8kplus"
+},
+{
+"file": "90_Grad_left_right.png",
+"label": "90 Grad left right"
+},
+{
+"file": "90_Grad_up_down.png",
+"label": "90 Grad up down"
+},
+{
+"file": "ALLM.png",
+"label": "ALLM"
+},
+{
+"file": "AV_Switcher.png",
+"label": "AV Switcher"
+},
+{
+"file": "Active_Cable.png",
+"label": "Active Cable"
+},
+{
+"file": "Audio_De_Embed.png",
+"label": "Audio De Embed"
+},
+{
+"file": "Audio_Embed.png",
+"label": "Audio Embed"
+},
+{
+"file": "Audio_Input.png",
+"label": "Audio Input"
+},
+{
+"file": "Audio_Matrix.png",
+"label": "Audio Matrix"
+},
+{
+"file": "AutoSense.png",
+"label": "AutoSense"
+},
+{
+"file": "Auto_Focus.png",
+"label": "Auto Focus"
+},
+{
+"file": "BezelCompensation.png",
+"label": "BezelCompensation"
+},
+{
+"file": "Bezel_Adjustment.png",
+"label": "Bezel Adjustment"
+},
+{
+"file": "BlueTooth.png",
+"label": "BlueTooth"
+},
+{
+"file": "Bluetooth_white.png",
+"label": "Bluetooth white"
+},
+{
+"file": "CEC_Control.png",
+"label": "CEC Control"
+},
+{
+"file": "CH_plug.png",
+"label": "CH plug"
+},
+{
+"file": "CH_socket.png",
+"label": "CH socket"
+},
+{
+"file": "Cascading.png",
+"label": "Cascading"
+},
+{
+"file": "Cat5e.png",
+"label": "Cat5e"
+},
+{
+"file": "Cat6.png",
+"label": "Cat6"
+},
+{
+"file": "Cat6X.png",
+"label": "Cat6X"
+},
+{
+"file": "Cat6a.png",
+"label": "Cat6a"
+},
+{
+"file": "Cat7.png",
+"label": "Cat7"
+},
+{
+"file": "Cinch.png",
+"label": "Cinch"
+},
+{
+"file": "Cinema_Sound.png",
+"label": "Cinema Sound"
+},
+{
+"file": "Colour_Coding.png",
+"label": "Colour Coding"
+},
+{
+"file": "Compact_Install.png",
+"label": "Compact Install"
+},
+{
+"file": "Compact_Size.png",
+"label": "Compact Size"
+},
+{
+"file": "Controller_VL_Mounts.png",
+"label": "Controller VL Mounts"
+},
+{
+"file": "CropandZoom.png",
+"label": "CropandZoom"
+},
+{
+"file": "DE_socket.png",
+"label": "DE socket"
+},
+{
+"file": "DSC.png",
+"label": "DSC"
+},
+{
+"file": "DVI_DualLink.png",
+"label": "DVI DualLink"
+},
+{
+"file": "DVI_SingleLink.png",
+"label": "DVI SingleLink"
+},
+{
+"file": "Daisy_Chain-AV.png",
+"label": "Daisy Chain AV"
+},
+{
+"file": "Daisy_Chain_AV.png",
+"label": "Daisy Chain AV"
+},
+{
+"file": "Daisy_Chain_PSU.png",
+"label": "Daisy Chain PSU"
+},
+{
+"file": "Dante_Audio.png",
+"label": "Dante Audio"
+},
+{
+"file": "Digital_Amplification.png",
+"label": "Digital Amplification"
+},
+{
+"file": "DisplayMix.png",
+"label": "DisplayMix"
+},
+{
+"file": "DisplayPort.png",
+"label": "DisplayPort"
+},
+{
+"file": "DisplayPort_ActiveCable.png",
+"label": "DisplayPort ActiveCable"
+},
+{
+"file": "DisplayPort_DualMode.png",
+"label": "DisplayPort DualMode"
+},
+{
+"file": "DisplayPort_Ersatzlogo.png",
+"label": "DisplayPort Ersatzlogo"
+},
+{
+"file": "Display_Link.png",
+"label": "Display Link"
+},
+{
+"file": "Distinctive.png",
+"label": "Distinctive"
+},
+{
+"file": "Dolby_Digital_5_1.png",
+"label": "Dolby Digital 5 1"
+},
+{
+"file": "Dongle.png",
+"label": "Dongle"
+},
+{
+"file": "Dual_Screen_Output.png",
+"label": "Dual Screen Output"
+},
+{
+"file": "EDID.png",
+"label": "EDID"
+},
+{
+"file": "EQ_Control.png",
+"label": "EQ Control"
+},
+{
+"file": "EU_plug.png",
+"label": "EU plug"
+},
+{
+"file": "EasyUsage.png",
+"label": "EasyUsage"
+},
+{
+"file": "Ethernet.png",
+"label": "Ethernet"
+},
+{
+"file": "Ethernet_1G.png",
+"label": "Ethernet 1G"
+},
+{
+"file": "FRL.png",
+"label": "FRL"
+},
+{
+"file": "FR_plug.png",
+"label": "FR plug"
+},
+{
+"file": "FR_socket.png",
+"label": "FR socket"
+},
+{
+"file": "Fiber_Optic.png",
+"label": "Fiber Optic"
+},
+{
+"file": "Flexible_Audio_In_Out.png",
+"label": "Flexible Audio In Out"
+},
+{
+"file": "FullHD1080p.png",
+"label": "FullHD1080p"
+},
+{
+"file": "GUI.png",
+"label": "GUI"
+},
+{
+"file": "HDBaseT_Button.png",
+"label": "HDBaseT Button"
+},
+{
+"file": "HDBaseT_In.png",
+"label": "HDBaseT In"
+},
+{
+"file": "HDBaseT_In_and_Out.png",
+"label": "HDBaseT In and Out"
+},
+{
+"file": "HDBaseT_Out.png",
+"label": "HDBaseT Out"
+},
+{
+"file": "HDBaseT_classA.png",
+"label": "HDBaseT classA"
+},
+{
+"file": "HDBaseT_classB.png",
+"label": "HDBaseT classB"
+},
+{
+"file": "HDBaseT_recommended.png",
+"label": "HDBaseT recommended"
+},
+{
+"file": "HDCP2_2.png",
+"label": "HDCP2 2"
+},
+{
+"file": "HDCP_1_4_2_2.png",
+"label": "HDCP 1 4 2 2"
+},
+{
+"file": "HDMI.png",
+"label": "HDMI"
+},
+{
+"file": "HDMI_HighSpeed.png",
+"label": "HDMI HighSpeed"
+},
+{
+"file": "HDMI_HighSpeed_withEthernet.png",
+"label": "HDMI HighSpeed withEthernet"
+},
+{
+"file": "HDMI_Premium.png",
+"label": "HDMI Premium"
+},
+{
+"file": "HDMI_Premium_HighSpeed.png",
+"label": "HDMI Premium HighSpeed"
+},
+{
+"file": "HDMI_Standard.png",
+"label": "HDMI Standard"
+},
+{
+"file": "HDMI_Standard_withEthernet.png",
+"label": "HDMI Standard withEthernet"
+},
+{
+"file": "HDMI_UltraHighSpeed.png",
+"label": "HDMI UltraHighSpeed"
+},
+{
+"file": "HDR.png",
+"label": "HDR"
+},
+{
+"file": "HalogenFree.png",
+"label": "HalogenFree"
+},
+{
+"file": "ICS_Compatible_v3.png",
+"label": "ICS Compatible v3"
+},
+{
+"file": "ICS_FF_Pigtail_Cable_v3.png",
+"label": "ICS FF Pigtail Cable v3"
+},
+{
+"file": "ICS_MF_Extension_Cable_v2.png",
+"label": "ICS MF Extension Cable v2"
+},
+{
+"file": "IP_Network.png",
+"label": "IP Network"
+},
+{
+"file": "IR.png",
+"label": "IR"
+},
+{
+"file": "IT_plug.png",
+"label": "IT plug"
+},
+{
+"file": "IT_socket.png",
+"label": "IT socket"
+},
+{
+"file": "Installer_Pack.png",
+"label": "Installer Pack"
+},
+{
+"file": "InstallersChoice.png",
+"label": "InstallersChoice"
+},
+{
+"file": "Integrated_Speaker.png",
+"label": "Integrated Speaker"
+},
+{
+"file": "Interface_Plate.png",
+"label": "Interface Plate"
+},
+{
+"file": "Jack_3_5mm.png",
+"label": "Jack 3 5mm"
+},
+{
+"file": "KVM.png",
+"label": "KVM"
+},
+{
+"file": "Laptop_size.png",
+"label": "Laptop size"
+},
+{
+"file": "LiveStream.png",
+"label": "LiveStream"
+},
+{
+"file": "Loop_Out.png",
+"label": "Loop Out"
+},
+{
+"file": "Low_Latency.png",
+"label": "Low Latency"
+},
+{
+"file": "Matrix.png",
+"label": "Matrix"
+},
+{
+"file": "Microphone_Array.png",
+"label": "Microphone Array"
+},
+{
+"file": "MiniDisplayPort.png",
+"label": "MiniDisplayPort"
+},
+{
+"file": "Mobile_Stand.png",
+"label": "Mobile Stand"
+},
+{
+"file": "MultiCast.png",
+"label": "MultiCast"
+},
+{
+"file": "MultiFormat_2.png",
+"label": "MultiFormat 2"
+},
+{
+"file": "MultiFormat_3.png",
+"label": "MultiFormat 3"
+},
+{
+"file": "MultiFormat_4.png",
+"label": "MultiFormat 4"
+},
+{
+"file": "Multi_region_socket.png",
+"label": "Multi region socket"
+},
+{
+"file": "Nano_Shield.png",
+"label": "Nano Shield"
+},
+{
+"file": "OmniTool.png",
+"label": "OmniTool"
+},
+{
+"file": "Out.png",
+"label": "Out"
+},
+{
+"file": "PD_3_0_100W.png",
+"label": "PD 3 0 100W"
+},
+{
+"file": "PD_3_0_60W.png",
+"label": "PD 3 0 60W"
+},
+{
+"file": "PD_3_1_240W.png",
+"label": "PD 3 1 240W"
+},
+{
+"file": "PD_EPR_240W.png",
+"label": "PD EPR 240W"
+},
+{
+"file": "PD_Power_delivery.png",
+"label": "PD Power delivery"
+},
+{
+"file": "POE.png",
+"label": "POE"
+},
+{
+"file": "PSU_PowerSupply.png",
+"label": "PSU PowerSupply"
+},
+{
+"file": "Plug_and_Play.png",
+"label": "Plug and Play"
+},
+{
+"file": "Portable_Size.png",
+"label": "Portable Size"
+},
+{
+"file": "PowerManagement.png",
+"label": "PowerManagement"
+},
+{
+"file": "Power_over_CAT.png",
+"label": "Power over CAT"
+},
+{
+"file": "Power_over_HDBaseT.png",
+"label": "Power over HDBaseT"
+},
+{
+"file": "Private_Cover.png",
+"label": "Private Cover"
+},
+{
+"file": "ProAV_Mounting.png",
+"label": "ProAV Mounting"
+},
+{
+"file": "Public-Address.png",
+"label": "Public Address"
+},
+{
+"file": "Public_Award_cmyk.png",
+"label": "Public Award cmyk"
+},
+{
+"file": "Quad_Screen_Output.png",
+"label": "Quad Screen Output"
+},
+{
+"file": "RS232.png",
+"label": "RS232"
+},
+{
+"file": "RS232_PTM_RS100.png",
+"label": "RS232 PTM RS100"
+},
+{
+"file": "Rack_Mountable.png",
+"label": "Rack Mountable"
+},
+{
+"file": "Redudant_Power-2.png",
+"label": "Redudant Power 2"
+},
+{
+"file": "Redundant_Power.png",
+"label": "Redundant Power"
+},
+{
+"file": "RelayControl.png",
+"label": "RelayControl"
+},
+{
+"file": "Remote_Upgrade.png",
+"label": "Remote Upgrade"
+},
+{
+"file": "Rugged.png",
+"label": "Rugged"
+},
+{
+"file": "SDI.png",
+"label": "SDI"
+},
+{
+"file": "SLS.png",
+"label": "SLS"
+},
+{
+"file": "SLS_USB-C.png",
+"label": "SLS USB C"
+},
+{
+"file": "SLS_USB_C.png",
+"label": "SLS USB C"
+},
+{
+"file": "ScreenFlip.png",
+"label": "ScreenFlip"
+},
+{
+"file": "Seamless_Switching.png",
+"label": "Seamless Switching"
+},
+{
+"file": "Sharing.png",
+"label": "Sharing"
+},
+{
+"file": "SignalEQ.png",
+"label": "SignalEQ"
+},
+{
+"file": "Smart_Boot_up.png",
+"label": "Smart Boot up"
+},
+{
+"file": "Splitter.png",
+"label": "Splitter"
+},
+{
+"file": "Staging.png",
+"label": "Staging"
+},
+{
+"file": "Staging_02.png",
+"label": "Staging 02"
+},
+{
+"file": "Switchable.png",
+"label": "Switchable"
+},
+{
+"file": "Switchable_Input.png",
+"label": "Switchable Input"
+},
+{
+"file": "TLS.png",
+"label": "TLS"
+},
+{
+"file": "TLS_USB-C.png",
+"label": "TLS USB C"
+},
+{
+"file": "TMDS.png",
+"label": "TMDS"
+},
+{
+"file": "TRX.png",
+"label": "TRX"
+},
+{
+"file": "TVI.png",
+"label": "TVI"
+},
+{
+"file": "Test_and_Troubleshoot.png",
+"label": "Test and Troubleshoot"
+},
+{
+"file": "Toslink.png",
+"label": "Toslink"
+},
+{
+"file": "Touch_controller.png",
+"label": "Touch controller"
+},
+{
+"file": "Triple_Screen_Output.png",
+"label": "Triple Screen Output"
+},
+{
+"file": "UK_plug.png",
+"label": "UK plug"
+},
+{
+"file": "UK_socket.png",
+"label": "UK socket"
+},
+{
+"file": "ULS.png",
+"label": "ULS"
+},
+{
+"file": "USB.png",
+"label": "USB"
+},
+{
+"file": "USB3_2_Gen2_20_Gbps.png",
+"label": "USB3 2 Gen2 20 Gbps"
+},
+{
+"file": "USB4_Gen2_20_Gbps.png",
+"label": "USB4 Gen2 20 Gbps"
+},
+{
+"file": "USB4_Gen3_40_Gbps.png",
+"label": "USB4 Gen3 40 Gbps"
+},
+{
+"file": "USB_32_5Gbps.png",
+"label": "USB 32 5Gbps"
+},
+{
+"file": "USB_3_1_10Gbps.png",
+"label": "USB 3 1 10Gbps"
+},
+{
+"file": "USB_3_1_5Gbps.png",
+"label": "USB 3 1 5Gbps"
+},
+{
+"file": "USB_3_1_Gen1.png",
+"label": "USB 3 1 Gen1"
+},
+{
+"file": "USB_3_2_10Gbps.png",
+"label": "USB 3 2 10Gbps"
+},
+{
+"file": "USB_3_2_20Gbps.png",
+"label": "USB 3 2 20Gbps"
+},
+{
+"file": "USB_3_2_Gen1.png",
+"label": "USB 3 2 Gen1"
+},
+{
+"file": "USB_3_2_Gen2.png",
+"label": "USB 3 2 Gen2"
+},
+{
+"file": "USB_3_2_ohne_GEN.png",
+"label": "USB 3 2 ohne GEN"
+},
+{
+"file": "USB_A.png",
+"label": "USB A"
+},
+{
+"file": "USB_B_v2_0.png",
+"label": "USB B v2 0"
+},
+{
+"file": "USB_B_v32.png",
+"label": "USB B v32"
+},
+{
+"file": "USB_B_v3_2.png",
+"label": "USB B v3 2"
+},
+{
+"file": "USB_B_v_3_2.png",
+"label": "USB B v 3 2"
+},
+{
+"file": "USB_C.png",
+"label": "USB C"
+},
+{
+"file": "USB_C_V31.png",
+"label": "USB C V31"
+},
+{
+"file": "USB_C_V31_plusPD.png",
+"label": "USB C V31 plusPD"
+},
+{
+"file": "USB_C_V32.png",
+"label": "USB C V32"
+},
+{
+"file": "USB_C_V32_plusPD.png",
+"label": "USB C V32 plusPD"
+},
+{
+"file": "USB_C_Video_Data_100w_PD.png",
+"label": "USB C Video Data 100w PD"
+},
+{
+"file": "USB_C_Video_Data_60w_PD.png",
+"label": "USB C Video Data 60w PD"
+},
+{
+"file": "USB_stick.png",
+"label": "USB stick"
+},
+{
+"file": "USB_v2.0.png",
+"label": "USB v2.0"
+},
+{
+"file": "USB_v2.png",
+"label": "USB v2"
+},
+{
+"file": "USB_v2_0_480Mbits.png",
+"label": "USB v2 0 480Mbits"
+},
+{
+"file": "USB_v3_2_10Gbps.png",
+"label": "USB v3 2 10Gbps"
+},
+{
+"file": "USB_v3_2_Gen2_10Gbps.png",
+"label": "USB v3 2 Gen2 10Gbps"
+},
+{
+"file": "USBv3_1Gen2.png",
+"label": "USBv3 1Gen2"
+},
+{
+"file": "VGA.png",
+"label": "VGA"
+},
+{
+"file": "VRR.png",
+"label": "VRR"
+},
+{
+"file": "Version2_0.png",
+"label": "Version2 0"
+},
+{
+"file": "Video_Bar_v2.png",
+"label": "Video Bar v2"
+},
+{
+"file": "Videowall.png",
+"label": "Videowall"
+},
+{
+"file": "Visually_Lossless.png",
+"label": "Visually Lossless"
+},
+{
+"file": "WQXGA.png",
+"label": "WQXGA"
+},
+{
+"file": "WUXGA.png",
+"label": "WUXGA"
+},
+{
+"file": "WWMidi_plug.png",
+"label": "WWMidi plug"
+},
+{
+"file": "Wieland_GST18.png",
+"label": "Wieland GST18"
+},
+{
+"file": "Wifi.png",
+"label": "Wifi"
+},
+{
+"file": "WireLess_HD.png",
+"label": "WireLess HD"
+},
+{
+"file": "WireLess_only.png",
+"label": "WireLess only"
+},
+{
+"file": "Wireless_Presentation.png",
+"label": "Wireless Presentation"
+},
+{
+"file": "Zero_Latency.png",
+"label": "Zero Latency"
+},
+{
+"file": "ai_intelligent.png",
+"label": "ai intelligent"
+},
+{
+"file": "button_control.png",
+"label": "button control"
+},
+{
+"file": "clear_voice_4mems.png",
+"label": "clear voice 4mems"
+},
+{
+"file": "compact_portable.png",
+"label": "compact portable"
+},
+{
+"file": "docking_station.png",
+"label": "docking station"
+},
+{
+"file": "dts.png",
+"label": "dts"
+},
+{
+"file": "eARC.png",
+"label": "eARC"
+},
+{
+"file": "ePTZ_camera.png",
+"label": "ePTZ camera"
+},
+{
+"file": "ergonomic.png",
+"label": "ergonomic"
+},
+{
+"file": "hifi_sound_2x3W.png",
+"label": "hifi sound 2x3W"
+},
+{
+"file": "hifi_sound_2x5W.png",
+"label": "hifi sound 2x5W"
+},
+{
+"file": "keystone.png",
+"label": "keystone"
+},
+{
+"file": "mediahub2.png",
+"label": "mediahub2"
+},
+{
+"file": "mediahub_ICS_compatible.png",
+"label": "mediahub ICS compatible"
+},
+{
+"file": "micro_coax.png",
+"label": "micro coax"
+},
+{
+"file": "mounting_options.png",
+"label": "mounting options"
+},
+{
+"file": "multiview.png",
+"label": "multiview"
+},
+{
+"file": "plug_and_play_usb_c.png",
+"label": "plug and play usb c"
+},
+{
+"file": "smart_camera_4k_EPTZ.png",
+"label": "smart camera 4k EPTZ"
+},
+{
+"file": "split_screen e.png",
+"label": "split screen e"
+},
+{
+"file": "up_down_scaling.png",
+"label": "up down scaling"
+},
+{
+"file": "wide_angle_120.png",
+"label": "wide angle 120"
+},
+{
+"file": "wireless_byod.png",
+"label": "wireless byod"
+}
+]

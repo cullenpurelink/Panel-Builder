@@ -1,0 +1,629 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PureLink Content Builder</title>
+<style>
+:root{
+  --bg:#E4E6E8; --surface:#F8F8F9; --surface-2:#EEF0F2; --ink:#16191D; --muted:#59616A; --line:#CDD1D6;
+  --accent:#1455D7; --accent-soft:rgba(20,85,215,.10); --on-accent:#FFFFFF;
+  --err:#B42318; --warn:#9A5B00; --stage:#C9CDD1;
+  --font-ui:"Barlow","Segoe UI",system-ui,-apple-system,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#101214; --surface:#17191C; --surface-2:#1E2125; --ink:#E7E9EB; --muted:#9AA2AA; --line:#2C3035;
+    --accent:#5B8DF2; --accent-soft:rgba(91,141,242,.15); --on-accent:#0B1020;
+    --err:#F97066; --warn:#F5B546; --stage:#0B0C0E; color-scheme:dark;
+  }
+}
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);height:100%}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:15px/1.45 var(--font-ui);display:grid;grid-template-rows:auto auto minmax(0,1fr);overflow:hidden}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+[hidden]{display:none!important}
+
+.bar{display:flex;align-items:center;gap:10px 14px;padding:10px 16px;background:var(--surface);border-bottom:1px solid var(--line);flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:8px;padding-right:12px;border-right:1px solid var(--line);font-weight:700;color:var(--accent);white-space:nowrap}
+.prodname{font-weight:600;font-size:17px;border:1px solid transparent;background:transparent;border-radius:6px;padding:5px 8px;width:260px;max-width:100%}
+.prodname:hover{border-color:var(--line)} .prodname:focus{border-color:var(--accent);outline:none;background:var(--surface-2)}
+.skuIn{height:32px;border:1px solid var(--line);border-radius:6px;background:var(--surface);padding:0 9px;color:var(--ink);font-size:14px;width:200px}
+.spacer{flex:1}
+.btn{height:32px;padding:0 12px;border:1px solid var(--line);background:var(--surface);border-radius:6px;font-size:14px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn:hover{border-color:var(--muted)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.danger{color:var(--err)}
+.dirty{width:7px;height:7px;border-radius:50%;background:#F5B546;display:none}
+.btn[data-dirty="1"] .dirty{display:inline-block}
+
+.tabsbar{display:flex;align-items:center;gap:6px 14px;padding:0 16px;background:var(--surface);border-bottom:1px solid var(--line);flex-wrap:wrap;min-height:44px}
+.status{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 0}
+.pill{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:13px;font-size:13px;font-weight:600;background:var(--surface-2);color:var(--ink);border:1px solid var(--line)}
+.pill i{width:8px;height:8px;border-radius:50%;background:#9AA2AA}
+.pill.committed i{background:#2E9E5B}
+.status .who{font-size:13px;color:var(--muted)}
+.status .btn{height:28px;font-size:13px}
+
+main{overflow-y:auto;padding:20px 16px 60px}
+.wrap{max-width:860px;margin:0 auto}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px 20px;margin:0 0 16px}
+.card h2{margin:0 0 4px;font-size:16px;display:flex;align-items:center;gap:8px}
+.card .sub{margin:0 0 14px;color:var(--muted);font-size:13.5px}
+.card.locked{opacity:.55}
+.card .lockNote{font-size:12.5px;color:var(--muted);background:var(--surface-2);border-radius:6px;padding:6px 10px;margin:0 0 12px;display:inline-block}
+.req{color:var(--err);margin-left:3px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 14px}
+.fld{display:flex;flex-direction:column;gap:4px;margin-bottom:12px;font-size:13px;color:var(--muted)}
+.fld input[type=text],.fld input[type=number],.fld select,.fld textarea{height:32px;border:1px solid var(--line);border-radius:6px;background:var(--surface);padding:0 9px;color:var(--ink);font-size:14px;width:100%;font-family:inherit}
+.fld textarea{height:auto;padding:7px 9px;resize:vertical;min-height:32px}
+.fld input:focus,.fld select:focus,.fld textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.fld small{font-size:12px;color:var(--muted)}
+.fld[data-over] small.count{color:var(--err);font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--surface-2);border:1px solid var(--line);border-radius:14px;padding:3px 10px 3px 12px;font-size:13px}
+.chip button{all:unset;cursor:pointer;color:var(--muted);font-size:14px;line-height:1}
+.chip button:hover{color:var(--err)}
+.empty{color:var(--muted);font-size:13.5px;font-style:italic}
+
+.imgSlots{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.imgSlot{border:1px solid var(--line);border-radius:8px;padding:10px;text-align:center;background:var(--surface-2)}
+.imgSlot img{width:56px;height:56px;object-fit:contain;display:block;margin:0 auto 6px;background:var(--surface);border-radius:6px}
+.imgSlot .ph{width:56px;height:56px;margin:0 auto 6px;border-radius:6px;background:var(--surface);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:11px}
+.imgSlot .name{font-size:11.5px;color:var(--muted);margin-bottom:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+dialog{border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);padding:0;max-width:min(680px,calc(100vw - 24px));width:100%;box-shadow:0 20px 50px rgba(0,0,0,.25)}
+dialog::backdrop{background:rgba(10,14,18,.45)}
+.dlg{padding:20px 22px}
+.dlg h2{margin:0 0 4px;font-size:19px}
+.dlg > p{margin:0 0 16px;color:var(--muted);font-size:14px}
+.dlg footer{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+.dlgWide{max-width:min(820px,calc(100vw - 24px))}
+.libRow{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
+.libRow:last-child{border-bottom:none}
+.libRow .meta{flex:1;min-width:0}
+.libRow .meta b{display:block;font-size:14px}
+.libRow .meta span{font-size:12.5px;color:var(--muted)}
+.pickRow{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+.pickRow label{display:flex;align-items:center;gap:10px;flex:1;cursor:pointer;font-size:14px}
+#libBody,#linkBody{max-height:50vh;overflow-y:auto}
+#imgSearch{width:100%;height:34px;border:1px solid var(--line);border-radius:6px;background:var(--surface);padding:0 10px;margin-bottom:12px}
+#imgGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px;max-height:48vh;overflow-y:auto}
+.imgPick{border:1px solid var(--line);border-radius:8px;padding:8px;text-align:center;background:var(--surface-2);cursor:pointer}
+.imgPick:hover{border-color:var(--accent)}
+.imgPick img{width:44px;height:44px;object-fit:contain;display:block;margin:0 auto 4px}
+.imgPick .lbl{font-size:10px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--surface);padding:9px 14px;border-radius:8px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:50;max-width:calc(100vw - 32px)}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <div class="brand">Content Builder</div>
+  <input class="prodname" id="prodName" placeholder="Product name" aria-label="Product name">
+  <input class="skuIn" id="skuIn" placeholder="SKU, e.g. PT-PSW-21KVM-40G" aria-label="SKU">
+  <div class="spacer"></div>
+  <div class="btns">
+    <button class="btn" id="newBtn">New</button>
+    <button class="btn" id="libBtn">Library</button>
+    <button class="btn" id="exportBtn">Export to Excel</button>
+    <button class="btn primary" id="saveBtn" data-dirty="0"><span class="dirty" aria-hidden="true"></span>Save</button>
+  </div>
+</header>
+
+<nav class="tabsbar">
+  <div class="status" id="statusBar" aria-live="polite"></div>
+</nav>
+
+<main><div class="wrap" id="form"></div></main>
+
+<dialog id="libDlg">
+  <div class="dlg">
+    <h2>Content library</h2>
+    <p id="libSub">Records saved here are shared with your team.</p>
+    <div id="libBody"></div>
+    <footer><button class="btn" id="libClose">Close</button></footer>
+  </div>
+</dialog>
+
+<dialog id="linkDlg">
+  <div class="dlg">
+    <h2>Link Product Builder panels</h2>
+    <p>Pick every panel that belongs to this commercial SKU (e.g. a TX and RX sold as one kit). Used later to ground AI drafting against the real port list — nothing here is editable from this dialog.</p>
+    <div id="linkBody"></div>
+    <footer><button class="btn" id="linkClose">Done</button></footer>
+  </div>
+</dialog>
+
+<dialog id="imgDlg">
+  <div class="dlg dlgWide">
+    <h2>Choose a feature image</h2>
+    <p>From the real icon library at <code>reference/Feature Image library/Buttons</code>.</p>
+    <input id="imgSearch" type="text" placeholder="Search icons…" aria-label="Search icons">
+    <div id="imgGrid"></div>
+    <footer><button class="btn" id="imgClear">Clear this slot</button><button class="btn" id="imgClose">Cancel</button></footer>
+  </div>
+</dialog>
+
+<dialog id="noteDlg">
+  <form class="dlg" method="dialog" id="noteForm">
+    <h2 id="noteTitle"></h2>
+    <p id="noteMsg"></p>
+    <label class="fld"><span>Note (required, at least 10 characters)</span>
+      <textarea id="noteText" rows="4" placeholder="Why this is moving stage"></textarea>
+      <small id="noteCount"></small></label>
+    <footer><button class="btn" value="no">Cancel</button><button class="btn primary" value="yes" id="noteOk" disabled>OK</button></footer>
+  </form>
+</dialog>
+
+<dialog id="askDlg">
+  <form class="dlg" method="dialog">
+    <h2 id="askTitle"></h2>
+    <p id="askMsg"></p>
+    <footer><button class="btn" value="no">Cancel</button><button class="btn primary" value="yes" id="askOk">OK</button></footer>
+  </form>
+</dialog>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script src="../shared/local-db.js"></script>
+<script>
+/* Shown only when this page is opened directly (not inside the Modules
+   Hub's iframe), so there's always a way back to the sidebar/menu. */
+(function () {
+  if (window.self !== window.top) return;
+  var bar = document.querySelector('header.bar');
+  if (!bar) return;
+  var a = document.createElement('a');
+  a.href = '../modules-hub/index.html';
+  a.textContent = '← Modules';
+  a.style.cssText = 'display:flex;align-items:center;padding-right:12px;margin-right:4px;'
+    + 'border-right:1px solid var(--line);color:var(--muted);text-decoration:none;'
+    + 'font-size:13px;white-space:nowrap';
+  bar.insertBefore(a, bar.firstChild);
+})();
+</script>
+
+<script>
+const $ = (s, el) => (el || document).querySelector(s);
+const $$ = (s, el) => Array.from((el || document).querySelectorAll(s));
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const uid = () => Math.random().toString(36).slice(2, 11);
+
+let toastTimer;
+function toast(t) { const el = $('#toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('show'), 2800); }
+
+function ask(title, msg, okLabel) {
+  return new Promise(res => {
+    const d = $('#askDlg'); $('#askTitle').textContent = title; $('#askMsg').textContent = msg; $('#askOk').textContent = okLabel || 'OK';
+    d.returnValue = ''; d.onclose = () => res(d.returnValue === 'yes'); d.showModal();
+  });
+}
+const NOTE_MIN = 10;
+function askNote(title, msg, okLabel) {
+  return new Promise(res => {
+    const d = $('#noteDlg'), ta = $('#noteText'), ok = $('#noteOk'), cnt = $('#noteCount');
+    $('#noteTitle').textContent = title; $('#noteMsg').textContent = msg; ok.textContent = okLabel; ta.value = '';
+    const upd = () => { const n = ta.value.trim().length; ok.disabled = n < NOTE_MIN; cnt.textContent = n < NOTE_MIN ? `${NOTE_MIN - n} more character${NOTE_MIN - n === 1 ? '' : 's'} needed` : `${n} characters`; };
+    ta.oninput = upd; upd();
+    d.returnValue = ''; d.onclose = () => res(d.returnValue === 'yes' && ta.value.trim().length >= NOTE_MIN ? ta.value.trim() : null);
+    d.showModal(); ta.focus();
+  });
+}
+
+/* ============================================================
+   Model
+   ============================================================ */
+function newModel() {
+  return {
+    format: 'purelink-content-record', version: 1,
+    name: '', sku: '', supplierModel: '',
+    linkedPanels: [], // [{id, sku, name}]
+    stage: 'concept', // 'concept' | 'committed'
+    seed: '',
+    packagingDescription: '', silkHeading: 'PureTools', silkTypeBold: '', silkTypeSmall: '', silkDescription: '',
+    featureTitle: '', features: ['', '', '', '', ''],
+    useCase: '', additionalContext: '',
+    labelFeatures: ['', '', '', '', ''],
+    featureImages: ['', '', '', ''],
+    onlineHeadline: '', itemDescriptionHeadline: '', navigationPath: '', crossSelling: '', articleProperties: '',
+    searchKey: '', price: null, moq: null, ean: '',
+  };
+}
+let model = newModel();
+let docId = null, savedJSON = null;
+let db = null, userCap = null, downloads = null, myId = null, library = [];
+let imgManifest = [];
+let imgSlotTarget = null; // index of the featureImages slot currently being picked
+
+function isDirty() { return JSON.stringify(model) !== savedJSON; }
+function updateToolbar() {
+  $('#prodName').value = model.name;
+  $('#skuIn').value = model.sku;
+  $('#saveBtn').dataset.dirty = (docId && isDirty()) ? '1' : '0';
+}
+
+/* ============================================================
+   Draft persistence (works fully offline, same shim as the other modules)
+   ============================================================ */
+const DRAFT_KEY = 'purelink-content-builder:draft';
+let draftTimer = null;
+function saveDraft() {
+  clearTimeout(draftTimer);
+  draftTimer = setTimeout(() => { try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ model, docId })); } catch (e) { } }, 300);
+}
+function loadDraft() {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY); if (!raw) return false;
+    const d = JSON.parse(raw); if (!d || !d.model) return false;
+    model = Object.assign(newModel(), d.model); docId = d.docId || null;
+    return true;
+  } catch (e) { return false; }
+}
+
+function commit() { saveDraft(); updateToolbar(); renderForm(); renderFlow(); }
+
+/* ============================================================
+   Library (db "content" collection)
+   ============================================================ */
+async function connect() {
+  if (!window.claude) return;
+  try { db = await window.claude.use('db'); } catch (e) { db = null; }
+  try { userCap = await window.claude.use('user'); } catch (e) { userCap = null; }
+  try { downloads = await window.claude.use('downloads'); } catch (e) { downloads = null; }
+  if (userCap) { try { myId = await userCap.id(); } catch (e) { } }
+  if (!db) return;
+  db.collection('content').onSnapshot(snap => {
+    library = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
+    renderLibrary();
+  }, () => { });
+}
+
+async function saveToLibrary() {
+  if (!db) { toast('The team library isn’t available in this view.'); return; }
+  if (!model.name.trim()) { toast('Give this product a name first.'); return; }
+  const id = docId || uid();
+  const now = new Date().toISOString();
+  const doc = { ...model, updatedAt: now, updatedBy: myId || '' };
+  try {
+    await db.collection('content').doc(id).set(doc);
+    docId = id; savedJSON = JSON.stringify(model);
+    updateToolbar();
+    toast(`Saved ${model.name} to the content library`);
+  } catch (e) { toast('Couldn’t save. Check your connection and try again.'); }
+}
+async function openFromLibrary(id) {
+  const l = library.find(x => x.id === id); if (!l) return;
+  if (isDirty() && !(await ask('Open without saving?', 'The current record has changes that aren’t saved.', 'Open'))) return;
+  const { id: _id, updatedAt, updatedBy, ...rest } = l;
+  model = Object.assign(newModel(), rest); docId = id; savedJSON = JSON.stringify(model);
+  saveDraft(); updateToolbar(); renderForm(); renderFlow();
+  $('#libDlg').close(); toast(`Opened ${model.name}`);
+}
+async function deleteFromLibrary(id) {
+  const l = library.find(x => x.id === id); if (!l) return;
+  if (!(await ask(`Delete ${l.name}?`, 'This removes it from the content library for everyone.', 'Delete'))) return;
+  try {
+    await db.collection('content').doc(id).delete();
+    if (id === docId) { docId = null; savedJSON = null; updateToolbar(); }
+    toast(`Deleted ${l.name}`);
+  } catch (e) { toast('Couldn’t delete.'); }
+}
+function renderLibrary() {
+  const body = $('#libBody'); if (!body) return;
+  if (!db) { body.innerHTML = '<p class="empty">The team library isn’t available in this view.</p>'; return; }
+  if (!library.length) { body.innerHTML = '<p class="empty">Nothing saved yet.</p>'; return; }
+  body.innerHTML = library.map(l => `<div class="libRow">
+    <div class="meta"><b>${esc(l.name || 'Untitled')}</b><span>${esc(l.sku || 'no SKU')} · ${l.stage === 'committed' ? 'Committed' : 'Concept'} · saved ${fmtDate(l.updatedAt)}</span></div>
+    <button class="btn" data-open="${esc(l.id)}">Open</button>
+    <button class="btn danger" data-del="${esc(l.id)}">Delete</button>
+  </div>`).join('');
+  $$('[data-open]', body).forEach(b => b.onclick = () => openFromLibrary(b.dataset.open));
+  $$('[data-del]', body).forEach(b => b.onclick = () => deleteFromLibrary(b.dataset.del));
+}
+function fmtDate(s) { if (!s) return ''; try { return new Date(s).toLocaleString(undefined, { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }); } catch (e) { return s; } }
+
+/* ============================================================
+   Link to Product Builder panels (reads the Panel Builder's own
+   "layouts" collection in the same shared local db — a different
+   module reading a different module's collection by name, same as
+   this module's own "content" collection will be readable by others.)
+   ============================================================ */
+function loadPanelLibrary() {
+  return new Promise(resolve => {
+    if (!db) { resolve([]); return; }
+    const unsub = db.collection('layouts').onSnapshot(snap => {
+      unsub();
+      resolve(snap.docs.map(d => ({ id: d.id, name: d.data().name, sku: d.data().sku })));
+    }, () => resolve([]));
+  });
+}
+async function openLinkDialog() {
+  const panels = await loadPanelLibrary();
+  const body = $('#linkBody');
+  if (!panels.length) { body.innerHTML = '<p class="empty">No panels saved in Product Builder’s library yet.</p>'; }
+  else {
+    const linked = new Set(model.linkedPanels.map(p => p.id));
+    body.innerHTML = panels.map(p => `<div class="pickRow"><label>
+        <input type="checkbox" data-pid="${esc(p.id)}" ${linked.has(p.id) ? 'checked' : ''}>
+        <span>${esc(p.name || 'Untitled')} <small style="color:var(--muted)">${esc(p.sku || '')}</small></span>
+      </label></div>`).join('');
+    $$('[data-pid]', body).forEach(c => c.onchange = () => {
+      const p = panels.find(x => x.id === c.dataset.pid);
+      if (c.checked) { if (!model.linkedPanels.some(x => x.id === p.id)) model.linkedPanels.push({ id: p.id, sku: p.sku || '', name: p.name || '' }); }
+      else model.linkedPanels = model.linkedPanels.filter(x => x.id !== p.id);
+      commit();
+    });
+  }
+  $('#linkDlg').showModal();
+}
+
+/* ============================================================
+   Feature image library (reference/Feature Image library/Buttons)
+   ============================================================ */
+async function loadImageManifest() {
+  try {
+    const res = await fetch('feature-images.json');
+    imgManifest = await res.json();
+  } catch (e) { imgManifest = []; }
+}
+function imgSrc(file) { return encodeURI('../reference/Feature Image library/Buttons/' + file); }
+function openImagePicker(slot) {
+  imgSlotTarget = slot;
+  $('#imgSearch').value = '';
+  renderImgGrid('');
+  $('#imgDlg').showModal();
+  $('#imgSearch').focus();
+}
+function renderImgGrid(q) {
+  const grid = $('#imgGrid');
+  const ql = q.trim().toLowerCase();
+  const items = ql ? imgManifest.filter(i => i.label.toLowerCase().includes(ql) || i.file.toLowerCase().includes(ql)) : imgManifest;
+  if (!items.length) { grid.innerHTML = '<p class="empty">No icons found, or the reference library isn’t on this machine.</p>'; return; }
+  grid.innerHTML = items.slice(0, 300).map(i => `<div class="imgPick" data-file="${esc(i.file)}" title="${esc(i.label)}">
+      <img src="${imgSrc(i.file)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
+      <div class="lbl">${esc(i.label)}</div>
+    </div>`).join('');
+  $$('.imgPick', grid).forEach(el => el.onclick = () => {
+    if (imgSlotTarget == null) return;
+    model.featureImages[imgSlotTarget] = el.dataset.file;
+    commit(); $('#imgDlg').close();
+  });
+}
+$('#imgSearch').oninput = e => renderImgGrid(e.target.value);
+$('#imgClose').onclick = () => $('#imgDlg').close();
+$('#imgClear').onclick = () => { if (imgSlotTarget != null) { model.featureImages[imgSlotTarget] = ''; commit(); } $('#imgDlg').close(); };
+
+/* ============================================================
+   Stage gate: Concept -> Committed
+   ============================================================ */
+function missingForCommit() {
+  const m = [];
+  if (!model.sku.trim()) m.push('SKU');
+  if (!model.name.trim()) m.push('product name');
+  if (!model.featureTitle.trim()) m.push('Feature Title');
+  if (model.features.slice(0, 5).some(f => !f.trim())) m.push('all 5 features');
+  if (!model.useCase.trim()) m.push('Use Case (Feature 11)');
+  return m;
+}
+async function commitStage() {
+  const missing = missingForCommit();
+  if (missing.length) { toast(`Needs before committing: ${missing.join(', ')}.`); return; }
+  const note = await askNote('Commit to full production content?',
+    'Unlocks PIM fields, Label Text and feature images, and this becomes the package handed to PIM/ERP/Graphics. Say why it’s moving.', 'Commit');
+  if (!note) return;
+  model.stage = 'committed'; model.commitNote = note; model.committedAt = new Date().toISOString(); model.committedBy = myId || '';
+  commit();
+  if (db && docId) saveToLibrary();
+}
+async function returnToConcept() {
+  const note = await askNote('Return to concept?', 'PIM fields, Label Text and feature images lock again until committed. Say why.', 'Return to concept');
+  if (!note) return;
+  model.stage = 'concept';
+  commit();
+  if (db && docId) saveToLibrary();
+}
+function renderFlow() {
+  const bar = $('#statusBar');
+  const committed = model.stage === 'committed';
+  const pill = `<span class="pill ${committed ? 'committed' : ''}"><i></i>${committed ? 'Committed' : 'Concept'}</span>`;
+  let btns = '';
+  if (committed) btns += `<button class="btn" data-flow="return">Return to concept</button>`;
+  else {
+    const missing = missingForCommit();
+    btns += `<button class="btn primary" data-flow="commit" ${missing.length ? 'disabled title="Needs: ' + esc(missing.join(', ')) + '"' : ''}>Commit to full production</button>`;
+  }
+  const who = committed && model.committedAt ? `<span class="who">Committed ${fmtDate(model.committedAt)}</span>` : '';
+  bar.innerHTML = pill + who + btns;
+  $$('[data-flow]', bar).forEach(b => b.onclick = () => b.dataset.flow === 'commit' ? commitStage() : returnToConcept());
+}
+
+/* ============================================================
+   Form rendering
+   ============================================================ */
+function field(label, path, opts) {
+  opts = opts || {};
+  const val = opts.get ? opts.get() : getPath(path);
+  const tag = opts.area ? 'textarea' : 'input';
+  const attrs = opts.area ? `rows="${opts.rows || 2}"` : `type="${opts.type || 'text'}"`;
+  const req = opts.req ? '<span class="req">*</span>' : '';
+  const id = 'f_' + path.replace(/[.\[\]]/g, '_') + (opts.idx != null ? opts.idx : '');
+  return `<label class="fld" data-path="${esc(path)}" ${opts.idx != null ? `data-idx="${opts.idx}"` : ''}>
+    <span>${label}${req}</span>
+    <${tag} id="${id}" ${attrs} ${opts.disabled ? 'disabled' : ''} placeholder="${esc(opts.ph || '')}">${opts.area ? esc(val) : ''}</${tag}>
+    ${!opts.area ? '' : ''}
+    ${opts.hint ? `<small>${opts.hint}</small>` : ''}
+  </label>`;
+}
+function getPath(path) {
+  const parts = path.match(/[^.\[\]]+/g);
+  let v = model; for (const p of parts) v = v == null ? '' : v[p];
+  return v == null ? '' : v;
+}
+function setPath(path, value) {
+  const parts = path.match(/[^.\[\]]+/g);
+  let v = model; for (let i = 0; i < parts.length - 1; i++) v = v[parts[i]];
+  v[parts[parts.length - 1]] = value;
+}
+
+function section(title, sub, bodyHtml, locked) {
+  return `<div class="card${locked ? ' locked' : ''}">
+    <h2>${title}</h2>
+    ${sub ? `<p class="sub">${sub}</p>` : ''}
+    ${locked ? '<span class="lockNote">Available once this record is Committed</span>' : ''}
+    ${bodyHtml}
+  </div>`;
+}
+
+function featureRows(arrPath, count, labelPrefix, opts) {
+  opts = opts || {};
+  const arr = getPath(arrPath);
+  let out = '';
+  for (let i = 0; i < count; i++) {
+    out += field(`${labelPrefix} ${i + 1}`, `${arrPath}[${i}]`, { area: true, rows: opts.rows || 2, req: opts.req, disabled: opts.disabled, idx: i, ph: opts.ph || '' });
+  }
+  return out;
+}
+
+function renderLinkedChips() {
+  if (!model.linkedPanels.length) return '<p class="empty">No panels linked yet.</p>';
+  return `<div class="chips">${model.linkedPanels.map(p => `<span class="chip">${esc(p.name || p.sku || p.id)}${p.sku ? ' · ' + esc(p.sku) : ''}<button data-unlink="${esc(p.id)}" title="Unlink" aria-label="Unlink">&times;</button></span>`).join('')}</div>`;
+}
+
+function renderForm() {
+  const locked = model.stage !== 'committed';
+  const el = $('#form');
+  el.innerHTML = [
+    section('Linked Product Builder panels',
+      'A commercial SKU can cover more than one physical panel (e.g. a TX and an RX sold as one kit) — link every panel that belongs to this product.',
+      renderLinkedChips() + `<button class="btn" id="linkBtn">Link panels…</button>`),
+
+    section('Seed', 'What you’d give the drafting GPT today — a product intro, highlight bullets, or a rough use case. (AI drafting lands in a later pass; for now, write the fields below yourself from this.)',
+      field('', 'seed', { area: true, rows: 4, ph: 'e.g. A 2x1 presentation switcher for classrooms and meeting rooms that also extends over HDBaseT up to 100m, with a 100W USB-C input for laptops…' })),
+
+    section('Identity & silkscreen text', '',
+      `<div class="row2">
+        ${field('Supplier Model', 'supplierModel', { ph: 'e.g. HDP-EHC100HCU3KVM-DE0012' })}
+        ${field('Packaging sticker "Item Description"', 'packagingDescription', { ph: 'e.g. PureTools - 2x1 5K HDBaseT Presentation Switch' })}
+      </div>
+      <div class="row3">
+        ${field('Silk Screen Heading', 'silkHeading')}
+        ${field('Silk screen - Bold Blue "Type"', 'silkTypeBold', { ph: 'e.g. 2x1' })}
+        ${field('Silk Screen - Small blue "Type"', 'silkTypeSmall', { ph: 'e.g. Presentation Switch' })}
+      </div>
+      ${field('Silk Screen - Description Line 1 and 2', 'silkDescription', { area: true, rows: 2 })}`),
+
+    section('Features', 'The long-form features used across BURO+, PIM Upload, the Label Text source text, and the Power point slide.',
+      field('Feature Title', 'featureTitle', { req: true, ph: 'e.g. 2x1 5K Presentation Switcher' }) + featureRows('features', 5, 'Feature', { req: true })),
+
+    section('Use case & additional context', '',
+      field('Use Case <small style="font-weight:400">(PIM Feature 11 — mandatory before Commit)</small>', 'useCase', { area: true, rows: 5, req: true, ph: 'A real-world scenario this product solves.' }) +
+      field('Additional context <small style="font-weight:400">(PIM Feature 12 — optional; raw material for expanded copy on complex products where 5 features undersell it)</small>', 'additionalContext', { area: true, rows: 5 })),
+
+    section('Label text', 'Shortened features for the physical label. The guide row in the real file uses a fixed 24-character gauge — matched here for now; pulling the real available width from Product Builder’s panel geometry is a later improvement.',
+      featureRows('labelFeatures', 5, 'Short feature', { rows: 1, disabled: locked, ph: 'max. ~24 characters' }), locked),
+
+    section('Feature images', 'Picked from the real icon library, not typed filenames.',
+      `<div class="imgSlots">${[0, 1, 2, 3].map(i => {
+        const f = model.featureImages[i];
+        return `<div class="imgSlot">
+          ${f ? `<img src="${imgSrc(f)}" alt="" onerror="this.style.visibility='hidden'">` : '<div class="ph">none</div>'}
+          <div class="name">${f ? esc(f) : 'Empty'}</div>
+          <button class="btn" data-pick="${i}" ${locked ? 'disabled' : ''}>Choose…</button>
+        </div>`;
+      }).join('')}</div>`, locked),
+
+    section('PIM & business fields', '',
+      `<div class="row2">
+        ${field('Online Headline/Title', 'onlineHeadline', { disabled: locked })}
+        ${field('Item Description Headline', 'itemDescriptionHeadline', { disabled: locked })}
+      </div>
+      <div class="row2">
+        ${field('Navigation path', 'navigationPath', { disabled: locked })}
+        ${field('Cross-selling', 'crossSelling', { disabled: locked })}
+      </div>
+      ${field('Article properties (filter)', 'articleProperties', { disabled: locked })}
+      <div class="row3">
+        ${field('Search key', 'searchKey', { disabled: locked })}
+        ${field('Price', 'price', { type: 'number', disabled: locked })}
+        ${field('MOQ', 'moq', { type: 'number', disabled: locked })}
+      </div>
+      ${field('EAN', 'ean', { disabled: locked })}`, locked),
+  ].join('');
+
+  $('#linkBtn').onclick = openLinkDialog;
+  $$('[data-unlink]', el).forEach(b => b.onclick = () => { model.linkedPanels = model.linkedPanels.filter(p => p.id !== b.dataset.unlink); commit(); });
+  $$('[data-pick]', el).forEach(b => b.onclick = () => openImagePicker(+b.dataset.pick));
+
+  $$('[data-path]', el).forEach(wrap => {
+    const path = wrap.dataset.path, inp = wrap.querySelector('input,textarea');
+    if (!inp) return;
+    const apply = () => {
+      let v = inp.value;
+      if (inp.type === 'number') v = v === '' ? null : parseFloat(v);
+      setPath(path, v);
+      saveDraft(); updateToolbar();
+      if (path === 'name' || path === 'sku') { } // header mirrors these separately
+      renderFlow();
+    };
+    inp.oninput = apply;
+    if (!(inp.tagName === 'TEXTAREA')) inp.value = getPath(path);
+    if (inp.tagName === 'TEXTAREA' && !inp.value) inp.value = getPath(path);
+  });
+}
+
+/* ============================================================
+   Excel export
+   ============================================================ */
+function slug(s) { return (s || 'content').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'content'; }
+async function exportExcel() {
+  try {
+    const res = await fetch('http://127.0.0.1:8743/api/export-content-xlsx', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(model)
+    });
+    if (!res.ok) { const body = await res.json().catch(() => ({})); toast('Export failed: ' + (body.msg || res.status)); return; }
+    const blob = await res.blob();
+    const filename = `${slug(model.sku || model.name)}-masterfile.xlsx`;
+    if (downloads) await downloads.save({ filename, data: blob });
+    else { const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000); }
+    toast(`Exported ${filename}`);
+  } catch (e) { toast('Export needs the local dev server running (start.bat) — couldn’t reach it.'); }
+}
+
+/* ============================================================
+   Wiring
+   ============================================================ */
+$('#prodName').oninput = e => { model.name = e.target.value; saveDraft(); updateToolbar(); renderFlow(); };
+$('#skuIn').oninput = e => { model.sku = e.target.value; saveDraft(); updateToolbar(); renderFlow(); };
+$('#newBtn').onclick = async () => {
+  if (isDirty() && !(await ask('Start a new record?', 'The current record has changes that aren’t saved.', 'Start new'))) return;
+  model = newModel(); docId = null; savedJSON = null;
+  saveDraft(); updateToolbar(); renderForm(); renderFlow();
+};
+$('#libBtn').onclick = () => { $('#libSub').textContent = db ? 'Records saved here are shared with your team.' : 'The team library isn’t available in this view.'; renderLibrary(); $('#libDlg').showModal(); };
+$('#libClose').onclick = () => $('#libDlg').close();
+$('#linkClose').onclick = () => $('#linkDlg').close();
+$('#saveBtn').onclick = saveToLibrary;
+$('#exportBtn').onclick = exportExcel;
+
+(async function init() {
+  const hadDraft = loadDraft();
+  if (!hadDraft) model = newModel();
+  savedJSON = docId ? JSON.stringify(model) : null;
+  updateToolbar(); renderForm(); renderFlow();
+  await loadImageManifest();
+  renderForm(); // re-render once images can resolve
+  await connect();
+  if (docId) savedJSON = JSON.stringify(model);
+  updateToolbar();
+})();
+</script>
+</body>
+</html>
