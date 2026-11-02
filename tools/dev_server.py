@@ -51,6 +51,7 @@ SAFE_LIBRARY_NAME = re.compile(r"^[a-z0-9-]+-layout\.json$")
 ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages"
 ANTHROPIC_MODEL = "claude-sonnet-5-5"
 ANTHROPIC_KEY_FILE = REPO_ROOT / "tools" / "anthropic_key.txt"
+ANTHROPIC_KEY_FILE_FALLBACK = REPO_ROOT / "tools" / "anthropic key.txt"
 
 DRAFT_SYSTEM_PROMPT = (
     "You write PIM, label and sales copy for PureLink, an AV-over-IP hardware brand. "
@@ -82,10 +83,11 @@ def get_anthropic_key():
     key = os.environ.get("ANTHROPIC_API_KEY")
     if key and key.strip():
         return key.strip()
-    if ANTHROPIC_KEY_FILE.exists():
-        key = ANTHROPIC_KEY_FILE.read_text(encoding="utf-8").strip()
-        if key:
-            return key
+    for path in (ANTHROPIC_KEY_FILE, ANTHROPIC_KEY_FILE_FALLBACK):
+        if path.exists():
+            key = path.read_text(encoding="utf-8").strip()
+            if key:
+                return key
     return None
 
 
