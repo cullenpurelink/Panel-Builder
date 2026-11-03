@@ -194,7 +194,14 @@ function openModule(id) {
   var m = MODULES.filter(function (x) { return x.id === id; })[0];
   if (!m) return;
   homeEl.hidden = true;
-  frameEl.src = m.href;
+  // Cache-busted: this is the one spot every module is actually loaded
+  // from day to day (people pick it from the sidebar, not by typing its
+  // URL), so a module's own page living in the browser's HTTP cache from
+  // an earlier visit would otherwise go on shadowing every future fix to
+  // it indefinitely — the no-store header the dev server now sends only
+  // helps once a real network request happens, and a cached entry Chrome
+  // still considers "fresh" skips the network entirely.
+  frameEl.src = m.href + (m.href.indexOf('?') === -1 ? '?' : '&') + 'ref=' + Date.now();
   frameEl.hidden = false;
   renderNav(id);
 }
