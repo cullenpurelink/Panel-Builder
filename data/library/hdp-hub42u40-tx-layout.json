@@ -1,0 +1,98 @@
+{
+  "format": "purelink-panel-layout",
+  "version": 3,
+  "sku": "HDP-HUB42U40-TX",
+  "name": "PureLink HUB42U40 (TX) — silk print replica",
+  "logoSvg": "",
+  "chassis": {
+    "form": "std",
+    "height": 30,
+    "width": 320
+  },
+  "housing": {
+    "depth": 150
+  },
+  "panels": {
+    "front": [
+      {"id": "txBadge", "kind": "text", "text": "TX", "pt": 9, "weight": 700, "rot": 0, "x": 8, "y": 8.5},
+      {"id": "pwr", "kind": "port", "type": "led", "func": "[power]", "label": "", "sub": "", "color": "red", "size": 1.6, "rot": 0, "x": 8, "y": 14.5},
+      {"id": "ir", "kind": "port", "type": "led", "func": "IR", "label": "", "sub": "", "color": "blue", "lit": false, "size": 9, "rot": 0, "x": 22.9, "y": 16.2},
+      {"id": "dispOn", "kind": "port", "type": "led", "func": "ON", "label": "", "sub": "", "color": "blue", "lit": false, "size": 7, "rot": 0, "x": 39.9, "y": 16.4},
+      {"id": "dispOff", "kind": "port", "type": "led", "func": "OFF", "label": "", "sub": "", "color": "blue", "lit": false, "size": 7, "rot": 0, "x": 53.9, "y": 16.4},
+      {"id": "fDisplay", "kind": "frame", "members": ["dispOn", "dispOff"], "pad": 2, "padTop": 1, "padBottom": 0, "title": "DISPLAY", "titlePos": "bottom"},
+
+      {"id": "dip1", "kind": "port", "type": "dip", "func": "", "label": "", "sub": "", "pins": 5, "rot": 90, "x": 69.8, "y": 15.5},
+      {"id": "dip1Labels", "kind": "text", "text": "IN1-4 / AUTO", "pt": 5, "weight": 400, "rot": 0, "x": 69.8, "y": 5},
+      {"id": "auto3s1", "kind": "port", "type": "led", "func": "AUTO/3S", "label": "", "sub": "", "color": "blue", "lit": false, "size": 7, "rot": 0, "x": 82.9, "y": 16.5},
+      {"id": "fOut1", "kind": "frame", "members": ["dip1", "auto3s1"], "pad": 2, "padTop": 0, "padBottom": 0, "title": "OUT 1", "titlePos": "bottom"},
+
+      {"id": "dip2", "kind": "port", "type": "dip", "func": "", "label": "", "sub": "", "pins": 5, "rot": 90, "x": 99.7, "y": 15.5},
+      {"id": "dip2Labels", "kind": "text", "text": "IN1-4 / AUTO", "pt": 5, "weight": 400, "rot": 0, "x": 99.7, "y": 5},
+      {"id": "auto3s2", "kind": "port", "type": "led", "func": "AUTO/3S", "label": "", "sub": "", "color": "blue", "lit": false, "size": 7, "rot": 0, "x": 112.95, "y": 16.5},
+      {"id": "fOut2", "kind": "frame", "members": ["dip2", "auto3s2"], "pad": 2, "padTop": 0, "padBottom": 0, "title": "OUT 2", "titlePos": "bottom"},
+
+      {"id": "usbcIn1", "kind": "port", "type": "usbc", "func": "USB-C IN 1", "label": "", "sub": "[bolt]", "lock": true, "rot": 0, "x": 179.9, "y": 18.9},
+      {"id": "usbcIn2", "kind": "port", "type": "usbc", "func": "USB-C IN 2", "label": "", "sub": "[bolt]", "lock": true, "rot": 0, "x": 201.95, "y": 18.9},
+      {"id": "host3", "kind": "port", "type": "usbc", "func": "HOST 3", "label": "", "sub": "DATA ONLY", "lock": true, "rot": 0, "x": 223.9, "y": 18.9},
+
+      {"id": "in3", "kind": "port", "type": "hdmi", "func": "IN 3", "label": "", "sub": "", "lock": true, "rot": 0, "x": 248.9, "y": 17.2},
+      {"id": "host4", "kind": "port", "type": "usbb", "func": "HOST 4", "label": "", "sub": "", "rot": 0, "x": 275.05, "y": 15},
+      {"id": "in4", "kind": "port", "type": "hdmi", "func": "IN 4", "label": "", "sub": "", "lock": true, "rot": 0, "x": 298.95, "y": 17.2}
+    ],
+    "rear": [
+      {"id": "avusb3", "kind": "port", "type": "rj45", "func": "AV-USB3 OUT 1", "label": "", "sub": "", "rot": 0, "x": 24, "y": 13.4},
+
+      {"id": "out1", "kind": "port", "type": "hdmi", "func": "OUT 1", "label": "", "sub": "", "lock": true, "rot": 0, "x": 47.7, "y": 17},
+      {"id": "out2", "kind": "port", "type": "hdmi", "func": "OUT 2", "label": "", "sub": "", "lock": true, "rot": 0, "x": 78.9, "y": 17.1},
+
+      {"id": "dev1", "kind": "port", "type": "usba", "func": "1", "label": "", "sub": "", "rot": 90, "x": 96.7, "y": 14.8},
+      {"id": "dev2", "kind": "port", "type": "usba", "func": "2", "label": "", "sub": "", "rot": 90, "x": 110.1, "y": 14.8},
+      {"id": "dev3", "kind": "port", "type": "usbc", "func": "3", "label": "", "sub": "", "lock": false, "rot": 0, "x": 120.9, "y": 15.3},
+      {"id": "fDevices", "kind": "frame", "members": ["dev1", "dev2", "dev3"], "pad": 2, "padTop": 1, "padBottom": 0, "title": "USB DEVICES", "titlePos": "bottom"},
+
+      {"id": "audioIn", "kind": "port", "type": "eb35p5", "func": "AUDIO IN", "label": "", "sub": "", "pins": 5, "pinLabels": "L+, L−, [gnd], R+, R−", "rot": 0, "x": 143, "y": 17.2},
+      {"id": "audioOut", "kind": "port", "type": "eb35p5", "func": "AUDIO OUT", "label": "", "sub": "", "pins": 5, "pinLabels": "L+, L−, [gnd], R+, R−", "rot": 0, "x": 165, "y": 17.2},
+      {"id": "gpio", "kind": "port", "type": "eb35", "func": "GPIO", "label": "", "sub": "", "pins": 6, "pinLabels": "1, 2, 3, 4, 5V, [gnd]", "rot": 0, "x": 190, "y": 17.22},
+      {"id": "rs232", "kind": "port", "type": "eb35", "func": "RS-232", "label": "", "sub": "", "pins": 3, "pinLabels": "TX, [gnd], RX", "rot": 0, "x": 212, "y": 17.04},
+      {"id": "rs232ctl", "kind": "port", "type": "eb35", "func": "RS-232 CTL", "label": "", "sub": "", "pins": 5, "pinLabels": "TX, [gnd], RX, 5V, [gnd]", "rot": 0, "x": 230.5, "y": 17.45},
+
+      {"id": "controlLanText", "kind": "text", "text": "CONTROL LAN", "pt": 5, "weight": 400, "rot": 90, "x": 258, "y": 14.5},
+      {"id": "service", "kind": "port", "type": "usbc", "func": "SERVICE", "label": "", "sub": "", "lock": false, "rot": 90, "x": 248, "y": 13.17},
+
+      {"id": "eth1", "kind": "port", "type": "rj45", "func": "ETHERNET 1", "label": "", "sub": "", "rot": 0, "x": 269, "y": 14.3},
+      {"id": "eth2", "kind": "port", "type": "rj45", "func": "ETHERNET 2", "label": "", "sub": "", "rot": 0, "x": 288, "y": 14.4},
+      {"id": "dc24v", "kind": "port", "type": "din4", "func": "DC 24V", "label": "", "sub": "", "rot": 0, "x": 310, "y": 13.3}
+    ]
+  },
+  "rules": {
+    "fontWeight": 400,
+    "edgeClearance": 3,
+    "minGap": 1,
+    "labelGap": 1,
+    "autoNumber": false,
+    "upper": false,
+    "fontPt": 0,
+    "alignLabels": false,
+    "alignRange": 4
+  },
+  "render": {},
+  "validation": {
+    "cutouts": [
+      "Fusion cut-out SVG: Cut-outs trace each connector’s visible outline, not the manufacturer’s recommended panel cut-out with clearance and tolerance.",
+      "IR window / ON / OFF / AUTO-3S buttons: this catalog has no plain circular pushbutton part — modelled as unlit LEDs sized to match the drawing's circles; real part is almost certainly a physical button, not an LED.",
+      "TX badge: drawing shows only a boxed \"TX\", no PureLink wordmark — modelled as plain text, not the standard logo lockup, to avoid adding branding not present in the source drawing. Confirm with the user/supplier whether the real product carries PureLink branding elsewhere.",
+      "AV-USB3 OUT 1 (rear): drawing shows this RJ45 on a solid white background box; the tool's RJ45 colour-box is fixed magenta (built for HDBaseT), so this was approximated as an untitled white frame outline (not filled) instead.",
+      "Small icon beneath the front-panel power symbol (TX badge area) was not reproduced — its function could not be determined from the drawing.",
+      "DIP switches (IN1-4/AUTO selector x2): the drawing labels each of the 5 switch positions individually (IN1/IN2/IN3/IN4/AUTO) stacked vertically; this tool's pin-label system is disabled for DIP-type parts, so a single compact \"IN1-4 / AUTO\" text label was placed above each switch instead of 5 separate position labels.",
+      "The hex/washer icons above IN3/IN4/OUT1/OUT2 and the ring icons above USB-C IN1/IN2/HOST3 are this connector's own locking-screw insert (\"lock\": true on the hdmi/usbc item itself), not a separate ground screw or LED — corrected after initially misreading them as separate parts.",
+      "Chassis height raised from the drawing's literal 23mm to 30mm (a standard housing tier whose guide width range, 210–400mm, actually fits this 320mm-wide panel, unlike 23mm's 50–209mm): at 23mm there was no position for several connectors' own lock-hole insert, the OUT1/OUT2 and USB DEVICES group frames, and their labels that didn't force a tradeoff against the 3mm edge-clearance rule or a neighbour — done on the user's instruction.",
+      "USB-A, USB-C, HDMI, RJ45, Phoenix terminal blocks (GPIO/RS-232/RS-232 CTL/AUDIO IN/OUT): estimated from supplier silkscreen drawing V1.0, not signed off."
+    ],
+    "silkscreen": [
+      "Silkscreen SVG: replicated from supplier drawing HDP-HUB42U40 Silkscreen_V1.0 (2026-08-28). This product's silkscreen ink is white only (no secondary Pantone colour per the drawing's own title block) — the rear AV-USB3 port's white highlight box could not be reproduced exactly (see cutouts notes).",
+      "Rear panel view in the source drawing is rotated 180°; corrected by re-measuring on a 180°-rotated copy of the crop rather than by formula, per this skill's own guidance.",
+      "Checked against the app's Checks panel: 0 problems, 0 warnings at 30mm chassis height.",
+      "Row-alignment (rules.alignLabels) turned off for this product: with it on, moving any one \"below\"-positioned label to clear a lock-hole conflict snapped every other below-label within 4mm onto the same line, repeatedly pushing unrelated labels off the panel edge. Each label sits at its own natural height instead."
+    ]
+  }
+}

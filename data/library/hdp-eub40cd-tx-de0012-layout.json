@@ -62,27 +62,13 @@
         "y": 20.4
       },
       {
-        "id": "chgled",
-        "kind": "port",
-        "type": "led",
-        "func": "",
-        "label": "",
-        "sub": "",
-        "color": "blue",
-        "size": 1.6,
-        "lit": false,
-        "rot": 0,
-        "x": 79.9,
-        "y": 14
-      },
-      {
         "id": "input",
         "kind": "port",
         "type": "usbc",
         "func": "USB-C",
         "label": "",
         "sub": "100W",
-        "lock": false,
+        "lock": true,
         "rot": 0,
         "x": 79.9,
         "y": 20.6
@@ -90,7 +76,7 @@
       {
         "id": "fInput",
         "kind": "frame",
-        "members": ["chgled", "input"],
+        "members": ["input"],
         "pad": 2,
         "padTop": 1,
         "padBottom": 0,

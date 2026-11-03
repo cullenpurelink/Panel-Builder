@@ -51,23 +51,13 @@
         "y": 21.4
       },
       {
-        "id": "gndIn",
-        "kind": "port",
-        "type": "ground",
-        "func": "[gnd]",
-        "label": "",
-        "sub": "",
-        "rot": 0,
-        "x": 76.0,
-        "y": 11.0
-      },
-      {
         "id": "hdmiIn",
         "kind": "port",
         "type": "hdmi",
         "func": "HDMI",
         "label": "",
         "sub": "",
+        "lock": true,
         "rot": 0,
         "x": 84.9,
         "y": 19.8
@@ -98,7 +88,7 @@
       {
         "id": "fInput",
         "kind": "frame",
-        "members": ["gndIn", "hdmiIn", "usbHost", "vcxIn"],
+        "members": ["hdmiIn", "usbHost", "vcxIn"],
         "pad": 2,
         "padTop": 1,
         "padBottom": 0,
@@ -200,20 +190,10 @@
         "func": "HDMI",
         "label": "",
         "sub": "",
+        "lock": true,
         "rot": 0,
         "x": 40.3,
         "y": 19.8
-      },
-      {
-        "id": "gndOut",
-        "kind": "port",
-        "type": "ground",
-        "func": "[gnd]",
-        "label": "",
-        "sub": "",
-        "rot": 0,
-        "x": 33.0,
-        "y": 11.0
       },
       {
         "id": "audioOut",
@@ -232,7 +212,7 @@
       {
         "id": "fOutput",
         "kind": "frame",
-        "members": ["usbcOut", "hdmiOut", "gndOut", "audioOut"],
+        "members": ["usbcOut", "hdmiOut", "audioOut"],
         "pad": 2,
         "padTop": 1,
         "padBottom": 0,
@@ -268,26 +248,15 @@
         "func": "3",
         "label": "",
         "sub": "",
-        "lock": false,
+        "lock": true,
         "rot": 0,
         "x": 127.4,
         "y": 20.9
       },
       {
-        "id": "gndDev",
-        "kind": "port",
-        "type": "ground",
-        "func": "[gnd]",
-        "label": "",
-        "sub": "",
-        "rot": 0,
-        "x": 130.5,
-        "y": 14.0
-      },
-      {
         "id": "fDevice",
         "kind": "frame",
-        "members": ["dev1", "dev2", "dev3", "gndDev"],
+        "members": ["dev1", "dev2", "dev3"],
         "pad": 2,
         "padTop": 1,
         "padBottom": 0,

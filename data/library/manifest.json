@@ -1,4 +1,5 @@
 [
+  "hdp-hub42u40-tx-layout.json",
   "hdp-eub40cd-tx-de0012-layout.json",
   "hdprx-eub40d-de0012-layout.json",
   "hdp-eub40hcd-tx-de0012-layout.json",
@@ -11,5 +12,6 @@
   "pt-hdbt-150-layout.json",
   "pt-con-pex-110-layout.json",
   "pt-psw-21kvm-40g-rx-layout.json",
-  "pt-psw-21kvm-40g-tx-layout.json"
+  "pt-psw-21kvm-40g-tx-layout.json",
+  "pt-vcx25-46lx-layout.json"
 ]

@@ -118,21 +118,39 @@ confirm it comes out sensible (not reversed) after your correction, not
 just mirrored. A pin order that still reads backwards after "correction"
 means you only mirrored x and missed the y-flip.
 
-### Lock holes are easy to miss — and easy to confuse with ground screws
+### A small icon above a jack is a lock hole until proven otherwise
 
-`"lock": true` on a `usbc` (and a couple of other jack types) draws a small
-retention-screw circle **above** the port (not below — `lockY` is negative,
-i.e. up), a few mm off at a fixed `dist` per type (e.g. `usbc` is 6.8mm,
-`hdmi` is further). At a glance it can look like a stray grid dot. Zoom
-into a screenshot before concluding a lock hole didn't render.
+The single most common misreading in every run of this skill so far,
+including the one that wrote the first version of this cheat-sheet: a
+small icon sitting directly above an HDMI or USB-C connector is that
+connector's own **locking-screw insert** (`"lock": true` on the port
+item itself) — not a separate `ground` part, and not a separate unlabelled
+`led`. Default to that reading for any such icon; treat a genuine
+standalone ground screw or indicator LED at that position as the
+exception, not the default, and only model one when something about the
+drawing actively rules out a lock hole (wrong offset — see below — or a
+func label that names a ground pin specifically, e.g. `[gnd]`, rather
+than just sitting silently above the jack).
 
-A small round icon near a jack in the source drawing can be *either* a
-lock hole or a separate ground-screw part (`type: "ground"`) — they look
-similar at a glance. Tell them apart by **measuring its offset from the
-port**: if it matches that port type's own `PORTS[type].lock.dist` closely,
-it's the lock hole (part of that same port item, `"lock": true`), not a
-separate `ground` item. Ground screws tend to sit further off, near a
-panel edge or seam, and are usually a few mm larger.
+Mechanically: `"lock": true` draws a small retention-screw circle
+**above** the port (not below — `lockY` is negative, i.e. up), a few mm
+off at a fixed `dist` per type (`usbc` is 6.8mm, `hdmi` is 10.5mm — HDMI's
+is drawn as a more detailed "insert" graphic, which is exactly the
+hex/washer look that's easy to mistake for a `ground` part at a glance).
+At a glance a lock hole can also look like a stray grid dot. Zoom into a
+screenshot before concluding one didn't render, and before adding a
+`ground` item to explain an icon you've spotted — check whether the
+jack's own `lock` feature already accounts for it first (measure the
+icon's offset from the port and compare to `PORTS[type].lock.dist`; a
+real ground screw sits elsewhere, e.g. near a panel edge or seam, not
+hugging a specific jack).
+
+One practical consequence: because the lock hole is part of the port's
+*own* geometry (not a separate item you place), it's included automatically
+in that port's edge-clearance and overlap checks — you don't add a second
+item or a frame member for it, you just set `"lock": true` and verify the
+port's own position gives the hole enough room (see "Two things that
+actually went wrong" in `SKILL.md` for what happens when it doesn't).
 
 ### What's drawn but isn't silkscreen
 
@@ -157,13 +175,13 @@ connector art either (that art is generic, not brand-specific).
 | `eb35` / `eb35p2` / `eb35p5` / `eb35x2` | Phoenix/terminal block, 3/2/5-pin, 1 or 2 rows | `pins`, `pinLabels` (comma list, e.g. `"TX, [gnd], RX"`) |
 | `iec` | IEC C14 power inlet | |
 | `jack35`, `rca`, `toslink` | audio jacks | |
-| `led` | status LED | `color` (`red`/`green`/`blue`/`amber`/…), `size` (mm, `1.6`–`2` typical), `lit`. **`func` can be a bracket glyph token, not just text** — see below |
+| `led` | status LED | **only for a genuinely separate indicator** (its own labelled bank, e.g. per-input signal/link lights) — don't reach for this to explain a small icon sitting directly above a jack; that's almost always the jack's own lock hole, see above. `color` (`red`/`green`/`blue`/`amber`/…), `size` (mm, `1.6`–`2` typical), `lit`. **`func` can be a bracket glyph token, not just text** — see below. There's also no plain circular pushbutton part in this catalog — an unlit `led` sized to match is the usual stand-in for a drawing's plain round button (IR window, power, reset-style buttons), not a reach for `button` (a backlit rounded-*square*, a different shape) |
 | `button` | backlit push-button | |
 | `reset` | small reset pinhole | |
 | `pinhole` | plain unlabelled hole | |
 | `dip` / `dip4` / `dip8` / `dip2` | DIP switch, 5/4/8/2-way | the photo-realistic art already bakes in the position numbers (1..n) and "ON" marking — don't add separate text items for switch numbers; only add `pinLabels`/`pinGroups` if you actually need per-switch *meaning* text next to it |
 | `slide`, `slide3` | slide switch, 2 or 3-position | |
-| `ground` | M4 ground screw | fixed art at 8.4mm — a supplier drawing's own ground-screw icon is often drawn smaller (~5-6mm); if placing it at the drawing's exact spacing would make the tool's full-size art overlap a neighbour once rendered, nudge it a little further away rather than shrinking it (it isn't resizable) — note the nudge in `validation.cutouts` so it's not mistaken for a measurement error later |
+| `ground` | M4 ground screw | **only use this for an icon that fails the lock-hole check above** (wrong offset from any nearby jack, or its own `[gnd]`-style label). Fixed art at 8.4mm — a supplier drawing's own ground-screw icon is often drawn smaller (~5-6mm); if placing it at the drawing's exact spacing would make the tool's full-size art overlap a neighbour once rendered, nudge it a little further away rather than shrinking it (it isn't resizable) — note the nudge in `validation.cutouts` so it's not mistaken for a measurement error later |
 
 ### Bracket glyph tokens
 

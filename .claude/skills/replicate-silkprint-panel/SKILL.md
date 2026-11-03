@@ -160,7 +160,12 @@ a worked example), then add its filename to `data/library/manifest.json`
    HDBaseT box, blue USB-C box) showing where expected, and lock holes
    (`"lock": true` draws a small circle *above* the port, a few mm off —
    easy to mistake for a stray grid dot at a glance, so actually zoom in
-   rather than assuming it's missing).
+   rather than assuming it's missing). Before Step 3 even, read
+   `references/ports-cheatsheet.md`'s lock-hole section — a small icon
+   above an HDMI or USB-C jack in the source drawing is that jack's own
+   lock hole in the overwhelming majority of cases, not a separate
+   `ground` or `led` item; defaulting to a separate part there is the
+   single most repeated mistake in every run of this skill so far.
 5. **Scroll to the "Checks" panel and read it — don't skip this.** It's
    the app's own geometry/clearance validator, and it catches real
    placement bugs that are easy to miss by eye (a frame that runs off the
@@ -254,3 +259,106 @@ panel's top edge broke their `titlePos:"top"` frame (see "Two things
 that actually went wrong" above), and one had two ports spaced too
 close together for their shared text labels to fit. Step 5's Checks-panel
 check above is written the way it is because of exactly this.
+
+That same follow-up pass is also where the lock-hole-vs-ground-screw
+mistake above got caught — all three test files (and the original
+HDP-EUB40CD-TX-DE0012 build) had modelled a small icon above an HDMI or
+USB-C jack as a separate `ground`/`led` item instead of that jack's own
+`"lock": true`. All four were corrected afterward; if you're looking at
+an older copy of any of them for reference, check it still shows
+`"lock": true` on the port rather than a nearby `ground`/`led` item
+before trusting it as an example.
+
+`data/library/hdp-hub42u40-tx-layout.json` (a 4x2 HDMI/USB-C matrix
+switcher) is a later, more cramped example: a 320mm-wide, originally
+23mm-tall panel densely packed with switches, Phoenix terminal blocks,
+and HDMI/USB-C jacks with real lock holes. Worth reading if you hit any
+of these:
+
+- **Raise the chassis height rather than fight the squeeze.** At 23mm,
+  several lock holes, group frames, and labels had no valid position at
+  all — not a placement mistake, a real structural shortfall (the
+  numbers in "Two things that actually went wrong" show why). The fix
+  the user asked for was simply a taller chassis (30mm, which also
+  happened to match this width's actual housing-guide tier instead of
+  falling outside it) — cheaper and more honest than dropping content to
+  fit. If a product is this dense, don't assume the drawing's own stated
+  height is the one to build at; flag the squeeze and suggest the next
+  housing tier up before stripping detail to make a too-small panel work.
+- **`rules.alignLabels` can cascade a single fix into many new breaks.**
+  It snaps every "below"-positioned label within `alignRange` (default
+  4mm) of each other onto one shared line. Moving one port down to clear
+  a lock-hole conflict can drag every *other* label on that row down with
+  it — including ones that were already fine — straight off the panel
+  edge. If a small, local position change produces a wave of brand-new
+  "label runs off the panel face" errors across unrelated parts, this is
+  almost certainly why; either set `"alignLabels": false` for a dense
+  panel where rows were never going to line up perfectly anyway, or make
+  the fix in a way that doesn't move the shared row at all.
+- **A multi-line text block is a height problem, not a clearance
+  problem.** Stacking one label per switch position (e.g. 5 lines for a
+  5-way DIP) costs roughly (line count) × (line height) of vertical
+  space — for 5 lines that's 20mm+, which won't fit next to anything on
+  most panel heights no matter how much you nudge it. Prefer a single
+  compact line (`"IN1-4 / AUTO"` rather than one line per position) over
+  a tall stacked block.
+
+`data/library/pt-vcx25-46lx-layout.json` (a 42-port KVM TX switch,
+HDP-PSB42H100P-DE0012) is the first build where the user explicitly asked
+to go beyond front/rear and also (A) build the bottom-face panel for
+real and (B) fill in each port's detailed spec text from the bottom-leg
+legend — i.e. everything Step 1.3 above says to treat as reference-only
+by default. Worth reading if the user asks for the same:
+
+- **The bottom-face text is driven by fields on each port item, not
+  hand-placed text.** Set `it.spec = { note: "..." }` for a normal
+  connector (group other than 'Front panel' — see
+  `references/ports-cheatsheet.md`), `it.ledLegend` (RJ45/RJ45LP only,
+  `greenOff/greenOn/greenBlink/amberOff/amberOn/amberBlink`),
+  `it.pinFuncs`/`it.pinFuncs2` (array, per Phoenix pin), or
+  `it.bottomNote` (an extra freeform line any port can have). Then, live
+  in the browser console, call `insertFuncCodingNotes()` (it reads those
+  fields straight off `model`) and read the result back from
+  `model.housing.notes` — don't hand-simulate the layout math yourself.
+- **`it.spec.note` is silently dropped for `group: 'Front panel'` types**
+  (`led`, `button`, `dip`, `reset`, `slide`, …) — `hasSpec()` only allows
+  it for real connector groups. For a front-panel-style part, put
+  everything you want on the bottom face into `bottomNote` instead; it
+  always works, regardless of group.
+- **Don't repeat the port's own catalog name at the start of
+  `spec.note`.** The generator already prepends `PORTS[type].name` (e.g.
+  "USB-A", "USB-C") before your note, so writing `spec.note: "USB-A | 2.0
+  | 480Mbps"` renders as "USB-A | USB-A | 2.0 | 480Mbps". Write just the
+  part after that first "|" (`"2.0 | 480Mbps"`) and let the generator add
+  the type name once.
+- **`insertFuncCodingNotes()` lays everything out in one single stacked
+  column**, in panel-then-frame order, merging front and rear groups
+  that share the same frame title (e.g. a front "AUDIO" selector group
+  and a rear "AUDIO" port group become one combined column) — which is
+  the right behaviour, but for a wide/dense product the column can run
+  far past the housing's actual depth (390mm-wide, 6-group product here
+  stacked to ~204mm of column height against a 130mm depth). Call the
+  function, then **regroup the generated `housing.notes` into a grid by
+  hand**: split on the `kind:'box', style:'header'` items to find each
+  frame-title group's own lines, measure each group's natural height
+  from its own item spread, then reassign `x`/`y` in columns/rows that
+  fit the real depth (preserve each line's *relative* x-indent within
+  its group when you shift the column, since sub-bullet lines like the
+  LED-legend rows are indented further than the port lines). Add
+  MAC/RATING/NOTES/Device-Info boxes afterward in the space below, at
+  their style-guide fixed/minimum sizes (see the `addHousingBox`/
+  `STICKER_SIZE`/`NOTES_MIN` constants in `index.html`).
+- **The Housing tab's own UI can be gated behind a "Housing opens after
+  panel approval" screen** (save to library + an approver signs off)
+  that this skill's established workflow has no need to go through —
+  `insertFuncCodingNotes()`, `addHousingBox()`, and `model.housing.notes`
+  are plain functions/data on `window`, callable directly from the JS
+  console regardless of that UI gate.
+- **Getting a large JS value (e.g. the full `housing.notes` array) back
+  out of the browser console can get silently truncated** by the tool
+  output itself, even well under what `JSON.stringify` actually
+  produced. The reliable way: trigger a real file download from the page
+  (`new Blob([...]) → URL.createObjectURL → <a download> → .click()`)
+  and then read it back with the Read tool from the Downloads folder —
+  delete the scratch download afterward once you've copied what you
+  need into the layout file.

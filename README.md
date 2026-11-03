@@ -8,17 +8,32 @@ dimension guides, housing and 3D views, silkscreen rules, a validation
 "Checks" panel, and a revision/approval workflow (Draft → Approved →
 Released).
 
+For contributors (human or AI): see [CLAUDE.md](CLAUDE.md) for the
+full architecture/conventions reference this README summarizes.
+
 ## Repo layout
 
 This repo's root **is** the Panel Builder app (`index.html` here is
-Module 1). Two more modules live as subfolders:
+Module 1). More modules live as subfolders:
 
 - [`modules-hub/`](modules-hub/index.html) — the launcher shell
-  (collapsible sidebar, embeds whichever module is selected)
+  (collapsible sidebar, embeds whichever module is selected, has the
+  "Push to GitHub" button)
+- [`content-builder/`](content-builder/index.html) — builds PIM/label/
+  sales copy (Feature Title, Features, Use Case, Label Text, Concept
+  Document) for a product, optionally AI-drafted from its linked Panel
+  Builder panels' real ports; exports to `.xlsx` and `.docx`
 - [`system-diagrams/`](system-diagrams/index.html) — Module 2, a
   viewer for the real PureLink System Diagram Library
 - [`shared/local-db.js`](shared/local-db.js) — the local persistence
   shim every module includes
+- [`tools/dev_server.py`](tools/dev_server.py) — the static server
+  (`start.bat`/`stop.bat` run it) plus the JSON API routes the modules'
+  export/publish/AI-draft/push-to-GitHub buttons call
+- [`data/library/`](data/library/) — the shared panel-layout library
+  (see [Bringing panels over from claude.ai](#bringing-panels-over-from-claudeai))
+- `reference/` — internal PureLink styleguides/CAD, gitignored on
+  purpose (only `reference/INDEX.md` is tracked)
 
 ## How to open this
 
@@ -103,4 +118,5 @@ load into the Library automatically the first time you open the app.
 - `start.bat` / `stop.bat` — start/stop the shared local server for the whole suite
 - `data/library/` — exported layout JSONs + `manifest.json`, auto-loaded into the local Library on first run (see above)
 - `index.html.bak` — untouched copy of the original export, kept as a safety copy; safe to delete whenever you're satisfied
-- `shared/`, `modules-hub/`, `system-diagrams/` — see [Repo layout](#repo-layout) above
+- `shared/`, `modules-hub/`, `content-builder/`, `system-diagrams/`, `tools/` — see [Repo layout](#repo-layout) above
+- `CLAUDE.md` — architecture/conventions reference for anyone (human or AI) working on this repo

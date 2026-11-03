@@ -75,23 +75,13 @@
     ],
     "rear": [
       {
-        "id": "gndOut",
-        "kind": "port",
-        "type": "ground",
-        "func": "[gnd]",
-        "label": "",
-        "sub": "",
-        "rot": 0,
-        "x": 10.0,
-        "y": 11.0
-      },
-      {
         "id": "hdmi",
         "kind": "port",
         "type": "hdmi",
         "func": "HDMI",
         "label": "",
         "sub": "",
+        "lock": true,
         "rot": 0,
         "x": 15.4,
         "y": 19.8
@@ -113,7 +103,7 @@
       {
         "id": "fOutput",
         "kind": "frame",
-        "members": ["gndOut", "hdmi", "audio"],
+        "members": ["hdmi", "audio"],
         "pad": 2,
         "padTop": 1,
         "padBottom": 0,
@@ -149,26 +139,15 @@
         "func": "3",
         "label": "",
         "sub": "",
-        "lock": false,
+        "lock": true,
         "rot": 0,
         "x": 87.3,
         "y": 20.8
       },
       {
-        "id": "gndDev3",
-        "kind": "port",
-        "type": "ground",
-        "func": "[gnd]",
-        "label": "",
-        "sub": "",
-        "rot": 0,
-        "x": 95.0,
-        "y": 12.9
-      },
-      {
         "id": "fDevice",
         "kind": "frame",
-        "members": ["dev1", "dev2", "dev3", "gndDev3"],
+        "members": ["dev1", "dev2", "dev3"],
         "pad": 2,
         "padTop": 1,
         "padBottom": 0,
@@ -205,21 +184,10 @@
         "func": "PD",
         "label": "",
         "sub": "",
-        "lock": false,
+        "lock": true,
         "rot": 0,
         "x": 145.5,
         "y": 18.4
-      },
-      {
-        "id": "gndPd",
-        "kind": "port",
-        "type": "ground",
-        "func": "[gnd]",
-        "label": "",
-        "sub": "",
-        "rot": 0,
-        "x": 139.5,
-        "y": 10.7
       }
     ]
   },
