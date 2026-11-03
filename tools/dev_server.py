@@ -477,6 +477,16 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     def log_message(self, fmt, *args):
         sys.stderr.write("%s - - [%s] %s\n" % (self.address_string(), self.log_date_time_string(), fmt % args))
 
+    def end_headers(self):
+        # This server exists so every edit shows up on the next reload —
+        # SimpleHTTPRequestHandler sends Last-Modified but no Cache-Control,
+        # which lets browsers heuristically cache a page for a while and
+        # silently keep serving it after a real edit. Restarting this
+        # process doesn't fix that either: the stale copy lives in the
+        # browser, not here. A page load should always hit the disk.
+        self.send_header("Cache-Control", "no-store")
+        super().end_headers()
+
     def do_POST(self):
         if self.path == "/api/git-push":
             ok, log = self.git_push()
