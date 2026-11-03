@@ -59,10 +59,18 @@ brief:
 - `POST /api/publish-to-library` — writes a panel's layout JSON into
   `data/library/` and registers it in `data/library/manifest.json`
   (Panel Builder's "Publish to System Diagrams library" export).
-- `POST /api/export-content-xlsx` — Content Builder's Excel export.
-- `POST /api/export-content-prd-docx` — Content Builder's Word Concept
-  Document export, embeds the linked panel's rendered silkscreen image
-  when one exists.
+- `POST /api/export-content-xlsx` — Content Builder's Export to Excel
+  button. Opens PureLink's own real product masterfile template
+  (`CONTENT_MASTERFILE_TEMPLATE`, a path onto the `I:\` network drive —
+  **requires that drive to be mounted**) and overwrites only this
+  record's own literal cells in it; every formula and every other
+  product's example row is passed through unchanged. See
+  `build_content_workbook()`'s docstring for exactly which cells that is.
+- `POST /api/export-content-prd-docx` — Content Builder's Export to Word
+  (PRD) button. The client renders the linked panel(s) live from Panel
+  Builder (front/rear PNGs via its own `panelPNG()`) and posts them
+  alongside the record; the server embeds those under the PRD's
+  Silkscreen and Interface Layout sections.
 - `POST /api/draft-content` — Content Builder's "Draft with AI" button;
   calls the real Anthropic API. Needs a key — see below. **As of
   2026-11, the Anthropic organisation used here has $0 credits, so this

@@ -8,10 +8,13 @@ POST /api/save-product-icon — writes a generated product icon file to
 POST /api/publish-to-library — writes a panel's layout JSON into
   data/library/ and registers it in data/library/manifest.json (used by
   Panel Builder's "Publish to System Diagrams library" export option).
-POST /api/export-content-xlsx — builds a .xlsx from a Content Builder
-  record, shaped to match the real PureTools product masterfile tabs
-  (Silk&feature data / BURO+ info / PIM Upload row 5 / Label Text), and
-  returns it as a file download (used by Content Builder's Export button).
+POST /api/export-content-xlsx — builds a .xlsx by opening PureLink's own
+  real product masterfile template (CONTENT_MASTERFILE_TEMPLATE, on the
+  shared network drive) and overwriting only this record's own literal
+  cells — every other tab/row/formula in the real file is passed through
+  untouched, including the other real products kept in it as style/
+  format examples. Returns it as a file download (used by Content
+  Builder's Export to Excel button).
 POST /api/draft-content — drafts Feature Title, the 5 Features, Use Case
   and Label Text for a Content Builder record from its seed notes and
   linked Product Builder panels' real ports, via the Anthropic API (used
@@ -44,7 +47,6 @@ import urllib.request
 from pathlib import Path
 
 import openpyxl
-from openpyxl.styles import Font
 from docx import Document
 from docx.shared import Mm
 
@@ -55,6 +57,18 @@ SAFE_ICON_NAME = re.compile(r"^Product_[A-Za-z0-9_-]+\.(svg|png)$")
 LIBRARY_DIR = REPO_ROOT / "data" / "library"
 MANIFEST_PATH = LIBRARY_DIR / "manifest.json"
 SAFE_LIBRARY_NAME = re.compile(r"^[a-z0-9-]+-layout\.json$")
+
+# The real PureTools product masterfile, kept on the shared network drive
+# (reference/ is deliberately for reusable style guides, not one-off/
+# per-product company files like this one — see reference/INDEX.md).
+# Row 7 of "Silk&feature data" is this one's own subject product; every
+# other row in it, and every other tab, is either a real other product
+# kept purely as a style/format example or a formula driven off row 7 —
+# see build_content_workbook() for exactly what gets overwritten.
+CONTENT_MASTERFILE_TEMPLATE = Path(
+    r"I:\Engineering\Product Management\Product master file\PureTools"
+    r"\PT-PSW-21KVM-40G_Product_Masterfile161026.xlsx"
+)
 
 ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages"
 ANTHROPIC_MODEL = "claude-sonnet-5-5"
@@ -197,100 +211,82 @@ def call_anthropic_draft(key, payload):
 
 
 def build_content_workbook(r):
-    """Shapes a Content Builder record into the same tabs/columns as the
-    real PureTools product masterfile (Silk&feature data, BURO+ info, PIM
-    Upload row 5 only, Label Text) so it drops into existing downstream
-    processes unchanged. Values are written as plain text/numbers, not
-    formulas: the app is the live source of truth now, this file is a
-    one-way export snapshot, not something meant to be hand-edited and
-    recalculated in Excel.
+    """Opens PureLink's own real product masterfile (see
+    CONTENT_MASTERFILE_TEMPLATE) and overwrites only this record's own
+    literal cells in it — every formula is left alone (most of the other
+    tabs — Catalogue, Data Sheet's headline/features, Amazon data — pull
+    from Silk&feature data row 7 via formulas and pick up the new product
+    automatically once opened in Excel), and every other row in it is a
+    real other product kept purely as a style/format example, also left
+    alone. Sections with no Content Builder equivalent (Data Sheet's deep
+    per-port spec table, NRD Text's family marketing copy) are out of
+    scope and untouched.
     """
-    wb = openpyxl.Workbook()
-    bold = Font(bold=True)
+    if not CONTENT_MASTERFILE_TEMPLATE.exists():
+        raise RuntimeError(
+            f"Can't reach the masterfile template at {CONTENT_MASTERFILE_TEMPLATE} "
+            "— check the I: network drive is mounted, then try again."
+        )
+    wb = openpyxl.load_workbook(CONTENT_MASTERFILE_TEMPLATE)
 
-    def sheet(name, headers, values, start_col=1):
-        ws = wb.create_sheet(name)
-        for i, h in enumerate(headers):
-            c = ws.cell(row=1, column=start_col + i, value=h)
-            c.font = bold
-        for i, v in enumerate(values):
-            ws.cell(row=2, column=start_col + i, value=v)
-        return ws
-
-    wb.remove(wb.active)
-
-    features = (r.get("features") or []) + [""] * 5
-    features = features[:10] if len(features) > 5 else (features + [""] * (5 - len(features)))[:5]
-    label_features = (r.get("labelFeatures") or []) + [""] * 5
-    label_features = label_features[:5]
-    feature_images = (r.get("featureImages") or []) + [""] * 4
-    feature_images = feature_images[:4]
+    features = ((r.get("features") or []) + [""] * 5)[:5]
+    label_features = ((r.get("labelFeatures") or []) + [""] * 5)[:5]
+    feature_images = ((r.get("featureImages") or []) + [""] * 4)[:4]
     sku = r.get("sku") or ""
-    name = r.get("name") or ""
-    silk_desc = r.get("silkDescription") or ""
-    long_desc = (name + " - " + ". ".join(f for f in features if f)).strip(" -")
 
-    sheet(
-        "Silk&feature data",
-        ["#", "Supplier Model", "PureLink Article Number", 'Packaging sticker "Item Description"',
-         "Silk Screen Heading", 'Silk screen - Bold Blue "Type"', 'Silk Screen - Small blue "Type"',
-         "Silk Screen - Description Line 1 and 2", "Feature Title",
-         "Feature 1", "Feature 2", "Feature 3", "Feature 4", "Feature 5", "EAN#"],
-        [1, r.get("supplierModel", ""), sku, r.get("packagingDescription", ""),
-         r.get("silkHeading", "PureTools"), r.get("silkTypeBold", ""), r.get("silkTypeSmall", ""),
-         silk_desc, r.get("featureTitle", ""), *features, r.get("ean", "")],
-    )
+    silk = wb["Silk&feature data"]
+    silk["A7"] = 1
+    silk["B7"] = r.get("supplierModel", "")
+    silk["C7"] = sku
+    silk["D7"] = r.get("packagingDescription", "")
+    silk["E7"] = r.get("silkHeading", "PureTools")
+    silk["F7"] = r.get("silkTypeBold", "")
+    silk["G7"] = r.get("silkTypeSmall", "")
+    silk["H7"] = r.get("silkDescription", "")
+    silk["I7"] = r.get("featureTitle", "")
+    for col, val in zip("JKLMN", features):
+        silk[f"{col}7"] = val
+    silk["O7"] = r.get("ean", "")
 
-    sheet(
-        "BURO+ info",
-        ["#", "Supplier model name", "PureLink Article Number", "search key", "Short description",
-         "Long description", "Price", "MOQ", "Feature Title",
-         "Feature 1", "Feature 2", "Feature 3", "Feature 4", "Feature 5", "EAN#"],
-        [1, r.get("supplierModel", ""), sku, r.get("searchKey", ""), (name + " - " + silk_desc).strip(" -"),
-         long_desc, r.get("price"), r.get("moq"), r.get("featureTitle", ""), *features, r.get("ean", "")],
-    )
+    # BURO+ info row 2: everything else here is a formula off Silk&feature
+    # data row 7 — only these three are typed directly, the rest must stay
+    # formulas so they keep tracking row 7.
+    buro = wb["BURO+ info"]
+    buro["D2"] = r.get("searchKey", "")
+    buro["G2"] = r.get("price")
+    buro["H2"] = r.get("moq")
 
-    # PIM Upload: row 5 of the real file only — the batch-entry rows and the
-    # legacy second attribute block are deliberately not reproduced here.
-    ws = wb.create_sheet("PIM Upload")
-    pim_codes = ["ID", "EXTERNALKEY", "NAME", "ATTRIBUTE478", "ATTRIBUTE480", "ATTRIBUTE491", "ATTRIBUTE492",
-                 "ATTRIBUTE493", "ATTRIBUTE494", "ATTRIBUTE495", "ATTRIBUTE496", "ATTRIBUTE497", "ATTRIBUTE498",
-                 "ATTRIBUTE499", "ATTRIBUTE500", "ATTRIBUTE322959", "ATTRIBUTE322960", "ATTRIBUTE531",
-                 "ATTRIBUTE532", "ATTRIBUTE533", "ATTRIBUTE534", "NAVIGATIONPATH", "ATTRIBUTE548",
-                 "ATTRIBUTE537", "ATTRIBUTE18643", "DATECREATED", "DATEMODIFIED"]
-    pim_labels = ["ID", "EXTERNALKEY", "NAME", "Online Headline/Title", "Item Description Headline",
-                  "Feature 1", "Feature 2", "Feature 3", "Feature 4", "Feature 5", "Feature 6", "Feature 7",
-                  "Feature 8", "Feature 9", "Feature 10", "Feature 11 (Usecase)", "Feature 12 (Prompt Ergänzung)",
-                  "Feature image 1", "Feature image 2", "Feature image 3", "Feature image 4", "NAVIGATIONPATH",
-                  "Picture 1", "Cross-Selling", "Article properties (Filter)", "DATECREATED", "DATEMODIFIED"]
-    now = datetime.datetime.now().strftime("%Y-%m-%d")
-    pim_values = ["", "", name, r.get("onlineHeadline", ""), r.get("itemDescriptionHeadline", ""),
-                  *features, "", "", "", "", "", r.get("useCase", ""), r.get("additionalContext", ""),
-                  *feature_images, r.get("navigationPath", ""), "", r.get("crossSelling", ""),
-                  r.get("articleProperties", ""), now, now]
-    for i, v in enumerate(pim_codes):
-        ws.cell(row=3, column=2 + i, value=v).font = bold
-    for i, v in enumerate(pim_labels):
-        ws.cell(row=4, column=2 + i, value=v).font = bold
-    for i, v in enumerate(pim_values):
-        ws.cell(row=5, column=2 + i, value=v)
+    # Online Data's Button 1-4 image filenames (column C, this product's
+    # pair) have no formula in the template — the only literal cells here.
+    online = wb["Online Data"]
+    for row, val in zip((12, 13, 14, 15), feature_images):
+        online[f"C{row}"] = val
 
-    sheet(
-        "Label Text",
-        ["#", "Supplier model name", 'Packaging sticker "Item Description"', "Abw. ArtNr.", "HEADLINE",
-         "Feature 1", "Feature 2", "Feature 3", "Feature 4", "Feature 5", "EAN"],
-        [1, r.get("supplierModel", ""), r.get("packagingDescription", ""), sku, r.get("featureTitle", ""),
-         *label_features, r.get("ean", "")],
-        start_col=2,
-    )
+    # PIM Upload row 5: Feature 1-5 etc. are formulas off row 7; these are
+    # the literal cells the template doesn't derive for us.
+    pim = wb["PIM Upload"]
+    pim["R5"] = r.get("additionalContext", "")
+    for col, val in zip("STUV", feature_images):
+        pim[f"{col}5"] = val
+    pim["W5"] = r.get("navigationPath", "")
+    pim["Y5"] = r.get("crossSelling", "")
+    pim["Z5"] = r.get("articleProperties", "")
 
-    sheet(
-        "Power point slide",
-        ["Title", "Partnumber", "Feature 1", "Feature 2", "Feature 3", "Feature 4", "Feature 5",
-         "Use Case", "UVP"],
-        [name, sku, *features, r.get("useCase", ""), r.get("price")],
-        start_col=23,  # matches the real tab's columns starting at W
-    )
+    # Label Text row 3: HEADLINE/Feature 1-5 are literal (printed on the
+    # physical label); F3 ("Length") is a print-spec code from the
+    # template's own example product with no Content Builder equivalent —
+    # cleared rather than left showing the wrong product's value.
+    label = wb["Label Text"]
+    label["F3"] = ""
+    label["G3"] = r.get("featureTitle", "")
+    for col, val in zip("HIJKL", label_features):
+        label[f"{col}3"] = val
+
+    # Power point slide: Title/Partnumber/bullet points are formulas off
+    # row 7; Use Case and UVP are the template's only literal cells.
+    ppt = wb["Power point slide"]
+    ppt["X30"] = r.get("useCase", "")
+    ppt["X36"] = r.get("price")
 
     return wb
 
