@@ -47,6 +47,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 .pill i{width:8px;height:8px;border-radius:50%;background:#9AA2AA}
 .pill.committed i{background:#2E9E5B}
 .status .who{font-size:13px;color:var(--muted)}
+.status .flowHint{font-size:12.5px;color:var(--muted);font-style:italic}
 .status .btn{height:28px;font-size:13px}
 
 main{overflow-y:auto;padding:20px 16px 60px}
@@ -122,8 +123,10 @@ dialog::backdrop{background:rgba(10,14,18,.45)}
 .docImg img{max-width:160px;max-height:120px;object-fit:contain;display:block;margin:0 auto 6px;background:var(--surface);border-radius:6px}
 .docImg .cap{font-size:11.5px;color:var(--muted)}
 
-#panelRef{background:var(--surface);border-bottom:1px solid var(--line);padding:8px 16px 0;display:flex;flex-direction:column;flex-shrink:0}
-.panelRefImgs{display:flex;gap:10px;height:110px}
+#panelRef{background:var(--surface);border-bottom:1px solid var(--line);padding:8px 16px 0;display:flex;flex-direction:column;flex-shrink:0;max-height:60vh;overflow-y:auto;--panelRefRowH:110px}
+.panelRefRows{display:flex;flex-direction:column;gap:8px}
+.panelRefRowLabel{font-size:11.5px;color:var(--muted);margin-bottom:-2px}
+.panelRefImgs{display:flex;gap:10px;height:var(--panelRefRowH)}
 .panelRefSlot{flex:1;min-width:0;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);position:relative;overflow:hidden}
 .panelRefSlot img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
 .panelRefSlot .ph{position:absolute;inset:0;background:linear-gradient(to bottom right, transparent calc(50% - 0.75px), var(--muted) calc(50% - 0.75px), var(--muted) calc(50% + 0.75px), transparent calc(50% + 0.75px))}
@@ -158,10 +161,7 @@ dialog::backdrop{background:rgba(10,14,18,.45)}
 </nav>
 
 <div id="panelRef">
-  <div class="panelRefImgs" id="panelRefImgs">
-    <div class="panelRefSlot" id="panelRefFront"><span class="lbl">Front</span><div class="ph"></div></div>
-    <div class="panelRefSlot" id="panelRefRear"><span class="lbl">Rear</span><div class="ph"></div></div>
-  </div>
+  <div class="panelRefRows" id="panelRefRows"></div>
   <div class="panelRefHandle" id="panelRefHandle" title="Drag to resize" role="slider" aria-label="Resize panel reference" tabindex="0"></div>
 </div>
 
@@ -572,7 +572,10 @@ function renderFlow() {
     btns += `<button class="btn primary" data-flow="commit" ${missing.length ? 'disabled title="Needs: ' + esc(missing.join(', ')) + '"' : ''}>Commit to full production</button>`;
   }
   const who = committed && model.committedAt ? `<span class="who">Committed ${fmtDate(model.committedAt)}</span>` : '';
-  bar.innerHTML = pill + who + btns;
+  const hint = committed
+    ? 'PIM fields, Label Text and feature images are unlocked — this is the package handed to PIM/ERP/Graphics.'
+    : 'PIM fields, Label Text and feature images stay locked until committed.';
+  bar.innerHTML = pill + who + btns + `<span class="flowHint">${hint}</span>`;
   $$('[data-flow]', bar).forEach(b => b.onclick = () => b.dataset.flow === 'commit' ? commitStage() : returnToConcept());
   maybeRenderPanelRef();
 }
@@ -587,7 +590,10 @@ let panelRefFrame = null, panelRefFrameReady = false;
 function ensurePanelRefFrame() {
   if (panelRefFrame) return panelRefFrame;
   const f = document.createElement('iframe');
-  f.src = '../index.html';
+  // Cache-busted: the browser's HTTP cache for Panel Builder's own page
+  // (very likely already populated — people open it directly too) must
+  // never shadow a newer deploy just because this strip asked for it first.
+  f.src = '../index.html?ref=' + Date.now();
   f.style.display = 'none';
   f.setAttribute('aria-hidden', 'true');
   f.onload = () => { panelRefFrameReady = true; };
@@ -608,6 +614,17 @@ function setRefSlot(el, svgString) {
     const ph = document.createElement('div'); ph.className = 'ph'; el.appendChild(ph);
   }
 }
+function buildPanelRefRow(showLabel) {
+  const row = document.createElement('div'); row.className = 'panelRefRow';
+  if (showLabel) { const l = document.createElement('div'); l.className = 'panelRefRowLabel'; row.appendChild(l); }
+  const imgs = document.createElement('div'); imgs.className = 'panelRefImgs';
+  const front = document.createElement('div'); front.className = 'panelRefSlot';
+  front.innerHTML = '<span class="lbl">Front</span><div class="ph"></div>';
+  const rear = document.createElement('div'); rear.className = 'panelRefSlot';
+  rear.innerHTML = '<span class="lbl">Rear</span><div class="ph"></div>';
+  imgs.append(front, rear); row.appendChild(imgs);
+  return { row, front, rear, labelEl: row.querySelector('.panelRefRowLabel') };
+}
 let lastPanelRefKey = undefined;
 function maybeRenderPanelRef(force) {
   const key = JSON.stringify(model.linkedPanels.map(p => p.id));
@@ -616,58 +633,82 @@ function maybeRenderPanelRef(force) {
   renderPanelRef();
 }
 async function renderPanelRef() {
-  const front = $('#panelRefFront'), rear = $('#panelRefRear');
-  if (!front || !rear) return;
-  if (!model.linkedPanels.length) { setRefSlot(front, null); setRefSlot(rear, null); return; }
-  const full = await loadLinkedPanelFull();
-  if (!full) { setRefSlot(front, null); setRefSlot(rear, null); return; }
+  const container = $('#panelRefRows');
+  if (!container) return;
+  if (!model.linkedPanels.length) {
+    container.innerHTML = '';
+    const { row, front, rear } = buildPanelRefRow(false);
+    container.appendChild(row);
+    setRefSlot(front, null); setRefSlot(rear, null);
+    return;
+  }
+  const panels = await loadAllLinkedPanelsFull();
+  if (!panels.length) {
+    container.innerHTML = '';
+    const { row, front, rear } = buildPanelRefRow(false);
+    container.appendChild(row);
+    setRefSlot(front, null); setRefSlot(rear, null);
+    return;
+  }
   const frame = ensurePanelRefFrame();
-  if (!panelRefFrameReady || typeof frame.contentWindow.loadModel !== 'function') {
+  if (!panelRefFrameReady || typeof frame.contentWindow.setModelForExport !== 'function') {
     frame.addEventListener('load', () => renderPanelRef(), { once: true });
     return;
   }
-  try {
-    // Deliberately not calling the iframe's loadModel() — it calls Panel
-    // Builder's own saveDraft(), which writes 'purelink-panel-builder:draft'
-    // in the SAME shared localStorage a real Panel Builder tab uses, and
-    // would clobber someone's actual in-progress edit there just to borrow
-    // its renderer for a thumbnail. exportSVG() only ever reads .model, so
-    // set that directly (the same line loadModel() itself uses) instead.
-    frame.contentWindow.model = frame.contentWindow.normalise(JSON.parse(JSON.stringify(full.data)));
-    setRefSlot(front, frame.contentWindow.exportSVG('front', 'concept', true));
-    setRefSlot(rear, frame.contentWindow.exportSVG('rear', 'concept', true));
-  } catch (e) { setRefSlot(front, null); setRefSlot(rear, null); }
+  container.innerHTML = '';
+  const showLabel = panels.length > 1;
+  for (const full of panels) {
+    const { row, front, rear, labelEl } = buildPanelRefRow(showLabel);
+    if (labelEl) labelEl.textContent = [full.name, full.sku].filter(Boolean).join(' · ');
+    container.appendChild(row);
+    try {
+      // Deliberately calling the iframe's dedicated setModelForExport()
+      // rather than its loadModel() or setting .model directly:
+      // - loadModel() calls Panel Builder's own saveDraft(), which would
+      //   overwrite the SAME shared 'purelink-panel-builder:draft'
+      //   localStorage key a real Panel Builder tab uses, just to borrow
+      //   its renderer for a thumbnail.
+      // - `frame.contentWindow.model = ...` silently does NOT work: Panel
+      //   Builder's `model` is a top-level `let`, which is not reachable
+      //   as a `window` property from outside — it only ever changes
+      //   whatever Panel Builder's own `start()` happened to load.
+      frame.contentWindow.setModelForExport(full.data);
+      setRefSlot(front, frame.contentWindow.exportSVG('front', 'concept', true));
+      setRefSlot(rear, frame.contentWindow.exportSVG('rear', 'concept', true));
+    } catch (e) { setRefSlot(front, null); setRefSlot(rear, null); }
+  }
 }
 
 const PANEL_REF_HEIGHT_KEY = 'purelink-content-builder:panelRefHeight';
 (function wirePanelRefResize() {
-  const imgs = $('#panelRefImgs'), handle = $('#panelRefHandle');
-  const saved = parseInt(localStorage.getItem(PANEL_REF_HEIGHT_KEY), 10);
-  if (saved && saved >= 70 && saved <= 360) imgs.style.height = saved + 'px';
-  let startY = 0, startH = 0, dragging = false;
+  // One shared height applies to every linked panel's row via a CSS
+  // variable, rather than each row's own element — the number of rows
+  // changes as panels are linked/unlinked, the height setting shouldn't.
+  const ref = $('#panelRef'), handle = $('#panelRefHandle');
   const clamp = h => Math.max(70, Math.min(360, h));
-  const onMove = e => {
-    if (!dragging) return;
-    const h = clamp(startH + (e.clientY - startY));
-    imgs.style.height = h + 'px';
-  };
+  const setHeight = h => ref.style.setProperty('--panelRefRowH', h + 'px');
+  const saved = parseInt(localStorage.getItem(PANEL_REF_HEIGHT_KEY), 10);
+  if (saved && saved >= 70 && saved <= 360) setHeight(saved);
+  let startY = 0, startH = 0, dragging = false;
+  const currentHeight = () => { const row = ref.querySelector('.panelRefImgs'); return row ? row.getBoundingClientRect().height : 110; };
+  const onMove = e => { if (dragging) setHeight(clamp(startH + (e.clientY - startY))); };
   const onUp = () => {
     if (!dragging) return;
     dragging = false;
-    try { localStorage.setItem(PANEL_REF_HEIGHT_KEY, parseInt(imgs.style.height, 10)); } catch (e) { }
+    try { localStorage.setItem(PANEL_REF_HEIGHT_KEY, Math.round(currentHeight())); } catch (e) { }
     window.removeEventListener('pointermove', onMove);
     window.removeEventListener('pointerup', onUp);
   };
   handle.addEventListener('pointerdown', e => {
-    dragging = true; startY = e.clientY; startH = imgs.getBoundingClientRect().height;
+    dragging = true; startY = e.clientY; startH = currentHeight();
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
     e.preventDefault();
   });
   handle.addEventListener('keydown', e => {
     if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
-    const h = clamp(imgs.getBoundingClientRect().height + (e.key === 'ArrowUp' ? 10 : -10));
-    imgs.style.height = h + 'px';
+    const h = clamp(currentHeight() + (e.key === 'ArrowUp' ? 10 : -10));
+    setHeight(h);
     try { localStorage.setItem(PANEL_REF_HEIGHT_KEY, h); } catch (err) { }
     e.preventDefault();
   });
@@ -842,6 +883,19 @@ async function loadLinkedPanelFull() {
     } catch (e) { /* try the next linked panel */ }
   }
   return null;
+}
+async function loadAllLinkedPanelsFull() {
+  if (!db || !model.linkedPanels.length) return [];
+  const out = [];
+  for (const p of model.linkedPanels) {
+    try {
+      const doc = await db.collection('layouts').doc(p.id).get();
+      const rec = doc && (typeof doc.data === 'function' ? doc.data() : doc);
+      const data = rec && (rec.layout || rec);
+      if (data && data.panels) out.push({ id: p.id, sku: data.sku || p.sku || '', name: data.name || p.name || '', data });
+    } catch (e) { /* skip a panel that can't be read, keep the rest */ }
+  }
+  return out;
 }
 
 function classifyPorts(data) {

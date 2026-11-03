@@ -3918,6 +3918,19 @@ function loadModel(m, meta = {}) {
   savedJSON = meta.saved ? JSON.stringify(model) : null;
   sel = []; activePanel = 'front'; resetHistory(); saveDraft(); renderAll(); renderPalette();
 }
+// Lets another same-origin page (Content Builder's panel reference strip,
+// loading this page in a hidden iframe purely to borrow exportSVG())
+// render a specific layout without going through loadModel(). `model` is
+// a top-level `let`, so it is NOT reachable as `iframe.contentWindow.model`
+// from outside — only this page's own code can actually reassign it, which
+// is the whole reason this setter has to live here rather than in the
+// caller. Deliberately skips everything else loadModel() does (selection
+// reset, undo history, docId/savedJSON, renderAll/renderPalette, and
+// crucially saveDraft() — exportSVG() only ever reads from `model`, and a
+// hidden reference render has no business overwriting the real
+// 'purelink-panel-builder:draft' localStorage key a genuine Panel Builder
+// tab is using).
+function setModelForExport(m) { model = normalise(JSON.parse(JSON.stringify(m))); }
 
 /* ---------- team library ---------- */
 async function initCapabilities() {
