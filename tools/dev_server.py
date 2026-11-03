@@ -17,11 +17,12 @@ POST /api/draft-content — drafts Feature Title, the 5 Features, Use Case
   linked Product Builder panels' real ports, via the Anthropic API (used
   by Content Builder's "Draft with AI" button). Needs an API key — see
   get_anthropic_key() below.
-POST /api/export-content-prd-docx — builds a .docx Concept Document (the
-  PureLink house PRD style issued to ODM factories) from a Content
-  Builder record's `concept` fields, embedding the linked panel's
-  rendered silkscreen image from system-diagrams/assets/products/ where
-  one exists (used by Content Builder's "Export to Word" button).
+POST /api/export-content-prd-docx — builds a .docx PRD (the PureLink
+  house PRD style issued to ODM factories) from a Content Builder
+  record's `concept` fields, embedding PNG renders of the linked
+  panel(s) that the client renders live from Panel Builder and posts
+  alongside the record (used by Content Builder's "Export to Word"
+  button).
 
 Used by start.bat instead of plain `python -m http.server` so the Hub's
 "Push to GitHub" button, the icon generator's save button, Panel
@@ -294,22 +295,6 @@ def build_content_workbook(r):
     return wb
 
 
-def resolve_panel_image(r):
-    """The linked panel's rendered front icon from the System Diagrams
-    library, if one has been generated for it — None (not an error) when
-    no panel is linked yet or no render exists, matching the brief that
-    anything that can't be inferred stays blank."""
-    panels = r.get("linkedPanels") or []
-    sku = panels[0].get("sku") if panels else None
-    if not sku:
-        return None
-    for view in ("Front-Right", "Front-Left"):
-        path = PRODUCT_ICONS_DIR / f"Product_{sku}_{view}.png"
-        if path.exists():
-            return path
-    return None
-
-
 def _doc_table(doc, headers, rows):
     table = doc.add_table(rows=1, cols=len(headers))
     table.style = "Table Grid"
@@ -396,13 +381,27 @@ def build_prd_document(r):
             p.add_run(c[key])
 
     doc.add_heading("5. Visuals", level=1)
-    img_path = resolve_panel_image(r)
-    if img_path:
+    # Rendered live by the client from the linked panel's real Panel Builder
+    # layout (the same source as Content Builder's on-screen reference
+    # strip) and posted as PNG bytes — never a pre-generated icon file,
+    # so the PRD can never show a stale or missing drawing just because
+    # nobody ran the separate "save icon to library" step for this SKU.
+    panel_images = [img for img in (r.get("panelImages") or []) if img.get("frontBase64") or img.get("rearBase64")]
+    if panel_images:
         doc.add_paragraph("Silkscreen:")
-        doc.add_picture(str(img_path), width=Mm(80))
-        doc.add_paragraph("Interface layout: as shown in the image above.")
+        for img in panel_images:
+            if img.get("frontBase64"):
+                doc.add_picture(io.BytesIO(base64.b64decode(img["frontBase64"])), width=Mm(80))
+        doc.add_paragraph("Interface layout:")
+        for img in panel_images:
+            if len(panel_images) > 1 and img.get("label"):
+                doc.add_paragraph().add_run(img["label"]).bold = True
+            if img.get("frontBase64"):
+                doc.add_picture(io.BytesIO(base64.b64decode(img["frontBase64"])), width=Mm(80))
+            if img.get("rearBase64"):
+                doc.add_picture(io.BytesIO(base64.b64decode(img["rearBase64"])), width=Mm(80))
     else:
-        doc.add_paragraph("Silkscreen: (size TBD — no panel linked, or no render generated yet)")
+        doc.add_paragraph("Silkscreen: (size TBD — no panel linked, or the browser couldn't render it)")
         doc.add_paragraph("Interface layout: (TBD)")
     doc.add_paragraph("Application scenario: (no scenario rendered yet)")
     doc.add_paragraph("Block diagram: (TBD)")

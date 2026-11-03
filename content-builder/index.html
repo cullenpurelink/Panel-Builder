@@ -154,8 +154,8 @@ dialog::backdrop{background:rgba(10,14,18,.45)}
 
 <nav class="tabsbar">
   <div class="viewTabs" id="viewTabs">
-    <button class="viewTab active" data-view="edit" type="button">Edit</button>
-    <button class="viewTab" data-view="concept" type="button">Concept Document</button>
+    <button class="viewTab active" data-view="edit" type="button">Product Master</button>
+    <button class="viewTab" data-view="concept" type="button">PRD</button>
   </div>
   <div class="status" id="statusBar" aria-live="polite"></div>
 </nav>
@@ -573,8 +573,8 @@ function renderFlow() {
   }
   const who = committed && model.committedAt ? `<span class="who">Committed ${fmtDate(model.committedAt)}</span>` : '';
   const hint = committed
-    ? 'PIM fields, Label Text and feature images are unlocked — this is the package handed to PIM/ERP/Graphics.'
-    : 'PIM fields, Label Text and feature images stay locked until committed.';
+    ? 'Committed — this is the finalised package handed to PIM/ERP/Graphics.'
+    : 'Still in Concept — all fields stay editable; Commit just marks the record as finalised.';
   bar.innerHTML = pill + who + btns + `<span class="flowHint">${hint}</span>`;
   $$('[data-flow]', bar).forEach(b => b.onclick = () => b.dataset.flow === 'commit' ? commitStage() : returnToConcept());
   maybeRenderPanelRef();
@@ -677,6 +677,40 @@ async function renderPanelRef() {
       setRefSlot(rear, frame.contentWindow.exportSVG('rear', 'concept', true));
     } catch (e) { setRefSlot(front, null); setRefSlot(rear, null); }
   }
+}
+
+function u8ToBase64(u8) {
+  let binary = '';
+  const chunk = 0x8000;
+  for (let i = 0; i < u8.length; i += chunk) binary += String.fromCharCode.apply(null, u8.subarray(i, i + chunk));
+  return btoa(binary);
+}
+// Renders live PNGs of every linked panel for the PRD export, via the same
+// hidden Panel Builder iframe + setModelForExport() the reference strip
+// uses — never a pre-generated icon file, so the PRD never shows a stale
+// or missing drawing just because nobody separately saved an icon for
+// this SKU to the System Diagrams library.
+async function panelImagesForExport() {
+  const panels = await loadAllLinkedPanelsFull();
+  if (!panels.length) return [];
+  const frame = ensurePanelRefFrame();
+  if (!panelRefFrameReady || typeof frame.contentWindow.panelPNG !== 'function') {
+    await new Promise(r => frame.addEventListener('load', r, { once: true }));
+  }
+  const out = [];
+  for (const full of panels) {
+    try {
+      frame.contentWindow.setModelForExport(full.data);
+      const front = await frame.contentWindow.panelPNG('front', 150);
+      const rear = await frame.contentWindow.panelPNG('rear', 150);
+      out.push({
+        label: [full.name, full.sku].filter(Boolean).join(' · '),
+        frontBase64: u8ToBase64(front),
+        rearBase64: u8ToBase64(rear),
+      });
+    } catch (e) { /* this panel's drawing just won't be in the export */ }
+  }
+  return out;
 }
 
 const PANEL_REF_HEIGHT_KEY = 'purelink-content-builder:panelRefHeight';
@@ -811,7 +845,7 @@ function renderForm() {
       field('Additional context <small style="font-weight:400">(PIM Feature 12 — optional; raw material for expanded copy on complex products where 5 features undersell it)</small>', 'additionalContext', { area: true, rows: 5 })),
 
     section('Label text', 'Shortened features for the physical label. The guide row in the real file uses a fixed 24-character gauge — matched here for now; pulling the real available width from Product Builder’s panel geometry is a later improvement.',
-      featureRows('labelFeatures', 5, 'Short feature', { rows: 1, disabled: locked, ph: 'max. ~24 characters' }), locked),
+      featureRows('labelFeatures', 5, 'Short feature', { rows: 1, ph: 'max. ~24 characters' })),
 
     section('Feature images', 'Picked from the real icon library, not typed filenames.',
       `<div class="imgSlots">${[0, 1, 2, 3].map(i => {
@@ -819,26 +853,26 @@ function renderForm() {
         return `<div class="imgSlot">
           ${f ? `<img src="${imgSrc(f)}" alt="" onerror="this.style.visibility='hidden'">` : '<div class="ph">none</div>'}
           <div class="name">${f ? esc(f) : 'Empty'}</div>
-          <button class="btn" data-pick="${i}" ${locked ? 'disabled' : ''}>Choose…</button>
+          <button class="btn" data-pick="${i}">Choose…</button>
         </div>`;
-      }).join('')}</div>`, locked),
+      }).join('')}</div>`),
 
     section('PIM & business fields', '',
       `<div class="row2">
-        ${field('Online Headline/Title', 'onlineHeadline', { disabled: locked })}
-        ${field('Item Description Headline', 'itemDescriptionHeadline', { disabled: locked })}
+        ${field('Online Headline/Title', 'onlineHeadline')}
+        ${field('Item Description Headline', 'itemDescriptionHeadline')}
       </div>
       <div class="row2">
-        ${field('Navigation path', 'navigationPath', { disabled: locked })}
-        ${field('Cross-selling', 'crossSelling', { disabled: locked })}
+        ${field('Navigation path', 'navigationPath')}
+        ${field('Cross-selling', 'crossSelling')}
       </div>
-      ${field('Article properties (filter)', 'articleProperties', { disabled: locked })}
+      ${field('Article properties (filter)', 'articleProperties')}
       <div class="row3">
-        ${field('Search key', 'searchKey', { disabled: locked })}
-        ${field('Price', 'price', { type: 'number', disabled: locked })}
-        ${field('MOQ', 'moq', { type: 'number', disabled: locked })}
+        ${field('Search key', 'searchKey')}
+        ${field('Price', 'price', { type: 'number' })}
+        ${field('MOQ', 'moq', { type: 'number' })}
       </div>
-      ${field('EAN', 'ean', { disabled: locked })}`, locked),
+      ${field('EAN', 'ean')}`),
   ].join('');
 
   $('#linkBtn').onclick = openLinkDialog;
@@ -972,7 +1006,7 @@ function renderConceptDoc() {
     section('Product description & features', '',
       field('Full description', 'concept.description', { area: true, rows: 4 }) +
       `<label class="fld"><span>Features ${tag('from Content Builder')}</span>
-        ${model.features.some(f => f) ? `<ul>${model.features.filter(f => f).map(f => `<li>${esc(f)}</li>`).join('')}</ul>` : '<p class="empty">No features drafted yet — add them on the Edit tab.</p>'}
+        ${model.features.some(f => f) ? `<ul>${model.features.filter(f => f).map(f => `<li>${esc(f)}</li>`).join('')}</ul>` : '<p class="empty">No features drafted yet — add them on the Product Master tab.</p>'}
       </label>`),
 
     section('Technical specifications', 'Connector/LED lists are pre-filled from the linked panel\'s real ports where one is linked — edit freely.',
@@ -1101,9 +1135,14 @@ async function exportExcel() {
 }
 
 async function exportPrd() {
+  const btn = $('#exportPrdBtn');
+  const prevText = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Rendering panel drawings…';
   try {
+    const panelImages = await panelImagesForExport();
+    const payload = Object.assign({}, model, { panelImages });
     const res = await fetch('/api/export-content-prd-docx', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(model)
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
     });
     if (!res.ok) { const body = await res.json().catch(() => ({})); toast('Export failed: ' + (body.msg || res.status)); return; }
     const blob = await res.blob();
@@ -1112,6 +1151,7 @@ async function exportPrd() {
     else { const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000); }
     toast(`Exported ${filename}`);
   } catch (e) { toast('Export needs the local dev server running (start.bat) — couldn’t reach it.'); }
+  finally { btn.disabled = false; btn.textContent = prevText; }
 }
 
 /* ============================================================
