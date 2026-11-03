@@ -17,6 +17,11 @@ POST /api/draft-content — drafts Feature Title, the 5 Features, Use Case
   linked Product Builder panels' real ports, via the Anthropic API (used
   by Content Builder's "Draft with AI" button). Needs an API key — see
   get_anthropic_key() below.
+POST /api/export-content-prd-docx — builds a .docx Concept Document (the
+  PureLink house PRD style issued to ODM factories) from a Content
+  Builder record's `concept` fields, embedding the linked panel's
+  rendered silkscreen image from system-diagrams/assets/products/ where
+  one exists (used by Content Builder's "Export to Word" button).
 
 Used by start.bat instead of plain `python -m http.server` so the Hub's
 "Push to GitHub" button, the icon generator's save button, Panel
@@ -39,6 +44,8 @@ from pathlib import Path
 
 import openpyxl
 from openpyxl.styles import Font
+from docx import Document
+from docx.shared import Mm
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PORT = 8743
@@ -287,6 +294,165 @@ def build_content_workbook(r):
     return wb
 
 
+def resolve_panel_image(r):
+    """The linked panel's rendered front icon from the System Diagrams
+    library, if one has been generated for it — None (not an error) when
+    no panel is linked yet or no render exists, matching the brief that
+    anything that can't be inferred stays blank."""
+    panels = r.get("linkedPanels") or []
+    sku = panels[0].get("sku") if panels else None
+    if not sku:
+        return None
+    for view in ("Front-Right", "Front-Left"):
+        path = PRODUCT_ICONS_DIR / f"Product_{sku}_{view}.png"
+        if path.exists():
+            return path
+    return None
+
+
+def _doc_table(doc, headers, rows):
+    table = doc.add_table(rows=1, cols=len(headers))
+    table.style = "Table Grid"
+    for cell, h in zip(table.rows[0].cells, headers):
+        cell.text = h
+        cell.paragraphs[0].runs[0].bold = True
+    for row in rows:
+        cells = table.add_row().cells
+        for cell, v in zip(cells, row):
+            cell.text = "" if v is None else str(v)
+    return table
+
+
+def build_prd_document(r):
+    """Shapes a Content Builder record's `concept` fields into the same
+    PRD structure PureLink itself issues to ODM factories (see
+    PT-MA-HD88/PT-PSW-21HC-KVM's own PRDs) — only the sections the user
+    chose to include when this was built. Blank where nothing could be
+    inferred from Content Builder/Panel Builder/System Diagrams, for the
+    team to fill in by hand; not every field is auto-fillable by design.
+    """
+    c = r.get("concept") or {}
+    tech = c.get("techSpec") or {}
+    name = r.get("name") or "(unnamed product)"
+    sku = r.get("sku") or ""
+
+    doc = Document()
+    doc.add_heading("Product Requirement Document (PRD)", level=0)
+    doc.add_paragraph(name)
+
+    _doc_table(doc, ["Product Model", "Product Description", "Product Type"],
+               [[sku, name, c.get("productType") or ""]])
+
+    if c.get("shortDesc") or c.get("targetMarket"):
+        doc.add_heading("Positioning", level=1)
+        if c.get("shortDesc"):
+            doc.add_paragraph(c["shortDesc"])
+        if c.get("targetMarket"):
+            p = doc.add_paragraph()
+            p.add_run("Target market: ").bold = True
+            p.add_run(c["targetMarket"])
+
+    doc.add_heading("Revision History", level=1)
+    rev = c.get("revisionHistory") or []
+    _doc_table(doc, ["Version", "Prepared", "Verify", "Date", "Notes"],
+               [[x.get("version", ""), x.get("prepared", ""), x.get("verify", ""), x.get("date", ""), x.get("notes", "")] for x in rev]
+               or [["", "", "", "", ""]])
+    if c.get("approvalSignoff"):
+        doc.add_paragraph("Approval: " + c["approvalSignoff"])
+
+    doc.add_heading("1. Product Description", level=1)
+    doc.add_paragraph(c.get("description") or "(TBD)")
+
+    doc.add_heading("2. Features", level=1)
+    feats = [f for f in (r.get("features") or []) if f]
+    if feats:
+        for f in feats:
+            doc.add_paragraph(f, style="List Bullet")
+    else:
+        doc.add_paragraph("(TBD)")
+
+    doc.add_heading("3. Technical Specifications", level=1)
+    _doc_table(doc, ["Item", "Detail"], [
+        ("Input Connectors", tech.get("inputConnectors")),
+        ("Output Connectors", tech.get("outputConnectors")),
+        ("Buttons and LEDs", tech.get("buttonsLeds")),
+        ("Supported I/O Formats", tech.get("ioFormats")),
+        ("Audio Format", tech.get("audioFormat")),
+        ("Data Rate", tech.get("dataRate")),
+        ("USB Hub Tiers", tech.get("usbTiers")),
+        ("Control Method", tech.get("controlMethod")),
+        ("EDID Setting", tech.get("edidSetting")),
+    ])
+
+    doc.add_heading("4. Function Details", level=1)
+    led = c.get("ledBehaviour") or []
+    if led:
+        doc.add_paragraph("LED behaviour:")
+        _doc_table(doc, ["LED", "On / off / blink meaning"], [[x.get("led", ""), x.get("meaning", "")] for x in led])
+    for label, key in [("Power behaviour", "powerBehaviour"), ("Firmware update", "firmwareUpdate"), ("Other functions", "otherFunctions")]:
+        if c.get(key):
+            p = doc.add_paragraph()
+            p.add_run(label + ": ").bold = True
+            p.add_run(c[key])
+
+    doc.add_heading("5. Visuals", level=1)
+    img_path = resolve_panel_image(r)
+    if img_path:
+        doc.add_paragraph("Silkscreen:")
+        doc.add_picture(str(img_path), width=Mm(80))
+        doc.add_paragraph("Interface layout: as shown in the image above.")
+    else:
+        doc.add_paragraph("Silkscreen: (size TBD — no panel linked, or no render generated yet)")
+        doc.add_paragraph("Interface layout: (TBD)")
+    doc.add_paragraph("Application scenario: (no scenario rendered yet)")
+    doc.add_paragraph("Block diagram: (TBD)")
+
+    doc.add_heading("6. GUI Design List", level=1)
+    doc.add_paragraph(c.get("guiDesignList") or "(TBD)")
+
+    doc.add_heading("7. Installation & Structural", level=1)
+    _doc_table(doc, ["Item", "Detail"], [
+        ("Installation method", c.get("installationMethod") or ""),
+        ("Dimensions", c.get("dimensions") or ""),
+        ("Raw materials", c.get("rawMaterials") or ""),
+    ])
+
+    doc.add_heading("8. Certification", level=1)
+    doc.add_paragraph(c.get("certificationDetails") or "(TBD)")
+
+    doc.add_heading("9. Accessories & Packaging", level=1)
+    acc = c.get("accessories") or []
+    _doc_table(doc, ["No.", "Name", "Remark"],
+               [[str(i + 1), x.get("name", ""), x.get("remark", "")] for i, x in enumerate(acc)] or [["1", "", ""]])
+    _doc_table(doc, ["Item", "Detail"], [
+        ("Power adapter", c.get("powerAdapterSpec") or ""),
+        ("Label / sticker", c.get("labelType") or ""),
+        ("User manual", c.get("userManual") or ""),
+        ("Package type", c.get("packageType") or ""),
+    ])
+
+    doc.add_heading("10. Quotation", level=1)
+    price, moq = r.get("price"), r.get("moq")
+    bits = [b for b in [f"${price}" if price is not None else "", f"MOQ {moq}pcs" if moq is not None else ""] if b]
+    doc.add_paragraph("Quotation: " + sku + (", " + ", ".join(bits) if bits else " (TBD)"))
+    if c.get("sampleQuantity"):
+        doc.add_paragraph("Sample quantity: " + c["sampleQuantity"])
+
+    doc.add_heading("11. Open Questions", level=1)
+    oq = (c.get("openQuestions") or "").strip()
+    if oq:
+        for line in oq.splitlines():
+            if line.strip():
+                doc.add_paragraph(line.strip(), style="List Bullet")
+    else:
+        doc.add_paragraph("(none)")
+
+    doc.add_heading("12. Authorized Signature", level=1)
+    _doc_table(doc, ["PureLink GmbH", "Supplier"], [["", c.get("signatureSupplierName") or ""]])
+
+    return doc
+
+
 def run_git(*args, timeout=30):
     try:
         result = subprocess.run(
@@ -323,6 +489,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self._send_json({"ok": ok, "msg": msg}, status=200 if ok else 400)
         elif self.path == "/api/export-content-xlsx":
             self.export_content_xlsx()
+        elif self.path == "/api/export-content-prd-docx":
+            self.export_content_prd_docx()
         elif self.path == "/api/draft-content":
             self.draft_content()
         else:
@@ -401,6 +569,26 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
+    def export_content_prd_docx(self):
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            record = json.loads(self.rfile.read(length))
+            doc = build_prd_document(record)
+            buf = io.BytesIO()
+            doc.save(buf)
+            data = buf.getvalue()
+        except Exception as e:
+            self._send_json({"ok": False, "msg": str(e)}, status=400)
+            return
+        base = re.sub(r"[^A-Za-z0-9-]+", "-", (record.get("sku") or record.get("name") or "content").strip()).strip("-") or "content"
+        filename = f"{base}-concept-prd.docx"
+        self.send_response(200)
+        self.send_header("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+        self.send_header("Content-Disposition", f'attachment; filename="{filename}"')
+        self.send_header("Content-Length", str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
+
     def draft_content(self):
         try:
             length = int(self.headers.get("Content-Length", 0))
@@ -457,5 +645,5 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 if __name__ == "__main__":
     port = int(sys.argv[1]) if len(sys.argv) > 1 else PORT
     server = http.server.ThreadingHTTPServer(("127.0.0.1", port), Handler)
-    print(f"Serving {REPO_ROOT} at http://127.0.0.1:{port} (with /api/git-push, /api/save-product-icon, /api/publish-to-library, /api/export-content-xlsx, /api/draft-content)")
+    print(f"Serving {REPO_ROOT} at http://127.0.0.1:{port} (with /api/git-push, /api/save-product-icon, /api/publish-to-library, /api/export-content-xlsx, /api/export-content-prd-docx, /api/draft-content)")
     server.serve_forever()

@@ -103,6 +103,24 @@ dialog::backdrop{background:rgba(10,14,18,.45)}
 
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--surface);padding:9px 14px;border-radius:8px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:50;max-width:calc(100vw - 32px)}
 .toast.show{opacity:1}
+
+.viewTabs{display:flex;gap:4px;padding:6px 0}
+.viewTab{height:30px;padding:0 12px;border:1px solid transparent;background:transparent;border-radius:6px;font-size:13.5px;font-weight:500;color:var(--muted);cursor:pointer}
+.viewTab:hover{color:var(--ink)}
+.viewTab.active{background:var(--surface-2);border-color:var(--line);color:var(--ink)}
+.srcTag{display:inline-block;font-size:11px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:4px;padding:1px 6px;margin-left:6px;vertical-align:middle}
+.docTable{width:100%;border-collapse:collapse;margin-bottom:10px}
+.docTable th,.docTable td{border:1px solid var(--line);padding:0;text-align:left;vertical-align:top}
+.docTable th{background:var(--surface-2);font-size:12px;color:var(--muted);font-weight:600;padding:6px 8px}
+.docTable td input,.docTable td textarea{border:none;background:transparent;width:100%;height:30px;padding:5px 8px;font-size:13.5px;color:var(--ink);border-radius:0}
+.docTable td input:focus,.docTable td textarea:focus{outline:none;box-shadow:inset 0 0 0 2px var(--accent-soft)}
+.docTable td.rm{width:34px;text-align:center}
+.docTable td.rm button{all:unset;cursor:pointer;color:var(--muted);padding:4px 8px}
+.docTable td.rm button:hover{color:var(--err)}
+.docImgs{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:8px}
+.docImg{border:1px solid var(--line);border-radius:8px;padding:10px;text-align:center;background:var(--surface-2);min-width:140px}
+.docImg img{max-width:160px;max-height:120px;object-fit:contain;display:block;margin:0 auto 6px;background:var(--surface);border-radius:6px}
+.docImg .cap{font-size:11.5px;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -116,11 +134,16 @@ dialog::backdrop{background:rgba(10,14,18,.45)}
     <button class="btn" id="newBtn">New</button>
     <button class="btn" id="libBtn">Library</button>
     <button class="btn" id="exportBtn">Export to Excel</button>
+    <button class="btn" id="exportPrdBtn">Export to Word</button>
     <button class="btn primary" id="saveBtn" data-dirty="0"><span class="dirty" aria-hidden="true"></span>Save</button>
   </div>
 </header>
 
 <nav class="tabsbar">
+  <div class="viewTabs" id="viewTabs">
+    <button class="viewTab active" data-view="edit" type="button">Edit</button>
+    <button class="viewTab" data-view="concept" type="button">Concept Document</button>
+  </div>
   <div class="status" id="statusBar" aria-live="polite"></div>
 </nav>
 
@@ -237,6 +260,25 @@ function newModel() {
     featureImages: ['', '', '', ''],
     onlineHeadline: '', itemDescriptionHeadline: '', navigationPath: '', crossSelling: '', articleProperties: '',
     searchKey: '', price: null, moq: null, ean: '',
+    concept: {
+      shortDesc: '', productType: '', targetMarket: '', description: '',
+      revisionHistory: [], // [{version, prepared, verify, date, notes}]
+      approvalSignoff: '',
+      techSpec: {
+        inputConnectors: '', outputConnectors: '', buttonsLeds: '', ioFormats: '',
+        audioFormat: '', dataRate: '', usbTiers: '', controlMethod: '', edidSetting: '',
+      },
+      ledBehaviour: [], // [{led, meaning}]
+      powerBehaviour: '', firmwareUpdate: '', otherFunctions: '',
+      guiDesignList: '',
+      installationMethod: '', dimensions: '', rawMaterials: '',
+      certificationDetails: '',
+      accessories: [], // [{name, remark}]
+      powerAdapterSpec: '', labelType: '', userManual: '', packageType: '',
+      sampleQuantity: '',
+      openQuestions: '', signatureSupplierName: '',
+      inferredOnce: false, // guards auto-fill so it only ever fills blanks, once
+    },
   };
 }
 let model = newModel();
@@ -244,6 +286,7 @@ let docId = null, savedJSON = null;
 let db = null, userCap = null, downloads = null, myId = null, library = [];
 let imgManifest = [];
 let imgSlotTarget = null; // index of the featureImages slot currently being picked
+let currentView = 'edit'; // 'edit' | 'concept'
 
 function isDirty() { return JSON.stringify(model) !== savedJSON; }
 function updateToolbar() {
@@ -270,7 +313,7 @@ function loadDraft() {
   } catch (e) { return false; }
 }
 
-function commit() { saveDraft(); updateToolbar(); renderForm(); renderFlow(); }
+function commit() { saveDraft(); updateToolbar(); renderMain(); renderFlow(); }
 
 /* ============================================================
    Library (db "content" collection)
@@ -306,7 +349,7 @@ async function openFromLibrary(id) {
   if (isDirty() && !(await ask('Open without saving?', 'The current record has changes that aren’t saved.', 'Open'))) return;
   const { id: _id, updatedAt, updatedBy, ...rest } = l;
   model = Object.assign(newModel(), rest); docId = id; savedJSON = JSON.stringify(model);
-  saveDraft(); updateToolbar(); renderForm(); renderFlow();
+  saveDraft(); updateToolbar(); renderMain(); renderFlow();
   $('#libDlg').close(); toast(`Opened ${model.name}`);
 }
 async function deleteFromLibrary(id) {
@@ -377,7 +420,10 @@ async function loadLinkedPorts() {
   for (const p of model.linkedPanels) {
     try {
       const doc = await db.collection('layouts').doc(p.id).get();
-      const data = doc && (typeof doc.data === 'function' ? doc.data() : doc);
+      const rec = doc && (typeof doc.data === 'function' ? doc.data() : doc);
+      // the stored record wraps the real layout JSON under .layout
+      // (the record itself only carries a name/sku/height/width summary)
+      const data = rec && (rec.layout || rec);
       if (!data || !data.panels) continue;
       for (const side of ['front', 'rear']) {
         for (const item of (data.panels[side] || [])) {
@@ -403,7 +449,7 @@ async function draftWithAI() {
   if (btn) { btn.disabled = true; btn.textContent = 'Drafting…'; }
   try {
     const ports = await loadLinkedPorts();
-    const res = await fetch('http://127.0.0.1:8743/api/draft-content', {
+    const res = await fetch('/api/draft-content', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         product: { name: model.name, sku: model.sku, supplierModel: model.supplierModel },
@@ -511,6 +557,19 @@ function renderFlow() {
   bar.innerHTML = pill + who + btns;
   $$('[data-flow]', bar).forEach(b => b.onclick = () => b.dataset.flow === 'commit' ? commitStage() : returnToConcept());
 }
+
+function renderMain() {
+  $$('.viewTab', $('#viewTabs')).forEach(b => b.classList.toggle('active', b.dataset.view === currentView));
+  if (currentView === 'concept') renderConceptDoc();
+  else renderForm();
+}
+$$('.viewTab', $('#viewTabs')).forEach(b => b.onclick = () => {
+  currentView = b.dataset.view;
+  renderMain();
+  if (currentView === 'concept' && !model.concept.inferredOnce) {
+    inferConceptFields().then(() => { if (currentView === 'concept') renderConceptDoc(); });
+  }
+});
 
 /* ============================================================
    Form rendering
@@ -649,17 +708,237 @@ function renderForm() {
 }
 
 /* ============================================================
+   Concept Document
+   ============================================================ */
+const TABLE_TEMPLATES = {
+  'concept.revisionHistory': { version: '', prepared: '', verify: '', date: '', notes: '' },
+  'concept.ledBehaviour': { led: '', meaning: '' },
+  'concept.accessories': { name: '', remark: '' },
+};
+
+async function loadLinkedPanelFull() {
+  if (!db || !model.linkedPanels.length) return null;
+  for (const p of model.linkedPanels) {
+    try {
+      const doc = await db.collection('layouts').doc(p.id).get();
+      const rec = doc && (typeof doc.data === 'function' ? doc.data() : doc);
+      const data = rec && (rec.layout || rec); // see loadLinkedPorts() above
+      if (data && data.panels) return { sku: data.sku || p.sku || '', name: data.name || p.name || '', data };
+    } catch (e) { /* try the next linked panel */ }
+  }
+  return null;
+}
+
+function classifyPorts(data) {
+  const out = { input: [], output: [], ledsButtons: [] };
+  for (const side of ['front', 'rear']) {
+    const items = (data.panels && data.panels[side]) || [];
+    const frameTitleOf = {};
+    for (const it of items) if (it.kind === 'frame') for (const m of (it.members || [])) frameTitleOf[m] = it.title || '';
+    for (const it of items) {
+      if (it.kind !== 'port') continue;
+      if (it.type === 'led' || it.type === 'dip') { out.ledsButtons.push(it.func || it.type || ''); continue; }
+      const ctx = ((frameTitleOf[it.id] || '') + ' ' + (it.func || '')).toUpperCase();
+      const entry = `1 x ${(it.type || '').toUpperCase()}${it.func ? ' ' + it.func : ''}`;
+      if (/\bOUT\b/.test(ctx)) out.output.push(entry);
+      else if (/\bIN\b/.test(ctx)) out.input.push(entry);
+      // anything else (DEVICE/HOST/SERVICE/AUDIO/RS-232/GPIO/ethernet/etc.) is left
+      // for manual entry rather than guessed, per the "blank if not inferable" brief
+    }
+  }
+  return out;
+}
+
+async function inferConceptFields() {
+  const c = model.concept;
+  if (c.inferredOnce) return;
+  c.inferredOnce = true;
+  if (!c.description && model.seed) c.description = model.seed;
+  const panel = await loadLinkedPanelFull();
+  if (panel) {
+    const ports = classifyPorts(panel.data);
+    if (!c.techSpec.inputConnectors && ports.input.length) c.techSpec.inputConnectors = ports.input.join(', ');
+    if (!c.techSpec.outputConnectors && ports.output.length) c.techSpec.outputConnectors = ports.output.join(', ');
+    if (!c.techSpec.buttonsLeds && ports.ledsButtons.length) c.techSpec.buttonsLeds = ports.ledsButtons.join(', ');
+    if (!c.ledBehaviour.length && ports.ledsButtons.length) {
+      c.ledBehaviour = [...new Set(ports.ledsButtons)].map(led => ({ led, meaning: '' }));
+    }
+    const ch = panel.data.chassis, hs = panel.data.housing;
+    if (!c.dimensions && ch && ch.width && ch.height && hs && hs.depth) {
+      c.dimensions = `L${ch.width}mm x W${hs.depth}mm x H${ch.height}mm (L x W x H)`;
+    }
+  }
+  saveDraft();
+}
+
+function docTable(arrPath, columns) {
+  const arr = getPath(arrPath) || [];
+  const rows = arr.map((row, i) => `<tr>${columns.map(c =>
+    `<td><input type="text" data-tbl="${esc(arrPath)}" data-idx="${i}" data-key="${c.key}" value="${esc(row[c.key] || '')}" placeholder="${esc(c.ph || '')}"></td>`
+  ).join('')}<td class="rm"><button type="button" data-tbl-rm="${esc(arrPath)}" data-idx="${i}" aria-label="Remove row">&times;</button></td></tr>`).join('');
+  return `<table class="docTable"><thead><tr>${columns.map(c => `<th>${esc(c.label)}</th>`).join('')}<th></th></tr></thead>
+    <tbody>${rows}</tbody></table>
+    <button type="button" class="btn" data-tbl-add="${esc(arrPath)}">+ Add row</button>`;
+}
+
+function renderConceptDoc() {
+  const el = $('#form');
+  const sku = model.linkedPanels[0] && model.linkedPanels[0].sku;
+  const imgBase = sku ? `../system-diagrams/assets/products/Product_${sku}_Front-Right.png` : '';
+  const tag = t => `<span class="srcTag">${esc(t)}</span>`;
+
+  el.innerHTML = [
+    section('Header & identity', 'Product name and SKU are set in the toolbar above.',
+      field('Short description line', 'concept.shortDesc') +
+      field('Product type', 'concept.productType', { ph: 'e.g. Matrix, Extender, Switcher, Splitter, Converter' }) +
+      field('Target market', 'concept.targetMarket', { ph: 'e.g. Multimedia conference rooms and commercial environments' })),
+
+    section('Revision history & approval', '',
+      docTable('concept.revisionHistory', [
+        { key: 'version', label: 'Version' }, { key: 'prepared', label: 'Prepared' }, { key: 'verify', label: 'Verify' },
+        { key: 'date', label: 'Date' }, { key: 'notes', label: 'Notes' },
+      ]) +
+      field('Approval sign-off', 'concept.approvalSignoff', { area: true, rows: 2, ph: 'e.g. Product GM: ___  Approved: ___' })),
+
+    section('Product description & features', '',
+      field('Full description', 'concept.description', { area: true, rows: 4 }) +
+      `<label class="fld"><span>Features ${tag('from Content Builder')}</span>
+        ${model.features.some(f => f) ? `<ul>${model.features.filter(f => f).map(f => `<li>${esc(f)}</li>`).join('')}</ul>` : '<p class="empty">No features drafted yet — add them on the Edit tab.</p>'}
+      </label>`),
+
+    section('Technical specifications', 'Connector/LED lists are pre-filled from the linked panel\'s real ports where one is linked — edit freely.',
+      field(`Input connectors ${tag('from Panel Builder')}`, 'concept.techSpec.inputConnectors', { area: true, rows: 2 }) +
+      field(`Output connectors ${tag('from Panel Builder')}`, 'concept.techSpec.outputConnectors', { area: true, rows: 2 }) +
+      field(`Buttons and LEDs ${tag('from Panel Builder')}`, 'concept.techSpec.buttonsLeds', { area: true, rows: 2 }) +
+      `<div class="row2">
+        ${field('Supported I/O formats', 'concept.techSpec.ioFormats')}
+        ${field('Audio format', 'concept.techSpec.audioFormat')}
+      </div>
+      <div class="row2">
+        ${field('Data rate', 'concept.techSpec.dataRate')}
+        ${field('USB hub tiers', 'concept.techSpec.usbTiers')}
+      </div>
+      <div class="row2">
+        ${field('Control method', 'concept.techSpec.controlMethod')}
+        ${field('EDID setting', 'concept.techSpec.edidSetting')}
+      </div>`),
+
+    section('Function details', '',
+      `<label class="fld"><span>LED behaviour ${tag('from Panel Builder')}</span></label>` +
+      docTable('concept.ledBehaviour', [{ key: 'led', label: 'LED' }, { key: 'meaning', label: 'On / off / blink meaning', ph: 'e.g. On: link normal; Off/blink: no link' }]) +
+      field('Power behaviour', 'concept.powerBehaviour', { area: true, rows: 2 }) +
+      field('Firmware update', 'concept.firmwareUpdate', { area: true, rows: 2 }) +
+      field('Other functions', 'concept.otherFunctions', { area: true, rows: 2 })),
+
+    section('Visuals', sku ? '' : 'Link a Product Builder panel to pull in a rendered silkscreen image automatically.',
+      `<div class="docImgs">
+        <div class="docImg">
+          ${imgBase ? `<img src="${esc(imgBase)}" alt="" data-fallback>` : '<div class="ph">(size TBD)</div>'}
+          <div class="cap">Silkscreen ${sku ? tag('from System Diagrams') : ''}</div>
+        </div>
+        <div class="docImg">
+          <div class="ph">${sku ? 'As shown in the Silkscreen image above.' : '(TBD)'}</div>
+          <div class="cap">Interface layout</div>
+        </div>
+        <div class="docImg">
+          <div class="ph">(no scenario rendered yet)</div>
+          <div class="cap">Application scenario</div>
+        </div>
+        <div class="docImg">
+          <div class="ph">(TBD)</div>
+          <div class="cap">Block diagram</div>
+        </div>
+      </div>`),
+
+    section('GUI', '', field('GUI design list', 'concept.guiDesignList', { area: true, rows: 3 })),
+
+    section('Installation & structural', '',
+      field('Installation method', 'concept.installationMethod', { area: true, rows: 2 }) +
+      field(`Dimensions ${tag('from Panel Builder')}`, 'concept.dimensions', { ph: 'e.g. L160mm x W110mm x H30mm (L x W x H)' }) +
+      field('Raw materials', 'concept.rawMaterials')),
+
+    section('Certification', '', field('Certification details', 'concept.certificationDetails', { area: true, rows: 3 })),
+
+    section('Packaging & accessories', '',
+      docTable('concept.accessories', [{ key: 'name', label: 'Name' }, { key: 'remark', label: 'Remark' }]) +
+      `<div class="row2">
+        ${field('Power adapter spec', 'concept.powerAdapterSpec')}
+        ${field('Label / sticker type', 'concept.labelType')}
+      </div>
+      <div class="row2">
+        ${field('User manual', 'concept.userManual')}
+        ${field('Package type / box', 'concept.packageType')}
+      </div>`),
+
+    section('Commercial & quotation', '',
+      `<div class="row2">
+        ${field(`Price ${tag('from Content Builder')}`, 'price', { type: 'number' })}
+        ${field(`MOQ ${tag('from Content Builder')}`, 'moq', { type: 'number' })}
+      </div>
+      ${field('Sample quantity', 'concept.sampleQuantity')}`),
+
+    section('Open items & sign-off', '',
+      field('Open questions', 'concept.openQuestions', { area: true, rows: 3, ph: 'One per line' }) +
+      `<div class="row2">
+        <label class="fld"><span>Signature</span><input type="text" value="PureLink GmbH" disabled></label>
+        ${field('Supplier', 'concept.signatureSupplierName')}
+      </div>`),
+  ].join('');
+
+  $$('[data-path]', el).forEach(wrap => {
+    const path = wrap.dataset.path, inp = wrap.querySelector('input,textarea');
+    if (!inp) return;
+    const apply = () => {
+      let v = inp.value;
+      if (inp.type === 'number') v = v === '' ? null : parseFloat(v);
+      setPath(path, v);
+      saveDraft(); updateToolbar();
+    };
+    inp.oninput = apply;
+    inp.value = getPath(path);
+  });
+  $$('[data-tbl]', el).forEach(inp => {
+    inp.oninput = () => { getPath(inp.dataset.tbl)[+inp.dataset.idx][inp.dataset.key] = inp.value; saveDraft(); updateToolbar(); };
+  });
+  $$('[data-tbl-add]', el).forEach(btn => btn.onclick = () => {
+    getPath(btn.dataset.tblAdd).push(Object.assign({}, TABLE_TEMPLATES[btn.dataset.tblAdd]));
+    commit();
+  });
+  $$('[data-tbl-rm]', el).forEach(btn => btn.onclick = () => {
+    getPath(btn.dataset.tblRm).splice(+btn.dataset.idx, 1);
+    commit();
+  });
+  $$('img[data-fallback]', el).forEach(img => {
+    img.onerror = () => { img.style.display = 'none'; const ph = document.createElement('div'); ph.className = 'ph'; ph.textContent = '(not yet rendered)'; img.replaceWith(ph); };
+  });
+}
+
+/* ============================================================
    Excel export
    ============================================================ */
 function slug(s) { return (s || 'content').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'content'; }
 async function exportExcel() {
   try {
-    const res = await fetch('http://127.0.0.1:8743/api/export-content-xlsx', {
+    const res = await fetch('/api/export-content-xlsx', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(model)
     });
     if (!res.ok) { const body = await res.json().catch(() => ({})); toast('Export failed: ' + (body.msg || res.status)); return; }
     const blob = await res.blob();
     const filename = `${slug(model.sku || model.name)}-masterfile.xlsx`;
+    if (downloads) await downloads.save({ filename, data: blob });
+    else { const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000); }
+    toast(`Exported ${filename}`);
+  } catch (e) { toast('Export needs the local dev server running (start.bat) — couldn’t reach it.'); }
+}
+
+async function exportPrd() {
+  try {
+    const res = await fetch('/api/export-content-prd-docx', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(model)
+    });
+    if (!res.ok) { const body = await res.json().catch(() => ({})); toast('Export failed: ' + (body.msg || res.status)); return; }
+    const blob = await res.blob();
+    const filename = `${slug(model.sku || model.name)}-concept-prd.docx`;
     if (downloads) await downloads.save({ filename, data: blob });
     else { const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000); }
     toast(`Exported ${filename}`);
@@ -674,21 +953,22 @@ $('#skuIn').oninput = e => { model.sku = e.target.value; saveDraft(); updateTool
 $('#newBtn').onclick = async () => {
   if (isDirty() && !(await ask('Start a new record?', 'The current record has changes that aren’t saved.', 'Start new'))) return;
   model = newModel(); docId = null; savedJSON = null;
-  saveDraft(); updateToolbar(); renderForm(); renderFlow();
+  saveDraft(); updateToolbar(); renderMain(); renderFlow();
 };
 $('#libBtn').onclick = () => { $('#libSub').textContent = db ? 'Records saved here are shared with your team.' : 'The team library isn’t available in this view.'; renderLibrary(); $('#libDlg').showModal(); };
 $('#libClose').onclick = () => $('#libDlg').close();
 $('#linkClose').onclick = () => $('#linkDlg').close();
 $('#saveBtn').onclick = saveToLibrary;
 $('#exportBtn').onclick = exportExcel;
+$('#exportPrdBtn').onclick = exportPrd;
 
 (async function init() {
   const hadDraft = loadDraft();
   if (!hadDraft) model = newModel();
   savedJSON = docId ? JSON.stringify(model) : null;
-  updateToolbar(); renderForm(); renderFlow();
+  updateToolbar(); renderMain(); renderFlow();
   await loadImageManifest();
-  renderForm(); // re-render once images can resolve
+  renderMain(); // re-render once images can resolve
   await connect();
   if (docId) savedJSON = JSON.stringify(model);
   updateToolbar();
