@@ -4005,8 +4005,9 @@ async function renderLibrary() {
   if (libState === 'error') { body.innerHTML = `<div class="libempty">The library couldn’t be loaded. Reopen the tool to try again.</div>`; return; }
   if (!library.length) { body.innerHTML = `<div class="libempty">No saved layouts yet. Save the current layout to start the library.</div>`; return; }
   body.innerHTML = '<ul class="lib">' + library.map(l => `<li class="${l.id === docId ? 'current' : ''}"><div class="meta"><b>${statusBadge(l.id)}${esc(l.name || 'Untitled')}${l.sku ? ` <span>${esc(l.sku)}</span>` : ''}</b><span>${f(l.width)} × ${esc(hLabel(l.height))}, ${l.ports || 0} ports. Saved ${fmtDate(l.updatedAt)}<span data-by="${esc(l.updatedBy || '')}"></span></span></div>
-    <button class="btn" data-open="${esc(l.id)}">${l.id === docId ? 'Reopen' : 'Open'}</button>${canWrite === false ? '' : `<button class="btn icon danger" data-del="${esc(l.id)}" aria-label="Delete ${esc(l.name)}" title="Delete">✕</button>`}</li>`).join('') + '</ul>';
+    <button class="btn" data-open="${esc(l.id)}">${l.id === docId ? 'Reopen' : 'Open'}</button><button class="btn" data-dup="${esc(l.id)}" title="Open a copy as a new, unsaved product — Partnumber, Supplier Partnumber and name are cleared">Duplicate</button>${canWrite === false ? '' : `<button class="btn icon danger" data-del="${esc(l.id)}" aria-label="Delete ${esc(l.name)}" title="Delete">✕</button>`}</li>`).join('') + '</ul>';
   $$('[data-open]', body).forEach(b => b.onclick = () => openFromLibrary(b.dataset.open));
+  $$('[data-dup]', body).forEach(b => b.onclick = () => duplicateFromLibrary(b.dataset.dup));
   $$('[data-del]', body).forEach(b => b.onclick = () => deleteFromLibrary(b.dataset.del));
   if (userCap) {
     const ids = [...new Set(library.map(l => l.updatedBy).filter(Boolean))];
@@ -4023,6 +4024,21 @@ async function openFromLibrary(id) {
   if (isDirty() && !(await ask('Open without saving?', 'The current layout has changes that aren’t in the library.', 'Open anyway'))) return;
   loadModel(l.layout, { docId: id, stamp: l.updatedAt, saved: true });
   $('#libDlg').close(); toast(`Opened ${l.name}`);
+}
+// Opens a copy of a saved layout as a brand-new, unsaved product: every
+// panel/housing/rules choice carries over (so only the real differences
+// need adjusting), but identity fields that must never be shared between
+// two products — PureLink Partnumber, Supplier Partnumber, product name —
+// are cleared, and it has no library id yet, so there's no way for Save
+// to overwrite the original. Revision/approval/freeze state is already
+// docId-scoped elsewhere, so a null docId naturally starts clean too.
+async function duplicateFromLibrary(id) {
+  const l = library.find(x => x.id === id); if (!l || !validModel(l.layout)) { toast('That layout can’t be duplicated. It may be from a newer version of the tool.'); return; }
+  if (isDirty() && !(await ask('Duplicate without saving current changes?', 'The current layout has changes that aren’t in the library.', 'Duplicate anyway'))) return;
+  const copy = JSON.parse(JSON.stringify(l.layout));
+  copy.name = ''; copy.sku = ''; copy.supplierSku = '';
+  loadModel(copy);
+  $('#libDlg').close(); toast(`Duplicated ${l.name || 'layout'} — give it a new Partnumber and name, then Save.`);
 }
 async function deleteFromLibrary(id) {
   const l = library.find(x => x.id === id); if (!l) return;
