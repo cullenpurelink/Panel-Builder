@@ -4,7 +4,7 @@ description: >-
   Turns a supplier's silk-print / silkscreen CAD drawing (PDF, often named
   with "丝印" in it, or sent as a 1:1 panel layout for front/back/underside
   of an enclosure) into real front and rear panel layouts inside this
-  repo's Product Builder (index.html). Use this whenever the user hands
+  repo's Product Builder (panel-builder/index.html). Use this whenever the user hands
   over a supplier drawing — from HDCVT, PureLink's own ID team, or any
   other vendor — and asks to replicate, rebuild, match, or "make the panel
   from" it, even if they don't say "Product Builder" by name. Also use it
@@ -128,9 +128,9 @@ the first time this was done:
   this out from the actual pixel layout each time.
 
 If you need a `PORTS` type that isn't in the cheat-sheet, or a field
-doesn't behave as documented there, grep the real thing in `index.html`
-(`const PORTS = {`) — the cheat-sheet is a snapshot, not a substitute for
-the source when something doesn't match.
+doesn't behave as documented there, grep the real thing in
+`panel-builder/index.html` (`const PORTS = {`) — the cheat-sheet is a
+snapshot, not a substitute for the source when something doesn't match.
 
 ## Step 4 — write the layout file
 
@@ -143,7 +143,7 @@ a worked example), then add its filename to `data/library/manifest.json`
 
 1. Start the dev server if it isn't already running:
    `python tools/dev_server.py 8743` (or `start.bat`), then open
-   `http://localhost:8743/index.html` in **Claude in Chrome** per the
+   `http://localhost:8743/panel-builder/index.html` in **Claude in Chrome** per the
    user's standing preference for that over the built-in browser pane.
 2. **Hard-reload** (Ctrl+Shift+R) before opening the Library. The app
    fetches `data/library/manifest.json` on load, and a plain reload can
@@ -347,7 +347,7 @@ by default. Worth reading if the user asks for the same:
   LED-legend rows are indented further than the port lines). Add
   MAC/RATING/NOTES/Device-Info boxes afterward in the space below, at
   their style-guide fixed/minimum sizes (see the `addHousingBox`/
-  `STICKER_SIZE`/`NOTES_MIN` constants in `index.html`).
+  `STICKER_SIZE`/`NOTES_MIN` constants in `panel-builder/index.html`).
 - **The Housing tab's own UI can be gated behind a "Housing opens after
   panel approval" screen** (save to library + an approver signs off)
   that this skill's established workflow has no need to go through —

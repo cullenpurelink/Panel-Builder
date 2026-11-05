@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>PureLink Panel Builder</title>
-<link rel="icon" type="image/svg+xml" href="favicon.svg">
-<link rel="icon" href="favicon.ico" sizes="any">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/svg+xml" href="../shared/favicon.svg">
+<link rel="icon" href="../shared/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="../shared/apple-touch-icon.png">
 <style>
 :root{
   --bg:#E4E6E8; --surface:#F8F8F9; --surface-2:#EEF0F2; --ink:#16191D; --muted:#59616A; --line:#CDD1D6;
@@ -412,7 +412,7 @@ dialog::backdrop{background:rgba(10,14,18,.45)}
 <input type="file" id="logoIn" accept=".svg,image/svg+xml" class="sr">
 <div class="toast" id="toast" role="status"></div>
 
-<script src="shared/local-db.js"></script>
+<script src="../shared/local-db.js"></script>
 
 <script>
 /* Shown only when this page is opened directly (not inside the Modules Hub's
@@ -445,7 +445,7 @@ dialog::backdrop{background:rgba(10,14,18,.45)}
 
     var manifest;
     try {
-      var res = await fetch('data/library/manifest.json');
+      var res = await fetch('../data/library/manifest.json');
       if (!res.ok) return;
       manifest = await res.json();
     } catch (e) { return; }
@@ -458,7 +458,7 @@ dialog::backdrop{background:rgba(10,14,18,.45)}
         var existing = await db.collection('layouts').doc(id).get();
         if (existing.exists) continue;
 
-        var modelRes = await fetch('data/library/' + filename);
+        var modelRes = await fetch('../data/library/' + filename);
         if (!modelRes.ok) continue;
         var model = await modelRes.json();
 

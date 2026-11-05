@@ -1,122 +1,68 @@
-# PureLink Panel Builder
+# PureLink module suite
 
-Module 1 of the PureLink browser-based design/production tool suite.
+A set of standalone, browser-based tools for PureLink's AV-hardware
+product team, served from one small Python static server. No build step,
+no framework, no `package.json` — each module is a single self-contained
+`index.html` (inline CSS/JS) in its own folder.
 
-A single-page tool for laying out AV device front and rear panels: a
-draggable port/part library, panel canvas with grid/snap/alignment,
-dimension guides, housing and 3D views, silkscreen rules, a validation
-"Checks" panel, and a revision/approval workflow (Draft → Approved →
-Released).
+For contributors (human or AI): see [CLAUDE.md](CLAUDE.md) for the full
+architecture/conventions reference this README summarizes.
 
-For contributors (human or AI): see [CLAUDE.md](CLAUDE.md) for the
-full architecture/conventions reference this README summarizes.
+## How to open this
+
+Run [`start.bat`](start.bat): starts the shared server and opens the
+[Modules Hub](modules-hub/index.html) — the collapsible sidebar that
+embeds whichever module you pick. That's the normal way in for everyone.
+
+Every module also still works opened directly (double-click its
+`index.html`) — no install/server/build step needed — you'll just see a
+small "← Modules" link instead of the full sidebar, since the sidebar
+itself belongs to the Hub.
 
 ## Repo layout
 
-This repo's root **is** the Panel Builder app (`index.html` here is
-Module 1). More modules live as subfolders:
+Each module is its own folder, with its own `README.md`:
 
-- [`modules-hub/`](modules-hub/index.html) — the launcher shell
-  (collapsible sidebar, embeds whichever module is selected, has the
-  "Push to GitHub" button)
-- [`content-builder/`](content-builder/index.html) — builds PIM/label/
-  sales copy (Feature Title, Features, Use Case, Label Text, Concept
-  Document) for a product, optionally AI-drafted from its linked Panel
-  Builder panels' real ports; exports to `.xlsx` and `.docx`
-- [`system-diagrams/`](system-diagrams/index.html) — Module 2, a
-  viewer for the real PureLink System Diagram Library
-- [`shared/local-db.js`](shared/local-db.js) — the local persistence
-  shim every module includes
+- [`panel-builder/`](panel-builder/README.md) — **Module 1**, and the
+  oldest/largest. Lay out AV device front & rear panels: port library,
+  canvas with grid/snap/alignment, housing & 3D views, silkscreen rules,
+  a validation "Checks" panel, Draft → Approved → Released revision
+  workflow. The source of truth for a product's physical port layout.
+- [`system-diagrams/`](system-diagrams/README.md) — **Module 2**, a
+  viewer for the real PureLink System Diagram Library (room masters,
+  classroom touch-panel systems), plus two standalone helper pages
+  (a product-icon generator and an early scene-builder prototype).
+- [`content-builder/`](content-builder/README.md) — builds PIM/label/
+  sales copy for a product, optionally AI-drafted from its linked Panel
+  Builder panels' real ports; exports to `.xlsx` and `.docx`.
+- [`modules-hub/`](modules-hub/README.md) — the launcher shell described
+  above; also has the "Push to GitHub" button. **Adding a new module**
+  (e.g. the planned 3D-design-program integration) means a new sibling
+  folder here plus one entry in the Hub's `MODULES` array — see its
+  README for the exact spot.
+
+Shared, suite-wide pieces live at the root, not inside any one module:
+
+- [`shared/`](shared/local-db.js) — `local-db.js` (the local-persistence
+  shim every module loads) and the suite's favicon set
+  (`favicon.svg`/`.ico`, `apple-touch-icon.png`), used by all four
+  modules above
 - [`tools/dev_server.py`](tools/dev_server.py) — the static server
   (`start.bat`/`stop.bat` run it) plus the JSON API routes the modules'
   export/publish/AI-draft/push-to-GitHub buttons call
 - [`data/library/`](data/library/) — the shared panel-layout library
-  (see [Bringing panels over from claude.ai](#bringing-panels-over-from-claudeai))
+  (every layout `panel-builder/` exports, that `content-builder/` and
+  `system-diagrams/` both also read); see
+  [panel-builder/README.md](panel-builder/README.md#bringing-panels-over-from-claudeai)
+  for how a layout gets in here
 - `reference/` — internal PureLink styleguides/CAD, gitignored on
   purpose (only `reference/INDEX.md` is tracked)
 
-## How to open this
+## Local persistence, in short
 
-The normal way in: run [`start.bat`](start.bat) (or double-click
-[`modules-hub/index.html`](modules-hub/index.html) once a server is
-running — `start.bat` does both). **The collapsible sidebar/menu lives
-in the Hub, not in this file** — the Hub is a shell that embeds each
-module.
-
-You can also open [`index.html`](index.html) (this folder's root)
-directly — it still works standalone, no install/server/build step
-needed — but since the menu belongs to the Hub, you'll only see a
-small "← Modules" link top-left instead of the full sidebar. Click it
-to get back to the Hub.
-
-## Where this came from
-
-This is the user's "PureLink Panel Builder" Claude artifact (from the
-*AV panel port layout builder tool* conversation), exported as a
-standalone HTML page and adapted to run outside claude.ai.
-
-## Local persistence — read this
-
-The original artifact saves its data (the shared layout library,
-approvals, the approver list) through Claude's hosted `db`/`user`
-capabilities. A plain exported HTML file doesn't have that backend, so
-`index.html` loads [`shared/local-db.js`](shared/local-db.js) as
-its first `<script>` tag — a shim shared by every module in this suite
-that reimplements the exact same `db`/`user`/`downloads` calls on top
-of the browser's **IndexedDB** instead (replaced the original
-localStorage-only version once the suite grew past one module).
-
-What this means in practice:
-
-- **Save, Library, Approve/Release/Return to draft all work fully
-  offline** — nothing is disabled.
-- Data lives **only in the browser you used it in, on this machine**.
-  It will not show up in another browser, another computer, or back
-  on claude.ai. There's no "team" to share with locally — you are
-  always treated as the owner and sole approver.
-- **Saving, deleting or changing the approval status of a library
-  item now shows a small "Undo" pill** in the bottom-right corner for
-  about 8 seconds — click it to revert that one action (click the
-  resulting "Redo" to put it back). This is separate from the
-  canvas's own Ctrl+Z/Ctrl+Shift+Z, which still undoes panel-editing
-  moves as before.
-- Clearing that browser's site data for this file will erase the
-  saved library/approvals (the IndexedDB database is named
-  `purelink-local-db`). The Undo pill above is the only short-term
-  safety net — there's no long-term undo for that.
-- The draft you're actively editing (even before saving to the
-  library) still persists via plain `localStorage` under its own key
-  (`purelink-panel-builder:draft`), unchanged from before — a page
-  reload won't lose in-progress work.
-
-If you want this to sync across machines or between people again,
-that needs a small real backend (or re-adopting Claude's hosted
-capabilities) — not in scope for this local copy.
-
-## Bringing panels over from claude.ai
-
-For each panel in your hosted claude.ai library you want available
-locally:
-
-1. In the **claude.ai version**: Library → open the panel (Reopen)
-2. **Export** → scroll to the bottom → **Layout file** (the only export
-   with the full editable model — not the PNG/SVG/PDF drawing exports)
-   → download the `<name>-layout.json`
-3. Drop it into [`data/library/`](data/library/)
-4. Add its filename to [`data/library/manifest.json`](data/library/manifest.json)
-5. Reload the app — anything listed there that isn't already in the
-   local library gets loaded in automatically (silently, no undo pill,
-   and only once per item — a seed already present is left alone, so
-   it's safe to reload as often as you like)
-
-This is how the panels currently in `data/library/` got there — they
-load into the Library automatically the first time you open the app.
-
-## Files
-
-- `index.html` — the app (loads `shared/local-db.js`, otherwise the original export untouched)
-- `start.bat` / `stop.bat` — start/stop the shared local server for the whole suite
-- `data/library/` — exported layout JSONs + `manifest.json`, auto-loaded into the local Library on first run (see above)
-- `index.html.bak` — untouched copy of the original export, kept as a safety copy; safe to delete whenever you're satisfied
-- `shared/`, `modules-hub/`, `content-builder/`, `system-diagrams/`, `tools/` — see [Repo layout](#repo-layout) above
-- `CLAUDE.md` — architecture/conventions reference for anyone (human or AI) working on this repo
+No module here has a real backend — each saves through a shared
+IndexedDB-based shim (`shared/local-db.js`) instead, so everything works
+fully offline but data lives only in the browser/machine that saved it.
+See [`panel-builder/README.md`](panel-builder/README.md#local-persistence--read-this)
+for the full explanation (Undo pills, what survives a reload, what
+doesn't) — it applies to every module, not just Panel Builder.

@@ -1,10 +1,11 @@
 # Layout JSON & PORTS catalog cheat-sheet
 
-Snapshot taken 2026-10-28 from `index.html`'s `const PORTS = {` block and the
-example files in `data/library/`. This is a shortcut to avoid re-reading the
-whole (huge) `index.html` every time — but it's a snapshot, not a contract.
-If a type you need isn't here, or a field doesn't behave as described, grep
-`index.html` for the real thing (`grep -n "type: 'yourtype'"` or just
+Snapshot taken 2026-10-28 from `panel-builder/index.html`'s `const PORTS = {`
+block and the example files in `data/library/`. This is a shortcut to avoid
+re-reading the whole (huge) `panel-builder/index.html` every time — but it's
+a snapshot, not a contract. If a type you need isn't here, or a field
+doesn't behave as described, grep `panel-builder/index.html` for the real
+thing (`grep -n "type: 'yourtype'"` or just
 `PORTS = {`) rather than guessing. Hand-authored JSON gets loaded as-is: none
 of the catalog's `def` (defaults) are applied automatically the way they are
 when a part is dragged in through the UI, so **every field a part needs has

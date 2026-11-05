@@ -593,7 +593,7 @@ function ensurePanelRefFrame() {
   // Cache-busted: the browser's HTTP cache for Panel Builder's own page
   // (very likely already populated — people open it directly too) must
   // never shadow a newer deploy just because this strip asked for it first.
-  f.src = '../index.html?ref=' + Date.now();
+  f.src = '../panel-builder/index.html?ref=' + Date.now();
   f.style.display = 'none';
   f.setAttribute('aria-hidden', 'true');
   f.onload = () => { panelRefFrameReady = true; };

@@ -21,13 +21,26 @@ as a Claude.ai artifact ("PureLink Panel Builder") and grown from there.
 
 | Module | Entry point | Purpose |
 |---|---|---|
-| **Panel Builder** (Module 1) | [`index.html`](index.html) | Design AV device front/rear panels: draggable port library, canvas with grid/snap/alignment, dimension guides, Housing (enclosure) and 3D views, silkscreen rules, a validation "Checks" panel, Draft → Approved → Released workflow. This is the oldest and largest module (~4,500 lines) and the source of truth for a product's physical port layout. |
-| **Content Builder** | [`content-builder/index.html`](content-builder/index.html) | Builds PIM/label/sales copy for a product (Feature Title, 5 Features, Use Case, Label Text, Concept Document), optionally AI-drafted from a product's linked Panel Builder panels' real ports. Exports to `.xlsx` (matching the real PureTools product masterfile tabs) and `.docx` (PRD-style Concept Document). |
+| **Panel Builder** (Module 1) | [`panel-builder/index.html`](panel-builder/index.html) | Design AV device front/rear panels: draggable port library, canvas with grid/snap/alignment, dimension guides, Housing (enclosure) and 3D views, silkscreen rules, a validation "Checks" panel, Draft → Approved → Released workflow. This is the oldest and largest module (~4,500 lines) and the source of truth for a product's physical port layout. See [`panel-builder/README.md`](panel-builder/README.md). |
+| **Content Builder** | [`content-builder/index.html`](content-builder/index.html) | Builds PIM/label/sales copy for a product (Feature Title, 5 Features, Use Case, Label Text, Concept Document), optionally AI-drafted from a product's linked Panel Builder panels' real ports. Exports to `.xlsx` (matching the real PureTools product masterfile tabs) and `.docx` (PRD-style Concept Document). See [`content-builder/README.md`](content-builder/README.md). |
 | **System Diagrams** (Module 2) | [`system-diagrams/index.html`](system-diagrams/index.html) | Viewer onto the `PureLink_Diagram_Library_v1.0` master register (room/system diagrams). **Not** an editor — masters are produced by a separate Python pipeline in a different Claude Project; see [`system-diagrams/README.md`](system-diagrams/README.md). |
-| **Modules Hub** | [`modules-hub/index.html`](modules-hub/index.html) | Launcher shell: collapsible sidebar, embeds whichever module is selected via `<iframe>`, has the "Push to GitHub" button. This is the normal entry point — `start.bat` opens it. |
+| **Modules Hub** | [`modules-hub/index.html`](modules-hub/index.html) | Launcher shell: collapsible sidebar, embeds whichever module is selected via `<iframe>`, has the "Push to GitHub" button. This is the normal entry point — `start.bat` opens it. See [`modules-hub/README.md`](modules-hub/README.md). |
+
+Every module is its own folder with its own `README.md` — this table
+should stay in sync with those, not duplicate them.
+
+**Adding a new module** (e.g. the planned integration with a colleague's
+3D design program): give it its own sibling folder at the repo root with
+its own `index.html` and `README.md`, load `shared/local-db.js` if it
+needs local persistence, and add one entry to the `MODULES` array near
+the top of `modules-hub/index.html`'s script (it carries its own comment
+marking exactly this spot). No other Hub code needs to change. Update
+this table and the root `README.md`'s "Repo layout" in the same pass.
 
 `shared/local-db.js` is loaded by every module as its first `<script>`
-tag — see "Local persistence" below.
+tag — see "Local persistence" below. `shared/` also holds the suite-wide
+favicon set (`favicon.svg`/`.ico`, `apple-touch-icon.png`) every module's
+`<head>` links to with a `../shared/` prefix.
 
 ## How to run it
 
@@ -116,7 +129,7 @@ the canonical format Content Builder and System Diagrams both read
 (linked ports, generated panel icons). `data/library/manifest.json` is a
 flat JSON array of filenames in that folder — **every new layout file
 must be added to this array**, or the app won't auto-load it. See
-[README.md](README.md#bringing-panels-over-from-claudeai) for the full
+[panel-builder/README.md](panel-builder/README.md#bringing-panels-over-from-claudeai) for the full
 claude.ai → local workflow.
 
 ## `reference/` is gitignored on purpose
@@ -128,7 +141,7 @@ files — company-internal, not meant for git history. Only
 `!reference/INDEX.md` exception) so a fresh clone still explains what's
 supposed to live there. **If you add a new reference doc, update
 `reference/INDEX.md` to describe it** (what it covers, which code in
-`index.html` was built from it) — that index is the only trace of
+`panel-builder/index.html` was built from it) — that index is the only trace of
 `reference/`'s contents that survives in git.
 
 ## Skills (`.claude/skills/`)
